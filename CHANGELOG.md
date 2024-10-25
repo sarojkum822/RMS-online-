@@ -37,3 +37,4 @@ All notable changes to KirayaBook are documented here.
 - Initial release
 - Property & Tenant CRUD
 - Firebase authentication
+# v0.2.0 milestone
