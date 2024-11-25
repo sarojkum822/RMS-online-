@@ -39,3 +39,4 @@ All notable changes to KirayaBook are documented here.
 - Firebase authentication
 # v0.2.0 milestone
 # v0.5.0 milestone
+# v0.8.0 milestone
