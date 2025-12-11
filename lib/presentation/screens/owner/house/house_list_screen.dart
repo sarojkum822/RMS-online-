@@ -64,7 +64,7 @@ class HouseListScreen extends ConsumerWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      // Navigate to details
+                      context.push('/owner/houses/${house.id}', extra: house);
                     },
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
