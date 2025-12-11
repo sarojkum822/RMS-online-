@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/entities/tenant.dart';
+import '../../domain/entities/house.dart';
 import '../screens/role_selection_screen.dart';
 import '../screens/owner/owner_dashboard_screen.dart';
 import '../screens/tenant/tenant_login_screen.dart';
