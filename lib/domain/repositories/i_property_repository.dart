@@ -1,3 +1,4 @@
+import 'dart:io'; // Need File type
 import '../entities/house.dart';
 // Unit is in house.dart
 

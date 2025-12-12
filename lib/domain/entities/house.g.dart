@@ -11,6 +11,7 @@ _$HouseImpl _$$HouseImplFromJson(Map<String, dynamic> json) => _$HouseImpl(
       name: json['name'] as String,
       address: json['address'] as String,
       notes: json['notes'] as String?,
+      imageUrl: json['imageUrl'] as String?,
       unitCount: (json['unitCount'] as num?)?.toInt() ?? 0,
     );
 
@@ -20,6 +21,7 @@ Map<String, dynamic> _$$HouseImplToJson(_$HouseImpl instance) =>
       'name': instance.name,
       'address': instance.address,
       'notes': instance.notes,
+      'imageUrl': instance.imageUrl,
       'unitCount': instance.unitCount,
     };
 

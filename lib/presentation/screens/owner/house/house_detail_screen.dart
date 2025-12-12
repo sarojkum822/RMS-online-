@@ -1,6 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rentpilotpro/presentation/screens/owner/house/house_form_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../domain/entities/house.dart';
@@ -29,6 +30,25 @@ class HouseDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+             if (house.imageUrl != null)
+               Padding(
+                 padding: const EdgeInsets.only(bottom: 24.0),
+                 child: Hero(
+                   tag: 'house_${house.id}',
+                   child: ClipRRect(
+                     borderRadius: BorderRadius.circular(20),
+                     child: CachedNetworkImage(
+                       imageUrl: house.imageUrl!,
+                       height: 200,
+                       width: double.infinity,
+                       fit: BoxFit.cover,
+                       placeholder: (context, url) => Container(height: 200, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
+                       errorWidget: (context, url, error) => Container(height: 200, color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                     ),
+                   ),
+                 ),
+               ),
+
              _HouseInfoCard(house: house),
              const SizedBox(height: 24),
              Text('Units', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -49,7 +69,7 @@ class HouseDetailScreen extends ConsumerWidget {
                          borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.05),
+                              color: Colors.grey.withValues(alpha: 0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -59,9 +79,37 @@ class HouseDetailScreen extends ConsumerWidget {
                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                          title: Text(unit.nameOrNumber, style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                          subtitle: Text('Default Due Day: ${unit.defaultDueDay}', style: GoogleFonts.outfit(color: Colors.grey)),
-                         trailing: Icon(Icons.bolt, color: Colors.orange[400]),
+                         trailing: Row(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                              IconButton(
+                                icon: Icon(Icons.bolt, color: Colors.orange[400]),
+                                onPressed: () => context.push('/owner/readings/${unit.id}', extra: {'unitName': unit.nameOrNumber}),
+                              ),
+                              PopupMenuButton(
+                                icon: Icon(Icons.more_vert, color: Colors.grey[400]),
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    child: const Text('Edit'),
+                                    onTap: () {
+                                      // context.push('/owner/units/edit/${unit.id}'); // TODO: Implement Route
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit Unit coming soon')));
+                                    },
+                                  ),
+                                  PopupMenuItem(
+                                    child: const Text('Delete'),
+                                    onTap: () {
+                                      // Confirm Dialog?
+                                      ref.read(houseControllerProvider.notifier).deleteUnit(unit.id);
+                                    },
+                                  ),
+                                ],
+                              ),
+                           ],
+                         ),
                          onTap: () {
-                           context.push('/owner/readings/${unit.id}', extra: {'unitName': unit.nameOrNumber});
+                            // Maybe navigate to unit details or readings? readings is already on trailing bolt.
+                            // keeping tap empty or redundant for now.
                          },
                        ),
                      );
@@ -107,7 +155,7 @@ class _HouseInfoCard extends StatelessWidget {
           ),
           if (house.notes != null) ...[
             const SizedBox(height: 12),
-             Text(house.notes!, style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.9), fontSize: 13, fontStyle: FontStyle.italic)),
+             Text(house.notes!, style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontStyle: FontStyle.italic)),
           ],
         ],
       )

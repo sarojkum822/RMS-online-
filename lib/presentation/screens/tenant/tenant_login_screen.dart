@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/services/user_session_service.dart';
 import '../owner/tenant/tenant_controller.dart'; 
 
 class TenantLoginScreen extends ConsumerStatefulWidget {
@@ -12,128 +13,128 @@ class TenantLoginScreen extends ConsumerStatefulWidget {
 }
 
 class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
-  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController(); // NEW
+  bool _isLoading = false;
   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        title: Text('Tenant Login', style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
           onPressed: () => context.go('/'),
         ),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tenant Login',
+      body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                        'Welcome Back',
                         style: GoogleFonts.outfit(
-                          fontSize: 32,
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF1E293B),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Enter your Phone Number (as Tenant Key) to access your dashboard.',
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      
-                      // Info Alert
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE3F2FD),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF90CAF9)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline, color: Color(0xFF1976D2)),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Tip: You can copy your phone number from the Owner App.',
-                                style: GoogleFonts.outfit(
-                                   color: const Color(0xFF1565C0),
-                                   fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-          
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone Number / Tenant Key',
-                          prefixIcon: Icon(Icons.vpn_key_rounded),
-                          border: OutlineInputBorder(),
-                          helperText: 'Paste copied phone number here',
-                        ),
-                      ),
-                      
-                      const Spacer(),
-                      
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final code = _phoneController.text.trim();
-                            if (code.isNotEmpty) {
-                              final tenant = await ref.read(tenantControllerProvider.notifier).login(code);
-                              if (tenant != null && context.mounted) {
-                                 context.go('/tenant/dashboard', extra: tenant);
-                              } else if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Invalid Login. Check phone/code.'))
-                                );
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00897B),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 2,
-                          ),
-                          child: Text(
-                            'Access Dashboard',
-                            style: GoogleFonts.outfit(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                const SizedBox(height: 8),
+                Text(
+                  'Enter your credentials provided by the property owner.',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    color: const Color(0xFF64748B),
                   ),
                 ),
-              ),
+                const SizedBox(height: 32),
+
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  ),
+                ),
+                
+                const SizedBox(height: 48),
+                
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : () async {
+                      final email = _emailController.text.trim();
+                      final password = _passwordController.text.trim();
+                      
+                      if (email.isEmpty || password.isEmpty) {
+                         ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please enter email and password.'))
+                         );
+                         return;
+                      }
+
+                      setState(() => _isLoading = true);
+
+                      try {
+                        // Using TenantController to find tenant
+                        final tenant = await ref.read(tenantControllerProvider.notifier).login(email, password);
+                        
+                        if (tenant != null && context.mounted) {
+                           await ref.read(userSessionServiceProvider).saveSession(role: 'tenant', tenantId: tenant.id);
+                           context.go('/tenant/dashboard', extra: tenant);
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Invalid Credentials or Account Inactive.'))
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Login Failed: $e'))
+                          );
+                        }
+                      } finally {
+                        if (mounted) setState(() => _isLoading = false);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00897B),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 2,
+                    ),
+                    child: _isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                      'Login',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          );
-        }
+          ),
       ),
     );
   }

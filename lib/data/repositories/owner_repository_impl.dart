@@ -1,54 +1,63 @@
-import 'package:drift/drift.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/repositories/i_owner_repository.dart';
 import '../../domain/entities/owner.dart';
-import '../datasources/local/database.dart' hide Owner;
 
 class OwnerRepositoryImpl implements IOwnerRepository {
-  final AppDatabase _db;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
 
-  OwnerRepositoryImpl(this._db);
+  OwnerRepositoryImpl(this._firestore) : _auth = FirebaseAuth.instance;
 
   @override
   Future<Owner?> getOwner() async {
-    final query = _db.select(_db.owners)..limit(1);
-    final row = await query.getSingleOrNull();
-    if (row == null) return null;
-    return Owner(
-      id: row.id,
-      name: row.name,
-      phone: row.phone,
-      email: row.email,
-      currency: row.currency,
-      timezone: row.timezone,
-      createdAt: row.createdAt,
-    );
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final doc = await _firestore.collection('owners').doc(user.uid).get();
+    if (!doc.exists) return null;
+
+    return _mapSnapshotToOwner(doc);
   }
 
   @override
   Future<void> saveOwner(Owner owner) async {
-    // If ID is 0 or -1, insert. Else update.
-    // Actually typically there's only one owner.
-    final companion = OwnersCompanion(
-      name: Value(owner.name),
-      phone: Value(owner.phone),
-      email: Value(owner.email),
-      currency: Value(owner.currency),
-      timezone: Value(owner.timezone),
-    );
-    
-    await _db.into(_db.owners).insertOnConflictUpdate(companion);
+    final user = _auth.currentUser;
+    if (user == null) return;
+    // Ensure we use the Auth UID as the document ID
+    await _firestore.collection('owners').doc(user.uid).set(_mapOwnerToMap(owner));
   }
 
   @override
   Future<void> updateOwner(Owner owner) async {
-    final companion = OwnersCompanion(
-      id: Value(owner.id),
-      name: Value(owner.name),
-      phone: Value(owner.phone),
-      email: Value(owner.email),
-      currency: Value(owner.currency),
-      timezone: Value(owner.timezone),
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _firestore.collection('owners').doc(user.uid).update(_mapOwnerToMap(owner));
+  }
+
+  Owner _mapSnapshotToOwner(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    return Owner(
+      id: 0, // ID is less relevant in Firestore-only, but keeping for compatibility
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      firestoreId: doc.id,
+      currency: data['currency'] ?? 'INR',
+      timezone: data['timezone'],
+      createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
     );
-    await _db.update(_db.owners).replace(companion);
+  }
+
+  Map<String, dynamic> _mapOwnerToMap(Owner owner) {
+    return {
+      'name': owner.name,
+      'email': owner.email,
+      'phone': owner.phone,
+      'currency': owner.currency,
+      'timezone': owner.timezone,
+      'createdAt': owner.createdAt != null ? Timestamp.fromDate(owner.createdAt!) : FieldValue.serverTimestamp(),
+      'firestoreId': _auth.currentUser?.uid, // Redundant but consistent
+    };
   }
 }

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rentpilotpro/presentation/screens/owner/house/house_form_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'house_controller.dart';
+import '../../../widgets/empty_state_widget.dart';
 
 class HouseListScreen extends ConsumerWidget {
   const HouseListScreen({super.key});
@@ -29,16 +32,12 @@ class HouseListScreen extends ConsumerWidget {
         data: (houses) {
           if (houses.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.home_work_outlined, size: 64, color: Colors.grey[300]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No properties yet',
-                    style: GoogleFonts.outfit(fontSize: 18, color: Colors.grey[500]),
-                  ),
-                ],
+              child: EmptyStateWidget(
+                title: 'No properties yet',
+                subtitle: 'Add your first property to start managing\ntenants and rent collection.',
+                icon: Icons.home_work_outlined,
+                buttonText: 'Add Property',
+                onButtonPressed: () => context.push('/owner/houses/add'),
               ),
             );
           }
@@ -54,7 +53,7 @@ class HouseListScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.08),
+                      color: Colors.grey.withValues(alpha: 0.08),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -67,96 +66,125 @@ class HouseListScreen extends ConsumerWidget {
                       context.push('/owner/houses/${house.id}', extra: house);
                     },
                     borderRadius: BorderRadius.circular(20),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE0F2F1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.apartment, color: Color(0xFF00897B)),
-                              ),
-                              PopupMenuButton(
-                                icon: Icon(Icons.more_horiz, color: Colors.grey[400]),
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    child: const Text('Delete'),
-                                    onTap: () {
-                                      ref.read(houseControllerProvider.notifier).deleteHouse(house.id);
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            house.name,
-                            style: GoogleFonts.outfit(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF1E293B),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.location_on_outlined, size: 16, color: Colors.grey[500]),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  house.address,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 14,
-                                    color: const Color(0xFF64748B),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          const Divider(height: 1),
-                          const SizedBox(height: 12),
-                          Consumer(
-                            builder: (context, ref, child) {
-                              final statsValue = ref.watch(houseStatsProvider(house.id));
-                              return statsValue.when(
-                                data: (stats) {
-                                  final occupiedCount = stats['occupiedCount'] as int;
-                                  final occupancyRate = stats['occupancyRate'] as double;
-                                  
-                                  return Row(
+                    child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                          if (house.imageUrl != null)
+                             Hero(
+                               tag: 'house_${house.id}',
+                               child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                   child: CachedNetworkImage(
+                                      imageUrl: house.imageUrl!,
+                                      height: 150,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(height: 150, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
+                                      errorWidget: (context, url, error) => Container(height: 150, color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                                   ),
+                               ),
+                             ),
+                          
+                          Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      _InfoBadge(
-                                        icon: Icons.people_outline, 
-                                        text: '$occupiedCount Occupied',
-                                        color: Colors.blue[700],
-                                      ),
-                                      const SizedBox(width: 12),
-                                      _InfoBadge(
-                                        icon: Icons.pie_chart_outline, 
-                                        text: '${(occupancyRate * 100).toInt()}% Full', 
-                                        color: occupancyRate > 0.8 ? Colors.green : Colors.orange
+                                      if (house.imageUrl == null)
+                                         Container(
+                                           padding: const EdgeInsets.all(10),
+                                           decoration: BoxDecoration(
+                                             color: const Color(0xFFE0F2F1),
+                                             borderRadius: BorderRadius.circular(12),
+                                           ),
+                                           child: const Icon(Icons.apartment, color: Color(0xFF00897B)),
+                                         ),
+                                      const Spacer(), // Spacer if no icon
+                                      PopupMenuButton(
+                                        icon: Icon(Icons.more_horiz, color: Colors.grey[400]),
+                                        itemBuilder: (context) => [
+                                          PopupMenuItem(
+                                            child: const Text('Edit'),
+                                            onTap: () {
+                                               context.push('/owner/houses/edit/${house.id}', extra: house);
+                                            },
+                                          ),
+                                          PopupMenuItem(
+                                            child: const Text('Delete'),
+                                            onTap: () {
+                                              ref.read(houseControllerProvider.notifier).deleteHouse(house.id);
+                                            },
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                  );
-                                },
-                                loading: () => const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                                error: (e, s) => const Text('Error'),
-                              );
-                            },
+                                  ),
+                                  if (house.imageUrl == null) const SizedBox(height: 16),
+                                  Text(
+                                    house.name,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.location_on_outlined, size: 16, color: Colors.grey[500]),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          house.address,
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 14,
+                                            color: const Color(0xFF64748B),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 12),
+                                  Consumer(
+                                    builder: (context, ref, child) {
+                                      final statsValue = ref.watch(houseStatsProvider(house.id));
+                                      return statsValue.when(
+                                        data: (stats) {
+                                          final occupiedCount = stats['occupiedCount'] as int;
+                                          final occupancyRate = stats['occupancyRate'] as double;
+                                          
+                                          return Row(
+                                            children: [
+                                              _InfoBadge(
+                                                icon: Icons.people_outline, 
+                                                text: '$occupiedCount Occupied',
+                                                color: Colors.blue[700],
+                                              ),
+                                              const SizedBox(width: 12),
+                                              _InfoBadge(
+                                                icon: Icons.pie_chart_outline, 
+                                                text: '${(occupancyRate * 100).toInt()}% Full', 
+                                                color: occupancyRate > 0.8 ? Colors.green : Colors.orange
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                        loading: () => const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                                        error: (e, s) => const Text('Error'),
+                                      );
+                                    },
+                                  ),
+                               ],
+                            ),
                           ),
-                        ],
-                      ),
+                       ],
                     ),
                   ),
                 ),

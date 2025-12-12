@@ -24,6 +24,7 @@ mixin _$House {
   String get name => throw _privateConstructorUsedError;
   String get address => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
+  String? get imageUrl => throw _privateConstructorUsedError;
   int get unitCount => throw _privateConstructorUsedError;
 
   /// Serializes this House to a JSON map.
@@ -41,7 +42,12 @@ abstract class $HouseCopyWith<$Res> {
       _$HouseCopyWithImpl<$Res, House>;
   @useResult
   $Res call(
-      {int id, String name, String address, String? notes, int unitCount});
+      {int id,
+      String name,
+      String address,
+      String? notes,
+      String? imageUrl,
+      int unitCount});
 }
 
 /// @nodoc
@@ -63,6 +69,7 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
     Object? name = null,
     Object? address = null,
     Object? notes = freezed,
+    Object? imageUrl = freezed,
     Object? unitCount = null,
   }) {
     return _then(_value.copyWith(
@@ -82,6 +89,10 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      imageUrl: freezed == imageUrl
+          ? _value.imageUrl
+          : imageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       unitCount: null == unitCount
           ? _value.unitCount
           : unitCount // ignore: cast_nullable_to_non_nullable
@@ -98,7 +109,12 @@ abstract class _$$HouseImplCopyWith<$Res> implements $HouseCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id, String name, String address, String? notes, int unitCount});
+      {int id,
+      String name,
+      String address,
+      String? notes,
+      String? imageUrl,
+      int unitCount});
 }
 
 /// @nodoc
@@ -118,6 +134,7 @@ class __$$HouseImplCopyWithImpl<$Res>
     Object? name = null,
     Object? address = null,
     Object? notes = freezed,
+    Object? imageUrl = freezed,
     Object? unitCount = null,
   }) {
     return _then(_$HouseImpl(
@@ -137,6 +154,10 @@ class __$$HouseImplCopyWithImpl<$Res>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      imageUrl: freezed == imageUrl
+          ? _value.imageUrl
+          : imageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       unitCount: null == unitCount
           ? _value.unitCount
           : unitCount // ignore: cast_nullable_to_non_nullable
@@ -153,6 +174,7 @@ class _$HouseImpl implements _House {
       required this.name,
       required this.address,
       this.notes,
+      this.imageUrl,
       this.unitCount = 0});
 
   factory _$HouseImpl.fromJson(Map<String, dynamic> json) =>
@@ -167,12 +189,14 @@ class _$HouseImpl implements _House {
   @override
   final String? notes;
   @override
+  final String? imageUrl;
+  @override
   @JsonKey()
   final int unitCount;
 
   @override
   String toString() {
-    return 'House(id: $id, name: $name, address: $address, notes: $notes, unitCount: $unitCount)';
+    return 'House(id: $id, name: $name, address: $address, notes: $notes, imageUrl: $imageUrl, unitCount: $unitCount)';
   }
 
   @override
@@ -184,6 +208,8 @@ class _$HouseImpl implements _House {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.address, address) || other.address == address) &&
             (identical(other.notes, notes) || other.notes == notes) &&
+            (identical(other.imageUrl, imageUrl) ||
+                other.imageUrl == imageUrl) &&
             (identical(other.unitCount, unitCount) ||
                 other.unitCount == unitCount));
   }
@@ -191,7 +217,7 @@ class _$HouseImpl implements _House {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
-      Object.hash(runtimeType, id, name, address, notes, unitCount);
+      Object.hash(runtimeType, id, name, address, notes, imageUrl, unitCount);
 
   /// Create a copy of House
   /// with the given fields replaced by the non-null parameter values.
@@ -215,6 +241,7 @@ abstract class _House implements House {
       required final String name,
       required final String address,
       final String? notes,
+      final String? imageUrl,
       final int unitCount}) = _$HouseImpl;
 
   factory _House.fromJson(Map<String, dynamic> json) = _$HouseImpl.fromJson;
@@ -227,6 +254,8 @@ abstract class _House implements House {
   String get address;
   @override
   String? get notes;
+  @override
+  String? get imageUrl;
   @override
   int get unitCount;
 

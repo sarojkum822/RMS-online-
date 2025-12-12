@@ -18,19 +18,27 @@ class DashboardStats {
 abstract class IRentRepository {
   // Rent Cycles
   Future<List<RentCycle>> getRentCyclesForTenant(int tenantId);
+  Future<List<RentCycle>> getRentCyclesByTenantAccess(int tenantId, String ownerId); // NEW: For Tenant Dashboard
   Future<List<RentCycle>> getRentCyclesForMonth(String month); // YYYY-MM
+  Future<List<RentCycle>> getAllPendingRentCycles(); // NEW: Fetch all unpaid bills
+  Future<List<RentCycle>> getAllRentCycles(); // NEW: Optimized Fetch for Reports
   Future<RentCycle?> getRentCycle(int id);
   Future<int> createRentCycle(RentCycle rentCycle);
   Future<void> updateRentCycle(RentCycle rentCycle);
+  Future<void> deleteRentCycle(int id);
 
   // Payments
+  Future<List<Payment>> getAllPayments(); // NEW: Optimized Fetch for Reports
   Future<List<Payment>> getPaymentsForRentCycle(int rentCycleId);
   Future<List<Payment>> getPaymentsForTenant(int tenantId);
+  Future<List<Payment>> getPaymentsByTenantAccess(int tenantId, String ownerId); // NEW: For Tenant Dashboard
   Future<List<Payment>> getRecentPayments(int limit);
   Future<DashboardStats> getDashboardStats(); 
   Future<int> recordPayment(Payment payment);
-  Future<void> addElectricReading(int unitId, DateTime date, double reading);
-  Future<List<double>> getElectricReadings(int unitId); // Returning list of readings (just values? or objects?)
+  Future<void> deletePayment(int id);
+  Future<void> addElectricReading(int unitId, DateTime date, double reading, {String? imagePath, double? rate});
+  Future<List<double>> getElectricReadings(int unitId);
+  Future<Map<String, double>?> getLastElectricReading(int unitId);
   
   // Expenses
   Future<void> addExpense(Expense expense);

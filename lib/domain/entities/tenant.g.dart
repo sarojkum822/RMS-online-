@@ -18,6 +18,10 @@ _$TenantImpl _$$TenantImplFromJson(Map<String, dynamic> json) => _$TenantImpl(
       status: $enumDecode(_$TenantStatusEnumMap, json['status']),
       openingBalance: (json['openingBalance'] as num?)?.toDouble() ?? 0.0,
       agreedRent: (json['agreedRent'] as num?)?.toDouble(),
+      password: json['password'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      authId: json['authId'] as String?,
+      ownerId: json['ownerId'] as String,
     );
 
 Map<String, dynamic> _$$TenantImplToJson(_$TenantImpl instance) =>
@@ -33,6 +37,10 @@ Map<String, dynamic> _$$TenantImplToJson(_$TenantImpl instance) =>
       'status': _$TenantStatusEnumMap[instance.status]!,
       'openingBalance': instance.openingBalance,
       'agreedRent': instance.agreedRent,
+      'password': instance.password,
+      'imageUrl': instance.imageUrl,
+      'authId': instance.authId,
+      'ownerId': instance.ownerId,
     };
 
 const _$TenantStatusEnumMap = {

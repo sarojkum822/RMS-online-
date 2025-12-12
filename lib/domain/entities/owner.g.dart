@@ -11,6 +11,7 @@ _$OwnerImpl _$$OwnerImplFromJson(Map<String, dynamic> json) => _$OwnerImpl(
       name: json['name'] as String,
       phone: json['phone'] as String?,
       email: json['email'] as String?,
+      firestoreId: json['firestoreId'] as String?,
       currency: json['currency'] as String? ?? 'INR',
       timezone: json['timezone'] as String?,
       createdAt: json['createdAt'] == null
@@ -24,6 +25,7 @@ Map<String, dynamic> _$$OwnerImplToJson(_$OwnerImpl instance) =>
       'name': instance.name,
       'phone': instance.phone,
       'email': instance.email,
+      'firestoreId': instance.firestoreId,
       'currency': instance.currency,
       'timezone': instance.timezone,
       'createdAt': instance.createdAt?.toIso8601String(),

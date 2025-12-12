@@ -10,6 +10,7 @@ class House with _$House {
     required String name,
     required String address,
     String? notes,
+    String? imageUrl,
     @Default(0) int unitCount,
   }) = _House;
 

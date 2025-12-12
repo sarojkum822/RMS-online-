@@ -1,5 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'package:rentpilotpro/domain/repositories/i_rent_repository.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'house/house_list_screen.dart';
 import 'tenant/tenant_list_screen.dart';
@@ -7,11 +11,15 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import 'rent/rent_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import 'dart:io';
 import 'settings/settings_screen.dart'; 
 import 'reports/reports_screen.dart'; 
 import 'tenant/tenant_controller.dart';
 import '../../../../domain/entities/tenant.dart';
-import '../../../../domain/repositories/i_rent_repository.dart'; // For DashboardStats
+import 'package:rentpilotpro/domain/entities/expense.dart';
+// For DashboardStats
+import 'expense/expense_screens.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -41,7 +49,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -50,6 +58,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) {
+            HapticFeedback.selectionClick();
             setState(() {
               _currentIndex = index;
             });
@@ -97,7 +106,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       backgroundColor: const Color(0xFFF8FAFC), // Slate 50
       appBar: AppBar(
         title: Text(
-          'RentPilot Pro',
+          'Dashboard',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppTheme.primary),
         ),
         backgroundColor: Colors.white,
@@ -141,7 +150,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF7E22CE).withOpacity(0.3),
+                            color: const Color(0xFF7E22CE).withValues(alpha: 0.3),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
                           )
@@ -170,7 +179,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                Container(
                                  padding: const EdgeInsets.all(12),
                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.15),
+                                    color: Colors.white.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(16),
                                  ),
                                  child: const Icon(Icons.wallet, color: Colors.white, size: 28),
@@ -213,6 +222,8 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     ),
                   ), // End of when
 
+                  const SizedBox(height: 32), // Added spacing
+
                   // Quick Actions Grid
                   Text(
                     'Quick Actions',
@@ -233,11 +244,12 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     children: [
                       _buildQuickAction(context, Icons.person_add, 'Add\nTenant', () => context.push('/owner/tenants/add'), Colors.blue),
                       _buildQuickAction(context, Icons.add_home_work, 'Add\nProperty', () => context.push('/owner/houses/add'), Colors.orange),
-                      // Mock navigation for now as explicit routes might not be set up for Expenses/Reports direct add
-                      _buildQuickAction(context, Icons.receipt_long, 'Add\nExpense', () {}, Colors.red), 
-                      _buildQuickAction(context, Icons.analytics, 'View\nReports', () async {
-                         await ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
-                         // setState(() {}); // Optional: Only if needed to rebuild locally, typically provider updates listeners
+                      _buildQuickAction(context, Icons.receipt_long, 'Add\nExpense', () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AddExpenseScreen()));
+                      }, Colors.red), 
+                      _buildQuickAction(context, Icons.analytics, 'View\nReports', () {
+                         // Push Reports Screen with iOS-style transition
+                         Navigator.push(context, CupertinoPageRoute(builder: (_) => const ReportsScreen()));
                       }, Colors.purple), 
                     ],
                   ),
@@ -249,7 +261,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'This Month\'s Rent',
+                        'Rent Activity',
                         style: GoogleFonts.outfit(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -307,7 +319,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         (context, index) {
                           final c = sortedCycles[index];
                           final isPaid = c.status.name == 'paid';
-                          final tenant = tenants.firstWhere((t) => t.id == c.tenantId, orElse: () => Tenant(id: -1, houseId: 0, unitId: 0, tenantCode: '', name: 'Unknown', phone: '', startDate: DateTime.now(), status: TenantStatus.active));
+                          final tenant = tenants.firstWhere((t) => t.id == c.tenantId, orElse: () => Tenant(id: -1, houseId: 0, unitId: 0, tenantCode: '', name: 'Unknown', phone: '', startDate: DateTime.now(), status: TenantStatus.active, ownerId: ''));
                           
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -317,7 +329,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.05),
+                                  color: Colors.grey.withValues(alpha: 0.05),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -329,7 +341,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: isPaid ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                                    color: isPaid ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -414,12 +426,26 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     ),
                   );
                 },
-                loading: () => const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))),
-                error: (e, _) => SliverToBoxAdapter(child: SizedBox.shrink()),
+                loading: () => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: List.generate(3, (index) => const SkeletonCard()),
+                    ),
+                  ),
+                ),
+                error: (e, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
               ); 
             },
             error: (e, st) => SliverToBoxAdapter(child: Center(child: Text('Error: $e'))),
-            loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+            loading: () => SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                   children: List.generate(3, (index) => const SkeletonCard()),
+                ),
+              ),
+            ),
           ),
           
            const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
@@ -449,7 +475,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: color, size: 28),
@@ -476,7 +502,7 @@ class _SummaryCard extends StatelessWidget {
   final double total;
   final List<Color> gradientColors; // Changed from single Color
   final IconData icon;
-  final bool isTotal;
+
 
   const _SummaryCard({
     required this.title,
@@ -484,7 +510,6 @@ class _SummaryCard extends StatelessWidget {
     required this.total,
     required this.gradientColors,
     required this.icon,
-    this.isTotal = false,
   });
 
   @override
@@ -505,7 +530,7 @@ class _SummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: gradientColors.last.withOpacity(0.3), // Colored shadow
+            color: gradientColors.last.withValues(alpha: 0.3), // Colored shadow
             blurRadius: 12,
             offset: const Offset(0, 8),
           ),
@@ -518,7 +543,7 @@ class _SummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: Colors.white, size: 20),
@@ -532,7 +557,7 @@ class _SummaryCard extends StatelessWidget {
               Text(
                 title,
                 style: GoogleFonts.outfit(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -547,26 +572,13 @@ class _SummaryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-               if (!isTotal)
-                LinearProgressIndicator(
+              LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                   minHeight: 4,
                   borderRadius: BorderRadius.circular(10),
                 ),
-               if (isTotal)
-                 Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                   decoration: BoxDecoration(
-                     color: Colors.white.withOpacity(0.2),
-                     borderRadius: BorderRadius.circular(20),
-                   ),
-                   child: Text(
-                     'Lifetime',
-                     style: GoogleFonts.outfit(fontSize: 10, color: Colors.white),
-                   ),
-                 )
             ],
           ),
         ],

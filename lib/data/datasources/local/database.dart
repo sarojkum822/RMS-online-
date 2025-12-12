@@ -16,13 +16,27 @@ part 'database.g.dart';
   RentCycles,
   Payments,
   Expenses,
-  ElectricReadings
+  ElectricReadings,
+  PaymentChannels, // NEW
+  OtherCharges // NEW
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (Migrator m, int from, int to) async {
+       if (from < 2) {
+         await m.addColumn(tenants, tenants.password);
+       }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    }
+  );
 }
 
 LazyDatabase _openConnection() {

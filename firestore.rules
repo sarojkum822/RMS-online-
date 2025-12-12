@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper to check if the user is the owner of the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper to validate incoming data types (basic examples)
+    function validateString(field) {
+      return field is string;
+    }
+
+    function validateNumber(field) {
+      return field is number;
+    }
+
+    // Users (Owners) Collection
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Properties (Houses) Collection
+    match /houses/{houseId} {
+      // Only the owner of the house can read/write
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow read, update, delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Tenants Collection
+    match /tenants/{tenantId} {
+      // Owner can do everything
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      
+      allow create: if isAuthenticated() && (request.resource.data.ownerId == request.auth.uid);
+      allow read: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid || 
+        resource.data.authId == request.auth.uid
+      );
+      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid);
+    }
+
+    // Payments/Transactions
+    match /payments/{paymentId} {
+      allow read, write: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || request.resource.data.ownerId == request.auth.uid);
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

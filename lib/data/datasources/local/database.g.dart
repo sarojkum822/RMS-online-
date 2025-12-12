@@ -8,6 +8,42 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $OwnersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -55,8 +91,19 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
       requiredDuringInsert: false,
       defaultValue: currentDateAndTime);
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, name, phone, email, currency, timezone, createdAt];
+  List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        name,
+        phone,
+        email,
+        currency,
+        timezone,
+        createdAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -67,6 +114,26 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -105,6 +172,14 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
   Owner map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Owner(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
@@ -129,6 +204,10 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
 }
 
 class Owner extends DataClass implements Insertable<Owner> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final String name;
   final String? phone;
@@ -137,7 +216,11 @@ class Owner extends DataClass implements Insertable<Owner> {
   final String? timezone;
   final DateTime createdAt;
   const Owner(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.name,
       this.phone,
       this.email,
@@ -147,6 +230,12 @@ class Owner extends DataClass implements Insertable<Owner> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || phone != null) {
@@ -165,6 +254,12 @@ class Owner extends DataClass implements Insertable<Owner> {
 
   OwnersCompanion toCompanion(bool nullToAbsent) {
     return OwnersCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       name: Value(name),
       phone:
@@ -183,6 +278,10 @@ class Owner extends DataClass implements Insertable<Owner> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Owner(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
@@ -196,6 +295,10 @@ class Owner extends DataClass implements Insertable<Owner> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
@@ -207,7 +310,11 @@ class Owner extends DataClass implements Insertable<Owner> {
   }
 
   Owner copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           String? name,
           Value<String?> phone = const Value.absent(),
           Value<String?> email = const Value.absent(),
@@ -215,6 +322,10 @@ class Owner extends DataClass implements Insertable<Owner> {
           Value<String?> timezone = const Value.absent(),
           DateTime? createdAt}) =>
       Owner(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         name: name ?? this.name,
         phone: phone.present ? phone.value : this.phone,
@@ -225,6 +336,12 @@ class Owner extends DataClass implements Insertable<Owner> {
       );
   Owner copyWithCompanion(OwnersCompanion data) {
     return Owner(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
@@ -238,6 +355,10 @@ class Owner extends DataClass implements Insertable<Owner> {
   @override
   String toString() {
     return (StringBuffer('Owner(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
@@ -250,12 +371,16 @@ class Owner extends DataClass implements Insertable<Owner> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, phone, email, currency, timezone, createdAt);
+  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
+      id, name, phone, email, currency, timezone, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Owner &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.name == this.name &&
           other.phone == this.phone &&
@@ -266,6 +391,10 @@ class Owner extends DataClass implements Insertable<Owner> {
 }
 
 class OwnersCompanion extends UpdateCompanion<Owner> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<String> name;
   final Value<String?> phone;
@@ -274,6 +403,10 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
   final Value<String?> timezone;
   final Value<DateTime> createdAt;
   const OwnersCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
@@ -283,6 +416,10 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     this.createdAt = const Value.absent(),
   });
   OwnersCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required String name,
     this.phone = const Value.absent(),
@@ -292,6 +429,10 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     this.createdAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Owner> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? phone,
@@ -301,6 +442,10 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
@@ -312,7 +457,11 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
   }
 
   OwnersCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<String>? name,
       Value<String?>? phone,
       Value<String?>? email,
@@ -320,6 +469,10 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       Value<String?>? timezone,
       Value<DateTime>? createdAt}) {
     return OwnersCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
@@ -333,6 +486,18 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -360,6 +525,10 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
   @override
   String toString() {
     return (StringBuffer('OwnersCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
@@ -377,6 +546,42 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $HousesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -412,7 +617,17 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
       'notes', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns => [id, ownerId, name, address, notes];
+  List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        ownerId,
+        name,
+        address,
+        notes
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -423,6 +638,26 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -457,6 +692,14 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
   House map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return House(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       ownerId: attachedDatabase.typeMapping
@@ -477,13 +720,21 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
 }
 
 class House extends DataClass implements Insertable<House> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final int ownerId;
   final String name;
   final String address;
   final String? notes;
   const House(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.ownerId,
       required this.name,
       required this.address,
@@ -491,6 +742,12 @@ class House extends DataClass implements Insertable<House> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['owner_id'] = Variable<int>(ownerId);
     map['name'] = Variable<String>(name);
@@ -503,6 +760,12 @@ class House extends DataClass implements Insertable<House> {
 
   HousesCompanion toCompanion(bool nullToAbsent) {
     return HousesCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       ownerId: Value(ownerId),
       name: Value(name),
@@ -516,6 +779,10 @@ class House extends DataClass implements Insertable<House> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return House(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       ownerId: serializer.fromJson<int>(json['ownerId']),
       name: serializer.fromJson<String>(json['name']),
@@ -527,6 +794,10 @@ class House extends DataClass implements Insertable<House> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'ownerId': serializer.toJson<int>(ownerId),
       'name': serializer.toJson<String>(name),
@@ -536,12 +807,20 @@ class House extends DataClass implements Insertable<House> {
   }
 
   House copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           int? ownerId,
           String? name,
           String? address,
           Value<String?> notes = const Value.absent()}) =>
       House(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         ownerId: ownerId ?? this.ownerId,
         name: name ?? this.name,
@@ -550,6 +829,12 @@ class House extends DataClass implements Insertable<House> {
       );
   House copyWithCompanion(HousesCompanion data) {
     return House(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       name: data.name.present ? data.name.value : this.name,
@@ -561,6 +846,10 @@ class House extends DataClass implements Insertable<House> {
   @override
   String toString() {
     return (StringBuffer('House(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('ownerId: $ownerId, ')
           ..write('name: $name, ')
@@ -571,11 +860,16 @@ class House extends DataClass implements Insertable<House> {
   }
 
   @override
-  int get hashCode => Object.hash(id, ownerId, name, address, notes);
+  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
+      id, ownerId, name, address, notes);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is House &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.ownerId == this.ownerId &&
           other.name == this.name &&
@@ -584,12 +878,20 @@ class House extends DataClass implements Insertable<House> {
 }
 
 class HousesCompanion extends UpdateCompanion<House> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<int> ownerId;
   final Value<String> name;
   final Value<String> address;
   final Value<String?> notes;
   const HousesCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.ownerId = const Value.absent(),
     this.name = const Value.absent(),
@@ -597,6 +899,10 @@ class HousesCompanion extends UpdateCompanion<House> {
     this.notes = const Value.absent(),
   });
   HousesCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required int ownerId,
     required String name,
@@ -606,6 +912,10 @@ class HousesCompanion extends UpdateCompanion<House> {
         name = Value(name),
         address = Value(address);
   static Insertable<House> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<int>? ownerId,
     Expression<String>? name,
@@ -613,6 +923,10 @@ class HousesCompanion extends UpdateCompanion<House> {
     Expression<String>? notes,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (ownerId != null) 'owner_id': ownerId,
       if (name != null) 'name': name,
@@ -622,12 +936,20 @@ class HousesCompanion extends UpdateCompanion<House> {
   }
 
   HousesCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<int>? ownerId,
       Value<String>? name,
       Value<String>? address,
       Value<String?>? notes}) {
     return HousesCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       ownerId: ownerId ?? this.ownerId,
       name: name ?? this.name,
@@ -639,6 +961,18 @@ class HousesCompanion extends UpdateCompanion<House> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -660,6 +994,10 @@ class HousesCompanion extends UpdateCompanion<House> {
   @override
   String toString() {
     return (StringBuffer('HousesCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('ownerId: $ownerId, ')
           ..write('name: $name, ')
@@ -675,6 +1013,42 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $UnitsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -719,8 +1093,18 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       requiredDuringInsert: false,
       defaultValue: const Constant(1));
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, houseId, nameOrNumber, floor, baseRent, defaultDueDay];
+  List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        houseId,
+        nameOrNumber,
+        floor,
+        baseRent,
+        defaultDueDay
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -731,6 +1115,26 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -773,6 +1177,14 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
   Unit map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Unit(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       houseId: attachedDatabase.typeMapping
@@ -795,6 +1207,10 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
 }
 
 class Unit extends DataClass implements Insertable<Unit> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final int houseId;
   final String nameOrNumber;
@@ -802,7 +1218,11 @@ class Unit extends DataClass implements Insertable<Unit> {
   final double baseRent;
   final int defaultDueDay;
   const Unit(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.houseId,
       required this.nameOrNumber,
       this.floor,
@@ -811,6 +1231,12 @@ class Unit extends DataClass implements Insertable<Unit> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['house_id'] = Variable<int>(houseId);
     map['name_or_number'] = Variable<String>(nameOrNumber);
@@ -824,6 +1250,12 @@ class Unit extends DataClass implements Insertable<Unit> {
 
   UnitsCompanion toCompanion(bool nullToAbsent) {
     return UnitsCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       houseId: Value(houseId),
       nameOrNumber: Value(nameOrNumber),
@@ -838,6 +1270,10 @@ class Unit extends DataClass implements Insertable<Unit> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Unit(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       houseId: serializer.fromJson<int>(json['houseId']),
       nameOrNumber: serializer.fromJson<String>(json['nameOrNumber']),
@@ -850,6 +1286,10 @@ class Unit extends DataClass implements Insertable<Unit> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'houseId': serializer.toJson<int>(houseId),
       'nameOrNumber': serializer.toJson<String>(nameOrNumber),
@@ -860,13 +1300,21 @@ class Unit extends DataClass implements Insertable<Unit> {
   }
 
   Unit copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           int? houseId,
           String? nameOrNumber,
           Value<int?> floor = const Value.absent(),
           double? baseRent,
           int? defaultDueDay}) =>
       Unit(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         houseId: houseId ?? this.houseId,
         nameOrNumber: nameOrNumber ?? this.nameOrNumber,
@@ -876,6 +1324,12 @@ class Unit extends DataClass implements Insertable<Unit> {
       );
   Unit copyWithCompanion(UnitsCompanion data) {
     return Unit(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       houseId: data.houseId.present ? data.houseId.value : this.houseId,
       nameOrNumber: data.nameOrNumber.present
@@ -892,6 +1346,10 @@ class Unit extends DataClass implements Insertable<Unit> {
   @override
   String toString() {
     return (StringBuffer('Unit(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('houseId: $houseId, ')
           ..write('nameOrNumber: $nameOrNumber, ')
@@ -903,12 +1361,16 @@ class Unit extends DataClass implements Insertable<Unit> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, houseId, nameOrNumber, floor, baseRent, defaultDueDay);
+  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
+      id, houseId, nameOrNumber, floor, baseRent, defaultDueDay);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Unit &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.houseId == this.houseId &&
           other.nameOrNumber == this.nameOrNumber &&
@@ -918,6 +1380,10 @@ class Unit extends DataClass implements Insertable<Unit> {
 }
 
 class UnitsCompanion extends UpdateCompanion<Unit> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<int> houseId;
   final Value<String> nameOrNumber;
@@ -925,6 +1391,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   final Value<double> baseRent;
   final Value<int> defaultDueDay;
   const UnitsCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.houseId = const Value.absent(),
     this.nameOrNumber = const Value.absent(),
@@ -933,6 +1403,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     this.defaultDueDay = const Value.absent(),
   });
   UnitsCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required int houseId,
     required String nameOrNumber,
@@ -943,6 +1417,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
         nameOrNumber = Value(nameOrNumber),
         baseRent = Value(baseRent);
   static Insertable<Unit> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<int>? houseId,
     Expression<String>? nameOrNumber,
@@ -951,6 +1429,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     Expression<int>? defaultDueDay,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (houseId != null) 'house_id': houseId,
       if (nameOrNumber != null) 'name_or_number': nameOrNumber,
@@ -961,13 +1443,21 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   }
 
   UnitsCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<int>? houseId,
       Value<String>? nameOrNumber,
       Value<int?>? floor,
       Value<double>? baseRent,
       Value<int>? defaultDueDay}) {
     return UnitsCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       houseId: houseId ?? this.houseId,
       nameOrNumber: nameOrNumber ?? this.nameOrNumber,
@@ -980,6 +1470,18 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -1004,6 +1506,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   @override
   String toString() {
     return (StringBuffer('UnitsCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('houseId: $houseId, ')
           ..write('nameOrNumber: $nameOrNumber, ')
@@ -1020,6 +1526,42 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $TenantsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -1099,8 +1641,18 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
   late final GeneratedColumn<double> agreedRent = GeneratedColumn<double>(
       'agreed_rent', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _passwordMeta =
+      const VerificationMeta('password');
+  @override
+  late final GeneratedColumn<String> password = GeneratedColumn<String>(
+      'password', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
         id,
         houseId,
         unitId,
@@ -1111,7 +1663,8 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
         startDate,
         isActive,
         openingBalance,
-        agreedRent
+        agreedRent,
+        password
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1123,6 +1676,26 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -1184,6 +1757,10 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
           agreedRent.isAcceptableOrUnknown(
               data['agreed_rent']!, _agreedRentMeta));
     }
+    if (data.containsKey('password')) {
+      context.handle(_passwordMeta,
+          password.isAcceptableOrUnknown(data['password']!, _passwordMeta));
+    }
     return context;
   }
 
@@ -1193,6 +1770,14 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
   Tenant map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Tenant(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       houseId: attachedDatabase.typeMapping
@@ -1215,6 +1800,8 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
           DriftSqlType.double, data['${effectivePrefix}opening_balance'])!,
       agreedRent: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}agreed_rent']),
+      password: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}password']),
     );
   }
 
@@ -1225,6 +1812,10 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
 }
 
 class Tenant extends DataClass implements Insertable<Tenant> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final int houseId;
   final int unitId;
@@ -1236,8 +1827,13 @@ class Tenant extends DataClass implements Insertable<Tenant> {
   final bool isActive;
   final double openingBalance;
   final double? agreedRent;
+  final String? password;
   const Tenant(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.houseId,
       required this.unitId,
       required this.tenantCode,
@@ -1247,10 +1843,17 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       required this.startDate,
       required this.isActive,
       required this.openingBalance,
-      this.agreedRent});
+      this.agreedRent,
+      this.password});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['house_id'] = Variable<int>(houseId);
     map['unit_id'] = Variable<int>(unitId);
@@ -1266,11 +1869,20 @@ class Tenant extends DataClass implements Insertable<Tenant> {
     if (!nullToAbsent || agreedRent != null) {
       map['agreed_rent'] = Variable<double>(agreedRent);
     }
+    if (!nullToAbsent || password != null) {
+      map['password'] = Variable<String>(password);
+    }
     return map;
   }
 
   TenantsCompanion toCompanion(bool nullToAbsent) {
     return TenantsCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       houseId: Value(houseId),
       unitId: Value(unitId),
@@ -1285,6 +1897,9 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       agreedRent: agreedRent == null && nullToAbsent
           ? const Value.absent()
           : Value(agreedRent),
+      password: password == null && nullToAbsent
+          ? const Value.absent()
+          : Value(password),
     );
   }
 
@@ -1292,6 +1907,10 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Tenant(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       houseId: serializer.fromJson<int>(json['houseId']),
       unitId: serializer.fromJson<int>(json['unitId']),
@@ -1303,12 +1922,17 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       isActive: serializer.fromJson<bool>(json['isActive']),
       openingBalance: serializer.fromJson<double>(json['openingBalance']),
       agreedRent: serializer.fromJson<double?>(json['agreedRent']),
+      password: serializer.fromJson<String?>(json['password']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'houseId': serializer.toJson<int>(houseId),
       'unitId': serializer.toJson<int>(unitId),
@@ -1320,11 +1944,16 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       'isActive': serializer.toJson<bool>(isActive),
       'openingBalance': serializer.toJson<double>(openingBalance),
       'agreedRent': serializer.toJson<double?>(agreedRent),
+      'password': serializer.toJson<String?>(password),
     };
   }
 
   Tenant copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           int? houseId,
           int? unitId,
           String? tenantCode,
@@ -1334,8 +1963,13 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           DateTime? startDate,
           bool? isActive,
           double? openingBalance,
-          Value<double?> agreedRent = const Value.absent()}) =>
+          Value<double?> agreedRent = const Value.absent(),
+          Value<String?> password = const Value.absent()}) =>
       Tenant(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         houseId: houseId ?? this.houseId,
         unitId: unitId ?? this.unitId,
@@ -1347,9 +1981,16 @@ class Tenant extends DataClass implements Insertable<Tenant> {
         isActive: isActive ?? this.isActive,
         openingBalance: openingBalance ?? this.openingBalance,
         agreedRent: agreedRent.present ? agreedRent.value : this.agreedRent,
+        password: password.present ? password.value : this.password,
       );
   Tenant copyWithCompanion(TenantsCompanion data) {
     return Tenant(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       houseId: data.houseId.present ? data.houseId.value : this.houseId,
       unitId: data.unitId.present ? data.unitId.value : this.unitId,
@@ -1365,12 +2006,17 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           : this.openingBalance,
       agreedRent:
           data.agreedRent.present ? data.agreedRent.value : this.agreedRent,
+      password: data.password.present ? data.password.value : this.password,
     );
   }
 
   @override
   String toString() {
     return (StringBuffer('Tenant(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('houseId: $houseId, ')
           ..write('unitId: $unitId, ')
@@ -1381,18 +2027,38 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           ..write('startDate: $startDate, ')
           ..write('isActive: $isActive, ')
           ..write('openingBalance: $openingBalance, ')
-          ..write('agreedRent: $agreedRent')
+          ..write('agreedRent: $agreedRent, ')
+          ..write('password: $password')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, houseId, unitId, tenantCode, name, phone,
-      email, startDate, isActive, openingBalance, agreedRent);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      houseId,
+      unitId,
+      tenantCode,
+      name,
+      phone,
+      email,
+      startDate,
+      isActive,
+      openingBalance,
+      agreedRent,
+      password);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Tenant &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.houseId == this.houseId &&
           other.unitId == this.unitId &&
@@ -1403,10 +2069,15 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           other.startDate == this.startDate &&
           other.isActive == this.isActive &&
           other.openingBalance == this.openingBalance &&
-          other.agreedRent == this.agreedRent);
+          other.agreedRent == this.agreedRent &&
+          other.password == this.password);
 }
 
 class TenantsCompanion extends UpdateCompanion<Tenant> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<int> houseId;
   final Value<int> unitId;
@@ -1418,7 +2089,12 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
   final Value<bool> isActive;
   final Value<double> openingBalance;
   final Value<double?> agreedRent;
+  final Value<String?> password;
   const TenantsCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.houseId = const Value.absent(),
     this.unitId = const Value.absent(),
@@ -1430,8 +2106,13 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     this.isActive = const Value.absent(),
     this.openingBalance = const Value.absent(),
     this.agreedRent = const Value.absent(),
+    this.password = const Value.absent(),
   });
   TenantsCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required int houseId,
     required int unitId,
@@ -1443,6 +2124,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     this.isActive = const Value.absent(),
     this.openingBalance = const Value.absent(),
     this.agreedRent = const Value.absent(),
+    this.password = const Value.absent(),
   })  : houseId = Value(houseId),
         unitId = Value(unitId),
         tenantCode = Value(tenantCode),
@@ -1450,6 +2132,10 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
         phone = Value(phone),
         startDate = Value(startDate);
   static Insertable<Tenant> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<int>? houseId,
     Expression<int>? unitId,
@@ -1461,8 +2147,13 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     Expression<bool>? isActive,
     Expression<double>? openingBalance,
     Expression<double>? agreedRent,
+    Expression<String>? password,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (houseId != null) 'house_id': houseId,
       if (unitId != null) 'unit_id': unitId,
@@ -1474,11 +2165,16 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       if (isActive != null) 'is_active': isActive,
       if (openingBalance != null) 'opening_balance': openingBalance,
       if (agreedRent != null) 'agreed_rent': agreedRent,
+      if (password != null) 'password': password,
     });
   }
 
   TenantsCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<int>? houseId,
       Value<int>? unitId,
       Value<String>? tenantCode,
@@ -1488,8 +2184,13 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       Value<DateTime>? startDate,
       Value<bool>? isActive,
       Value<double>? openingBalance,
-      Value<double?>? agreedRent}) {
+      Value<double?>? agreedRent,
+      Value<String?>? password}) {
     return TenantsCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       houseId: houseId ?? this.houseId,
       unitId: unitId ?? this.unitId,
@@ -1501,12 +2202,25 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       isActive: isActive ?? this.isActive,
       openingBalance: openingBalance ?? this.openingBalance,
       agreedRent: agreedRent ?? this.agreedRent,
+      password: password ?? this.password,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -1540,12 +2254,19 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     if (agreedRent.present) {
       map['agreed_rent'] = Variable<double>(agreedRent.value);
     }
+    if (password.present) {
+      map['password'] = Variable<String>(password.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('TenantsCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('houseId: $houseId, ')
           ..write('unitId: $unitId, ')
@@ -1556,7 +2277,8 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
           ..write('startDate: $startDate, ')
           ..write('isActive: $isActive, ')
           ..write('openingBalance: $openingBalance, ')
-          ..write('agreedRent: $agreedRent')
+          ..write('agreedRent: $agreedRent, ')
+          ..write('password: $password')
           ..write(')'))
         .toString();
   }
@@ -1568,6 +2290,42 @@ class $RentCyclesTable extends RentCycles
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $RentCyclesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -1681,6 +2439,10 @@ class $RentCyclesTable extends RentCycles
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
         id,
         tenantId,
         month,
@@ -1708,6 +2470,26 @@ class $RentCyclesTable extends RentCycles
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -1800,6 +2582,14 @@ class $RentCyclesTable extends RentCycles
   RentCycle map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return RentCycle(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       tenantId: attachedDatabase.typeMapping
@@ -1843,6 +2633,10 @@ class $RentCyclesTable extends RentCycles
 }
 
 class RentCycle extends DataClass implements Insertable<RentCycle> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final int tenantId;
   final String month;
@@ -1860,7 +2654,11 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   final int status;
   final String? notes;
   const RentCycle(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.tenantId,
       required this.month,
       this.billNumber,
@@ -1879,6 +2677,12 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['tenant_id'] = Variable<int>(tenantId);
     map['month'] = Variable<String>(month);
@@ -1910,6 +2714,12 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
 
   RentCyclesCompanion toCompanion(bool nullToAbsent) {
     return RentCyclesCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       tenantId: Value(tenantId),
       month: Value(month),
@@ -1942,6 +2752,10 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RentCycle(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       tenantId: serializer.fromJson<int>(json['tenantId']),
       month: serializer.fromJson<String>(json['month']),
@@ -1965,6 +2779,10 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'tenantId': serializer.toJson<int>(tenantId),
       'month': serializer.toJson<String>(month),
@@ -1985,7 +2803,11 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   }
 
   RentCycle copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           int? tenantId,
           String? month,
           Value<String?> billNumber = const Value.absent(),
@@ -2002,6 +2824,10 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
           int? status,
           Value<String?> notes = const Value.absent()}) =>
       RentCycle(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         tenantId: tenantId ?? this.tenantId,
         month: month ?? this.month,
@@ -2024,6 +2850,12 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
       );
   RentCycle copyWithCompanion(RentCyclesCompanion data) {
     return RentCycle(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
       month: data.month.present ? data.month.value : this.month,
@@ -2057,6 +2889,10 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   @override
   String toString() {
     return (StringBuffer('RentCycle(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('tenantId: $tenantId, ')
           ..write('month: $month, ')
@@ -2079,6 +2915,10 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
 
   @override
   int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
       id,
       tenantId,
       month,
@@ -2099,6 +2939,10 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is RentCycle &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.tenantId == this.tenantId &&
           other.month == this.month &&
@@ -2118,6 +2962,10 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
 }
 
 class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<int> tenantId;
   final Value<String> month;
@@ -2135,6 +2983,10 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
   final Value<int> status;
   final Value<String?> notes;
   const RentCyclesCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.tenantId = const Value.absent(),
     this.month = const Value.absent(),
@@ -2153,6 +3005,10 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
     this.notes = const Value.absent(),
   });
   RentCyclesCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required int tenantId,
     required String month,
@@ -2174,6 +3030,10 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
         baseRent = Value(baseRent),
         totalDue = Value(totalDue);
   static Insertable<RentCycle> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<int>? tenantId,
     Expression<String>? month,
@@ -2192,6 +3052,10 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
     Expression<String>? notes,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (tenantId != null) 'tenant_id': tenantId,
       if (month != null) 'month': month,
@@ -2212,7 +3076,11 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
   }
 
   RentCyclesCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<int>? tenantId,
       Value<String>? month,
       Value<String?>? billNumber,
@@ -2229,6 +3097,10 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
       Value<int>? status,
       Value<String?>? notes}) {
     return RentCyclesCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       tenantId: tenantId ?? this.tenantId,
       month: month ?? this.month,
@@ -2251,6 +3123,18 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -2305,6 +3189,10 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
   @override
   String toString() {
     return (StringBuffer('RentCyclesCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('tenantId: $tenantId, ')
           ..write('month: $month, ')
@@ -2332,6 +3220,42 @@ class $PaymentChannelsTable extends PaymentChannels
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $PaymentChannelsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2358,7 +3282,8 @@ class $PaymentChannelsTable extends PaymentChannels
       'details', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns => [id, name, type, details];
+  List<GeneratedColumn> get $columns =>
+      [firestoreId, lastUpdated, isSynced, isDeleted, id, name, type, details];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2369,6 +3294,26 @@ class $PaymentChannelsTable extends PaymentChannels
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -2397,6 +3342,14 @@ class $PaymentChannelsTable extends PaymentChannels
   PaymentChannel map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return PaymentChannel(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
@@ -2415,15 +3368,32 @@ class $PaymentChannelsTable extends PaymentChannels
 }
 
 class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final String name;
   final String type;
   final String? details;
   const PaymentChannel(
-      {required this.id, required this.name, required this.type, this.details});
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
+      required this.name,
+      required this.type,
+      this.details});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['type'] = Variable<String>(type);
@@ -2435,6 +3405,12 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
 
   PaymentChannelsCompanion toCompanion(bool nullToAbsent) {
     return PaymentChannelsCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       name: Value(name),
       type: Value(type),
@@ -2448,6 +3424,10 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return PaymentChannel(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       type: serializer.fromJson<String>(json['type']),
@@ -2458,6 +3438,10 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'type': serializer.toJson<String>(type),
@@ -2466,11 +3450,19 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
   }
 
   PaymentChannel copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           String? name,
           String? type,
           Value<String?> details = const Value.absent()}) =>
       PaymentChannel(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         name: name ?? this.name,
         type: type ?? this.type,
@@ -2478,6 +3470,12 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
       );
   PaymentChannel copyWithCompanion(PaymentChannelsCompanion data) {
     return PaymentChannel(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       type: data.type.present ? data.type.value : this.type,
@@ -2488,6 +3486,10 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
   @override
   String toString() {
     return (StringBuffer('PaymentChannel(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('type: $type, ')
@@ -2497,11 +3499,16 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, type, details);
+  int get hashCode => Object.hash(
+      firestoreId, lastUpdated, isSynced, isDeleted, id, name, type, details);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PaymentChannel &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.name == this.name &&
           other.type == this.type &&
@@ -2509,17 +3516,29 @@ class PaymentChannel extends DataClass implements Insertable<PaymentChannel> {
 }
 
 class PaymentChannelsCompanion extends UpdateCompanion<PaymentChannel> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<String> name;
   final Value<String> type;
   final Value<String?> details;
   const PaymentChannelsCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.type = const Value.absent(),
     this.details = const Value.absent(),
   });
   PaymentChannelsCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required String name,
     required String type,
@@ -2527,12 +3546,20 @@ class PaymentChannelsCompanion extends UpdateCompanion<PaymentChannel> {
   })  : name = Value(name),
         type = Value(type);
   static Insertable<PaymentChannel> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? type,
     Expression<String>? details,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (type != null) 'type': type,
@@ -2541,11 +3568,19 @@ class PaymentChannelsCompanion extends UpdateCompanion<PaymentChannel> {
   }
 
   PaymentChannelsCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<String>? name,
       Value<String>? type,
       Value<String?>? details}) {
     return PaymentChannelsCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
@@ -2556,6 +3591,18 @@ class PaymentChannelsCompanion extends UpdateCompanion<PaymentChannel> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -2574,6 +3621,10 @@ class PaymentChannelsCompanion extends UpdateCompanion<PaymentChannel> {
   @override
   String toString() {
     return (StringBuffer('PaymentChannelsCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('type: $type, ')
@@ -2588,6 +3639,42 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $PaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2658,6 +3745,10 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
         id,
         rentCycleId,
         tenantId,
@@ -2679,6 +3770,26 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -2743,6 +3854,14 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
   Payment map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Payment(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       rentCycleId: attachedDatabase.typeMapping
@@ -2773,6 +3892,10 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
 }
 
 class Payment extends DataClass implements Insertable<Payment> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final int rentCycleId;
   final int tenantId;
@@ -2784,7 +3907,11 @@ class Payment extends DataClass implements Insertable<Payment> {
   final String? collectedBy;
   final String? notes;
   const Payment(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.rentCycleId,
       required this.tenantId,
       required this.amount,
@@ -2797,6 +3924,12 @@ class Payment extends DataClass implements Insertable<Payment> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['rent_cycle_id'] = Variable<int>(rentCycleId);
     map['tenant_id'] = Variable<int>(tenantId);
@@ -2820,6 +3953,12 @@ class Payment extends DataClass implements Insertable<Payment> {
 
   PaymentsCompanion toCompanion(bool nullToAbsent) {
     return PaymentsCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       rentCycleId: Value(rentCycleId),
       tenantId: Value(tenantId),
@@ -2844,6 +3983,10 @@ class Payment extends DataClass implements Insertable<Payment> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Payment(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       rentCycleId: serializer.fromJson<int>(json['rentCycleId']),
       tenantId: serializer.fromJson<int>(json['tenantId']),
@@ -2860,6 +4003,10 @@ class Payment extends DataClass implements Insertable<Payment> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'rentCycleId': serializer.toJson<int>(rentCycleId),
       'tenantId': serializer.toJson<int>(tenantId),
@@ -2874,7 +4021,11 @@ class Payment extends DataClass implements Insertable<Payment> {
   }
 
   Payment copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           int? rentCycleId,
           int? tenantId,
           double? amount,
@@ -2885,6 +4036,10 @@ class Payment extends DataClass implements Insertable<Payment> {
           Value<String?> collectedBy = const Value.absent(),
           Value<String?> notes = const Value.absent()}) =>
       Payment(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         rentCycleId: rentCycleId ?? this.rentCycleId,
         tenantId: tenantId ?? this.tenantId,
@@ -2898,6 +4053,12 @@ class Payment extends DataClass implements Insertable<Payment> {
       );
   Payment copyWithCompanion(PaymentsCompanion data) {
     return Payment(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       rentCycleId:
           data.rentCycleId.present ? data.rentCycleId.value : this.rentCycleId,
@@ -2917,6 +4078,10 @@ class Payment extends DataClass implements Insertable<Payment> {
   @override
   String toString() {
     return (StringBuffer('Payment(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('rentCycleId: $rentCycleId, ')
           ..write('tenantId: $tenantId, ')
@@ -2932,12 +4097,29 @@ class Payment extends DataClass implements Insertable<Payment> {
   }
 
   @override
-  int get hashCode => Object.hash(id, rentCycleId, tenantId, amount, date,
-      method, channelId, referenceId, collectedBy, notes);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      rentCycleId,
+      tenantId,
+      amount,
+      date,
+      method,
+      channelId,
+      referenceId,
+      collectedBy,
+      notes);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Payment &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.rentCycleId == this.rentCycleId &&
           other.tenantId == this.tenantId &&
@@ -2951,6 +4133,10 @@ class Payment extends DataClass implements Insertable<Payment> {
 }
 
 class PaymentsCompanion extends UpdateCompanion<Payment> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<int> rentCycleId;
   final Value<int> tenantId;
@@ -2962,6 +4148,10 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
   final Value<String?> collectedBy;
   final Value<String?> notes;
   const PaymentsCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.rentCycleId = const Value.absent(),
     this.tenantId = const Value.absent(),
@@ -2974,6 +4164,10 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     this.notes = const Value.absent(),
   });
   PaymentsCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required int rentCycleId,
     required int tenantId,
@@ -2990,6 +4184,10 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
         date = Value(date),
         method = Value(method);
   static Insertable<Payment> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<int>? rentCycleId,
     Expression<int>? tenantId,
@@ -3002,6 +4200,10 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     Expression<String>? notes,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (rentCycleId != null) 'rent_cycle_id': rentCycleId,
       if (tenantId != null) 'tenant_id': tenantId,
@@ -3016,7 +4218,11 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
   }
 
   PaymentsCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<int>? rentCycleId,
       Value<int>? tenantId,
       Value<double>? amount,
@@ -3027,6 +4233,10 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       Value<String?>? collectedBy,
       Value<String?>? notes}) {
     return PaymentsCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       rentCycleId: rentCycleId ?? this.rentCycleId,
       tenantId: tenantId ?? this.tenantId,
@@ -3043,6 +4253,18 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -3079,6 +4301,10 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
   @override
   String toString() {
     return (StringBuffer('PaymentsCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('rentCycleId: $rentCycleId, ')
           ..write('tenantId: $tenantId, ')
@@ -3099,6 +4325,42 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $ExpensesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -3145,8 +4407,19 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
       'description', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, ownerId, title, date, amount, category, description];
+  List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        ownerId,
+        title,
+        date,
+        amount,
+        category,
+        description
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3157,6 +4430,26 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -3205,6 +4498,14 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
   Expense map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Expense(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       ownerId: attachedDatabase.typeMapping
@@ -3229,6 +4530,10 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
 }
 
 class Expense extends DataClass implements Insertable<Expense> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final int ownerId;
   final String title;
@@ -3237,7 +4542,11 @@ class Expense extends DataClass implements Insertable<Expense> {
   final String category;
   final String? description;
   const Expense(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.ownerId,
       required this.title,
       required this.date,
@@ -3247,6 +4556,12 @@ class Expense extends DataClass implements Insertable<Expense> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['owner_id'] = Variable<int>(ownerId);
     map['title'] = Variable<String>(title);
@@ -3261,6 +4576,12 @@ class Expense extends DataClass implements Insertable<Expense> {
 
   ExpensesCompanion toCompanion(bool nullToAbsent) {
     return ExpensesCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       ownerId: Value(ownerId),
       title: Value(title),
@@ -3277,6 +4598,10 @@ class Expense extends DataClass implements Insertable<Expense> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Expense(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       ownerId: serializer.fromJson<int>(json['ownerId']),
       title: serializer.fromJson<String>(json['title']),
@@ -3290,6 +4615,10 @@ class Expense extends DataClass implements Insertable<Expense> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'ownerId': serializer.toJson<int>(ownerId),
       'title': serializer.toJson<String>(title),
@@ -3301,7 +4630,11 @@ class Expense extends DataClass implements Insertable<Expense> {
   }
 
   Expense copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           int? ownerId,
           String? title,
           DateTime? date,
@@ -3309,6 +4642,10 @@ class Expense extends DataClass implements Insertable<Expense> {
           String? category,
           Value<String?> description = const Value.absent()}) =>
       Expense(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         ownerId: ownerId ?? this.ownerId,
         title: title ?? this.title,
@@ -3319,6 +4656,12 @@ class Expense extends DataClass implements Insertable<Expense> {
       );
   Expense copyWithCompanion(ExpensesCompanion data) {
     return Expense(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       title: data.title.present ? data.title.value : this.title,
@@ -3333,6 +4676,10 @@ class Expense extends DataClass implements Insertable<Expense> {
   @override
   String toString() {
     return (StringBuffer('Expense(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('ownerId: $ownerId, ')
           ..write('title: $title, ')
@@ -3345,12 +4692,16 @@ class Expense extends DataClass implements Insertable<Expense> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, ownerId, title, date, amount, category, description);
+  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
+      id, ownerId, title, date, amount, category, description);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Expense &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.ownerId == this.ownerId &&
           other.title == this.title &&
@@ -3361,6 +4712,10 @@ class Expense extends DataClass implements Insertable<Expense> {
 }
 
 class ExpensesCompanion extends UpdateCompanion<Expense> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<int> ownerId;
   final Value<String> title;
@@ -3369,6 +4724,10 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<String> category;
   final Value<String?> description;
   const ExpensesCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.ownerId = const Value.absent(),
     this.title = const Value.absent(),
@@ -3378,6 +4737,10 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.description = const Value.absent(),
   });
   ExpensesCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required int ownerId,
     required String title,
@@ -3391,6 +4754,10 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
         amount = Value(amount),
         category = Value(category);
   static Insertable<Expense> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<int>? ownerId,
     Expression<String>? title,
@@ -3400,6 +4767,10 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<String>? description,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (ownerId != null) 'owner_id': ownerId,
       if (title != null) 'title': title,
@@ -3411,7 +4782,11 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   }
 
   ExpensesCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<int>? ownerId,
       Value<String>? title,
       Value<DateTime>? date,
@@ -3419,6 +4794,10 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       Value<String>? category,
       Value<String?>? description}) {
     return ExpensesCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       ownerId: ownerId ?? this.ownerId,
       title: title ?? this.title,
@@ -3432,6 +4811,18 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -3459,6 +4850,10 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   @override
   String toString() {
     return (StringBuffer('ExpensesCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('ownerId: $ownerId, ')
           ..write('title: $title, ')
@@ -3477,6 +4872,42 @@ class $ElectricReadingsTable extends ElectricReadings
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $ElectricReadingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -3533,6 +4964,12 @@ class $ElectricReadingsTable extends ElectricReadings
   late final GeneratedColumn<double> amount = GeneratedColumn<double>(
       'amount', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _imagePathMeta =
+      const VerificationMeta('imagePath');
+  @override
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+      'image_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -3540,6 +4977,10 @@ class $ElectricReadingsTable extends ElectricReadings
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
         id,
         unitId,
         readingDate,
@@ -3548,6 +4989,7 @@ class $ElectricReadingsTable extends ElectricReadings
         currentReading,
         ratePerUnit,
         amount,
+        imagePath,
         notes
       ];
   @override
@@ -3560,6 +5002,26 @@ class $ElectricReadingsTable extends ElectricReadings
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -3607,6 +5069,10 @@ class $ElectricReadingsTable extends ElectricReadings
     } else if (isInserting) {
       context.missing(_amountMeta);
     }
+    if (data.containsKey('image_path')) {
+      context.handle(_imagePathMeta,
+          imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta));
+    }
     if (data.containsKey('notes')) {
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
@@ -3620,6 +5086,14 @@ class $ElectricReadingsTable extends ElectricReadings
   ElectricReading map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ElectricReading(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       unitId: attachedDatabase.typeMapping
@@ -3636,6 +5110,8 @@ class $ElectricReadingsTable extends ElectricReadings
           .read(DriftSqlType.double, data['${effectivePrefix}rate_per_unit'])!,
       amount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      imagePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_path']),
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
     );
@@ -3648,6 +5124,10 @@ class $ElectricReadingsTable extends ElectricReadings
 }
 
 class ElectricReading extends DataClass implements Insertable<ElectricReading> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
   final int id;
   final int unitId;
   final DateTime readingDate;
@@ -3656,9 +5136,14 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
   final double currentReading;
   final double ratePerUnit;
   final double amount;
+  final String? imagePath;
   final String? notes;
   const ElectricReading(
-      {required this.id,
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
       required this.unitId,
       required this.readingDate,
       this.meterName,
@@ -3666,10 +5151,17 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       required this.currentReading,
       required this.ratePerUnit,
       required this.amount,
+      this.imagePath,
       this.notes});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
     map['id'] = Variable<int>(id);
     map['unit_id'] = Variable<int>(unitId);
     map['reading_date'] = Variable<DateTime>(readingDate);
@@ -3680,6 +5172,9 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
     map['current_reading'] = Variable<double>(currentReading);
     map['rate_per_unit'] = Variable<double>(ratePerUnit);
     map['amount'] = Variable<double>(amount);
+    if (!nullToAbsent || imagePath != null) {
+      map['image_path'] = Variable<String>(imagePath);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -3688,6 +5183,12 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
 
   ElectricReadingsCompanion toCompanion(bool nullToAbsent) {
     return ElectricReadingsCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
       id: Value(id),
       unitId: Value(unitId),
       readingDate: Value(readingDate),
@@ -3698,6 +5199,9 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       currentReading: Value(currentReading),
       ratePerUnit: Value(ratePerUnit),
       amount: Value(amount),
+      imagePath: imagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imagePath),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
     );
@@ -3707,6 +5211,10 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ElectricReading(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       id: serializer.fromJson<int>(json['id']),
       unitId: serializer.fromJson<int>(json['unitId']),
       readingDate: serializer.fromJson<DateTime>(json['readingDate']),
@@ -3715,6 +5223,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       currentReading: serializer.fromJson<double>(json['currentReading']),
       ratePerUnit: serializer.fromJson<double>(json['ratePerUnit']),
       amount: serializer.fromJson<double>(json['amount']),
+      imagePath: serializer.fromJson<String?>(json['imagePath']),
       notes: serializer.fromJson<String?>(json['notes']),
     );
   }
@@ -3722,6 +5231,10 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
       'id': serializer.toJson<int>(id),
       'unitId': serializer.toJson<int>(unitId),
       'readingDate': serializer.toJson<DateTime>(readingDate),
@@ -3730,12 +5243,17 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       'currentReading': serializer.toJson<double>(currentReading),
       'ratePerUnit': serializer.toJson<double>(ratePerUnit),
       'amount': serializer.toJson<double>(amount),
+      'imagePath': serializer.toJson<String?>(imagePath),
       'notes': serializer.toJson<String?>(notes),
     };
   }
 
   ElectricReading copyWith(
-          {int? id,
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
           int? unitId,
           DateTime? readingDate,
           Value<String?> meterName = const Value.absent(),
@@ -3743,8 +5261,13 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
           double? currentReading,
           double? ratePerUnit,
           double? amount,
+          Value<String?> imagePath = const Value.absent(),
           Value<String?> notes = const Value.absent()}) =>
       ElectricReading(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         unitId: unitId ?? this.unitId,
         readingDate: readingDate ?? this.readingDate,
@@ -3753,10 +5276,17 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
         currentReading: currentReading ?? this.currentReading,
         ratePerUnit: ratePerUnit ?? this.ratePerUnit,
         amount: amount ?? this.amount,
+        imagePath: imagePath.present ? imagePath.value : this.imagePath,
         notes: notes.present ? notes.value : this.notes,
       );
   ElectricReading copyWithCompanion(ElectricReadingsCompanion data) {
     return ElectricReading(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       unitId: data.unitId.present ? data.unitId.value : this.unitId,
       readingDate:
@@ -3770,6 +5300,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       ratePerUnit:
           data.ratePerUnit.present ? data.ratePerUnit.value : this.ratePerUnit,
       amount: data.amount.present ? data.amount.value : this.amount,
+      imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
       notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
@@ -3777,6 +5308,10 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
   @override
   String toString() {
     return (StringBuffer('ElectricReading(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('unitId: $unitId, ')
           ..write('readingDate: $readingDate, ')
@@ -3785,18 +5320,36 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
           ..write('currentReading: $currentReading, ')
           ..write('ratePerUnit: $ratePerUnit, ')
           ..write('amount: $amount, ')
+          ..write('imagePath: $imagePath, ')
           ..write('notes: $notes')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, unitId, readingDate, meterName,
-      prevReading, currentReading, ratePerUnit, amount, notes);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      unitId,
+      readingDate,
+      meterName,
+      prevReading,
+      currentReading,
+      ratePerUnit,
+      amount,
+      imagePath,
+      notes);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ElectricReading &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.unitId == this.unitId &&
           other.readingDate == this.readingDate &&
@@ -3805,10 +5358,15 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
           other.currentReading == this.currentReading &&
           other.ratePerUnit == this.ratePerUnit &&
           other.amount == this.amount &&
+          other.imagePath == this.imagePath &&
           other.notes == this.notes);
 }
 
 class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
   final Value<int> id;
   final Value<int> unitId;
   final Value<DateTime> readingDate;
@@ -3817,8 +5375,13 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
   final Value<double> currentReading;
   final Value<double> ratePerUnit;
   final Value<double> amount;
+  final Value<String?> imagePath;
   final Value<String?> notes;
   const ElectricReadingsCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.unitId = const Value.absent(),
     this.readingDate = const Value.absent(),
@@ -3827,9 +5390,14 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     this.currentReading = const Value.absent(),
     this.ratePerUnit = const Value.absent(),
     this.amount = const Value.absent(),
+    this.imagePath = const Value.absent(),
     this.notes = const Value.absent(),
   });
   ElectricReadingsCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     required int unitId,
     required DateTime readingDate,
@@ -3838,12 +5406,17 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     required double currentReading,
     this.ratePerUnit = const Value.absent(),
     required double amount,
+    this.imagePath = const Value.absent(),
     this.notes = const Value.absent(),
   })  : unitId = Value(unitId),
         readingDate = Value(readingDate),
         currentReading = Value(currentReading),
         amount = Value(amount);
   static Insertable<ElectricReading> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
     Expression<int>? id,
     Expression<int>? unitId,
     Expression<DateTime>? readingDate,
@@ -3852,9 +5425,14 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     Expression<double>? currentReading,
     Expression<double>? ratePerUnit,
     Expression<double>? amount,
+    Expression<String>? imagePath,
     Expression<String>? notes,
   }) {
     return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (unitId != null) 'unit_id': unitId,
       if (readingDate != null) 'reading_date': readingDate,
@@ -3863,12 +5441,17 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       if (currentReading != null) 'current_reading': currentReading,
       if (ratePerUnit != null) 'rate_per_unit': ratePerUnit,
       if (amount != null) 'amount': amount,
+      if (imagePath != null) 'image_path': imagePath,
       if (notes != null) 'notes': notes,
     });
   }
 
   ElectricReadingsCompanion copyWith(
-      {Value<int>? id,
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
       Value<int>? unitId,
       Value<DateTime>? readingDate,
       Value<String?>? meterName,
@@ -3876,8 +5459,13 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       Value<double>? currentReading,
       Value<double>? ratePerUnit,
       Value<double>? amount,
+      Value<String?>? imagePath,
       Value<String?>? notes}) {
     return ElectricReadingsCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       unitId: unitId ?? this.unitId,
       readingDate: readingDate ?? this.readingDate,
@@ -3886,6 +5474,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       currentReading: currentReading ?? this.currentReading,
       ratePerUnit: ratePerUnit ?? this.ratePerUnit,
       amount: amount ?? this.amount,
+      imagePath: imagePath ?? this.imagePath,
       notes: notes ?? this.notes,
     );
   }
@@ -3893,6 +5482,18 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -3917,6 +5518,9 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
     }
+    if (imagePath.present) {
+      map['image_path'] = Variable<String>(imagePath.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -3926,6 +5530,10 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
   @override
   String toString() {
     return (StringBuffer('ElectricReadingsCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('unitId: $unitId, ')
           ..write('readingDate: $readingDate, ')
@@ -3934,6 +5542,478 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
           ..write('currentReading: $currentReading, ')
           ..write('ratePerUnit: $ratePerUnit, ')
           ..write('amount: $amount, ')
+          ..write('imagePath: $imagePath, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OtherChargesTable extends OtherCharges
+    with TableInfo<$OtherChargesTable, OtherCharge> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OtherChargesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _rentCycleIdMeta =
+      const VerificationMeta('rentCycleId');
+  @override
+  late final GeneratedColumn<int> rentCycleId = GeneratedColumn<int>(
+      'rent_cycle_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES rent_cycles (id) ON DELETE CASCADE'));
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+      'amount', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _categoryMeta =
+      const VerificationMeta('category');
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+      'category', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        rentCycleId,
+        amount,
+        category,
+        notes
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'other_charges';
+  @override
+  VerificationContext validateIntegrity(Insertable<OtherCharge> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('rent_cycle_id')) {
+      context.handle(
+          _rentCycleIdMeta,
+          rentCycleId.isAcceptableOrUnknown(
+              data['rent_cycle_id']!, _rentCycleIdMeta));
+    } else if (isInserting) {
+      context.missing(_rentCycleIdMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(_amountMeta,
+          amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(_categoryMeta,
+          category.isAcceptableOrUnknown(data['category']!, _categoryMeta));
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OtherCharge map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OtherCharge(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      rentCycleId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}rent_cycle_id'])!,
+      amount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      category: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes']),
+    );
+  }
+
+  @override
+  $OtherChargesTable createAlias(String alias) {
+    return $OtherChargesTable(attachedDatabase, alias);
+  }
+}
+
+class OtherCharge extends DataClass implements Insertable<OtherCharge> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
+  final int id;
+  final int rentCycleId;
+  final double amount;
+  final String category;
+  final String? notes;
+  const OtherCharge(
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
+      required this.rentCycleId,
+      required this.amount,
+      required this.category,
+      this.notes});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['id'] = Variable<int>(id);
+    map['rent_cycle_id'] = Variable<int>(rentCycleId);
+    map['amount'] = Variable<double>(amount);
+    map['category'] = Variable<String>(category);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    return map;
+  }
+
+  OtherChargesCompanion toCompanion(bool nullToAbsent) {
+    return OtherChargesCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
+      id: Value(id),
+      rentCycleId: Value(rentCycleId),
+      amount: Value(amount),
+      category: Value(category),
+      notes:
+          notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+    );
+  }
+
+  factory OtherCharge.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OtherCharge(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      id: serializer.fromJson<int>(json['id']),
+      rentCycleId: serializer.fromJson<int>(json['rentCycleId']),
+      amount: serializer.fromJson<double>(json['amount']),
+      category: serializer.fromJson<String>(json['category']),
+      notes: serializer.fromJson<String?>(json['notes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'id': serializer.toJson<int>(id),
+      'rentCycleId': serializer.toJson<int>(rentCycleId),
+      'amount': serializer.toJson<double>(amount),
+      'category': serializer.toJson<String>(category),
+      'notes': serializer.toJson<String?>(notes),
+    };
+  }
+
+  OtherCharge copyWith(
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
+          int? rentCycleId,
+          double? amount,
+          String? category,
+          Value<String?> notes = const Value.absent()}) =>
+      OtherCharge(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
+        id: id ?? this.id,
+        rentCycleId: rentCycleId ?? this.rentCycleId,
+        amount: amount ?? this.amount,
+        category: category ?? this.category,
+        notes: notes.present ? notes.value : this.notes,
+      );
+  OtherCharge copyWithCompanion(OtherChargesCompanion data) {
+    return OtherCharge(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      id: data.id.present ? data.id.value : this.id,
+      rentCycleId:
+          data.rentCycleId.present ? data.rentCycleId.value : this.rentCycleId,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      category: data.category.present ? data.category.value : this.category,
+      notes: data.notes.present ? data.notes.value : this.notes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OtherCharge(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('rentCycleId: $rentCycleId, ')
+          ..write('amount: $amount, ')
+          ..write('category: $category, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
+      id, rentCycleId, amount, category, notes);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OtherCharge &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
+          other.id == this.id &&
+          other.rentCycleId == this.rentCycleId &&
+          other.amount == this.amount &&
+          other.category == this.category &&
+          other.notes == this.notes);
+}
+
+class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
+  final Value<int> id;
+  final Value<int> rentCycleId;
+  final Value<double> amount;
+  final Value<String> category;
+  final Value<String?> notes;
+  const OtherChargesCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.id = const Value.absent(),
+    this.rentCycleId = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.category = const Value.absent(),
+    this.notes = const Value.absent(),
+  });
+  OtherChargesCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.id = const Value.absent(),
+    required int rentCycleId,
+    required double amount,
+    required String category,
+    this.notes = const Value.absent(),
+  })  : rentCycleId = Value(rentCycleId),
+        amount = Value(amount),
+        category = Value(category);
+  static Insertable<OtherCharge> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
+    Expression<int>? id,
+    Expression<int>? rentCycleId,
+    Expression<double>? amount,
+    Expression<String>? category,
+    Expression<String>? notes,
+  }) {
+    return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (id != null) 'id': id,
+      if (rentCycleId != null) 'rent_cycle_id': rentCycleId,
+      if (amount != null) 'amount': amount,
+      if (category != null) 'category': category,
+      if (notes != null) 'notes': notes,
+    });
+  }
+
+  OtherChargesCompanion copyWith(
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
+      Value<int>? rentCycleId,
+      Value<double>? amount,
+      Value<String>? category,
+      Value<String?>? notes}) {
+    return OtherChargesCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
+      id: id ?? this.id,
+      rentCycleId: rentCycleId ?? this.rentCycleId,
+      amount: amount ?? this.amount,
+      category: category ?? this.category,
+      notes: notes ?? this.notes,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (rentCycleId.present) {
+      map['rent_cycle_id'] = Variable<int>(rentCycleId.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OtherChargesCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('rentCycleId: $rentCycleId, ')
+          ..write('amount: $amount, ')
+          ..write('category: $category, ')
           ..write('notes: $notes')
           ..write(')'))
         .toString();
@@ -3954,6 +6034,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ExpensesTable expenses = $ExpensesTable(this);
   late final $ElectricReadingsTable electricReadings =
       $ElectricReadingsTable(this);
+  late final $OtherChargesTable otherCharges = $OtherChargesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3967,7 +6048,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         paymentChannels,
         payments,
         expenses,
-        electricReadings
+        electricReadings,
+        otherCharges
       ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
@@ -4021,11 +6103,22 @@ abstract class _$AppDatabase extends GeneratedDatabase {
               TableUpdate('electric_readings', kind: UpdateKind.delete),
             ],
           ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('rent_cycles',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('other_charges', kind: UpdateKind.delete),
+            ],
+          ),
         ],
       );
 }
 
 typedef $$OwnersTableCreateCompanionBuilder = OwnersCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required String name,
   Value<String?> phone,
@@ -4035,6 +6128,10 @@ typedef $$OwnersTableCreateCompanionBuilder = OwnersCompanion Function({
   Value<DateTime> createdAt,
 });
 typedef $$OwnersTableUpdateCompanionBuilder = OwnersCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<String> name,
   Value<String?> phone,
@@ -4086,6 +6183,18 @@ class $$OwnersTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -4159,6 +6268,18 @@ class $$OwnersTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -4190,6 +6311,18 @@ class $$OwnersTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -4277,6 +6410,10 @@ class $$OwnersTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$OwnersTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String?> phone = const Value.absent(),
@@ -4286,6 +6423,10 @@ class $$OwnersTableTableManager extends RootTableManager<
             Value<DateTime> createdAt = const Value.absent(),
           }) =>
               OwnersCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             name: name,
             phone: phone,
@@ -4295,6 +6436,10 @@ class $$OwnersTableTableManager extends RootTableManager<
             createdAt: createdAt,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required String name,
             Value<String?> phone = const Value.absent(),
@@ -4304,6 +6449,10 @@ class $$OwnersTableTableManager extends RootTableManager<
             Value<DateTime> createdAt = const Value.absent(),
           }) =>
               OwnersCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             name: name,
             phone: phone,
@@ -4368,6 +6517,10 @@ typedef $$OwnersTableProcessedTableManager = ProcessedTableManager<
     Owner,
     PrefetchHooks Function({bool housesRefs, bool expensesRefs})>;
 typedef $$HousesTableCreateCompanionBuilder = HousesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required int ownerId,
   required String name,
@@ -4375,6 +6528,10 @@ typedef $$HousesTableCreateCompanionBuilder = HousesCompanion Function({
   Value<String?> notes,
 });
 typedef $$HousesTableUpdateCompanionBuilder = HousesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<int> ownerId,
   Value<String> name,
@@ -4438,6 +6595,18 @@ class $$HousesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -4522,6 +6691,18 @@ class $$HousesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -4564,6 +6745,18 @@ class $$HousesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -4662,6 +6855,10 @@ class $$HousesTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$HousesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<int> ownerId = const Value.absent(),
             Value<String> name = const Value.absent(),
@@ -4669,6 +6866,10 @@ class $$HousesTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
           }) =>
               HousesCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             ownerId: ownerId,
             name: name,
@@ -4676,6 +6877,10 @@ class $$HousesTableTableManager extends RootTableManager<
             notes: notes,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required int ownerId,
             required String name,
@@ -4683,6 +6888,10 @@ class $$HousesTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
           }) =>
               HousesCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             ownerId: ownerId,
             name: name,
@@ -4770,6 +6979,10 @@ typedef $$HousesTableProcessedTableManager = ProcessedTableManager<
     House,
     PrefetchHooks Function({bool ownerId, bool unitsRefs, bool tenantsRefs})>;
 typedef $$UnitsTableCreateCompanionBuilder = UnitsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required int houseId,
   required String nameOrNumber,
@@ -4778,6 +6991,10 @@ typedef $$UnitsTableCreateCompanionBuilder = UnitsCompanion Function({
   Value<int> defaultDueDay,
 });
 typedef $$UnitsTableUpdateCompanionBuilder = UnitsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<int> houseId,
   Value<String> nameOrNumber,
@@ -4844,6 +7061,18 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -4931,6 +7160,18 @@ class $$UnitsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -4978,6 +7219,18 @@ class $$UnitsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -5080,6 +7333,10 @@ class $$UnitsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$UnitsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<int> houseId = const Value.absent(),
             Value<String> nameOrNumber = const Value.absent(),
@@ -5088,6 +7345,10 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<int> defaultDueDay = const Value.absent(),
           }) =>
               UnitsCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             houseId: houseId,
             nameOrNumber: nameOrNumber,
@@ -5096,6 +7357,10 @@ class $$UnitsTableTableManager extends RootTableManager<
             defaultDueDay: defaultDueDay,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required int houseId,
             required String nameOrNumber,
@@ -5104,6 +7369,10 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<int> defaultDueDay = const Value.absent(),
           }) =>
               UnitsCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             houseId: houseId,
             nameOrNumber: nameOrNumber,
@@ -5197,6 +7466,10 @@ typedef $$UnitsTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function(
         {bool houseId, bool tenantsRefs, bool electricReadingsRefs})>;
 typedef $$TenantsTableCreateCompanionBuilder = TenantsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required int houseId,
   required int unitId,
@@ -5208,8 +7481,13 @@ typedef $$TenantsTableCreateCompanionBuilder = TenantsCompanion Function({
   Value<bool> isActive,
   Value<double> openingBalance,
   Value<double?> agreedRent,
+  Value<String?> password,
 });
 typedef $$TenantsTableUpdateCompanionBuilder = TenantsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<int> houseId,
   Value<int> unitId,
@@ -5221,6 +7499,7 @@ typedef $$TenantsTableUpdateCompanionBuilder = TenantsCompanion Function({
   Value<bool> isActive,
   Value<double> openingBalance,
   Value<double?> agreedRent,
+  Value<String?> password,
 });
 
 final class $$TenantsTableReferences
@@ -5294,6 +7573,18 @@ class $$TenantsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -5321,6 +7612,9 @@ class $$TenantsTableFilterComposer
 
   ColumnFilters<double> get agreedRent => $composableBuilder(
       column: $table.agreedRent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnFilters(column));
 
   $$HousesTableFilterComposer get houseId {
     final $$HousesTableFilterComposer composer = $composerBuilder(
@@ -5414,6 +7708,18 @@ class $$TenantsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -5441,6 +7747,9 @@ class $$TenantsTableOrderingComposer
 
   ColumnOrderings<double> get agreedRent => $composableBuilder(
       column: $table.agreedRent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnOrderings(column));
 
   $$HousesTableOrderingComposer get houseId {
     final $$HousesTableOrderingComposer composer = $composerBuilder(
@@ -5492,6 +7801,18 @@ class $$TenantsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -5518,6 +7839,9 @@ class $$TenantsTableAnnotationComposer
 
   GeneratedColumn<double> get agreedRent => $composableBuilder(
       column: $table.agreedRent, builder: (column) => column);
+
+  GeneratedColumn<String> get password =>
+      $composableBuilder(column: $table.password, builder: (column) => column);
 
   $$HousesTableAnnotationComposer get houseId {
     final $$HousesTableAnnotationComposer composer = $composerBuilder(
@@ -5626,6 +7950,10 @@ class $$TenantsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$TenantsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<int> houseId = const Value.absent(),
             Value<int> unitId = const Value.absent(),
@@ -5637,8 +7965,13 @@ class $$TenantsTableTableManager extends RootTableManager<
             Value<bool> isActive = const Value.absent(),
             Value<double> openingBalance = const Value.absent(),
             Value<double?> agreedRent = const Value.absent(),
+            Value<String?> password = const Value.absent(),
           }) =>
               TenantsCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             houseId: houseId,
             unitId: unitId,
@@ -5650,8 +7983,13 @@ class $$TenantsTableTableManager extends RootTableManager<
             isActive: isActive,
             openingBalance: openingBalance,
             agreedRent: agreedRent,
+            password: password,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required int houseId,
             required int unitId,
@@ -5663,8 +8001,13 @@ class $$TenantsTableTableManager extends RootTableManager<
             Value<bool> isActive = const Value.absent(),
             Value<double> openingBalance = const Value.absent(),
             Value<double?> agreedRent = const Value.absent(),
+            Value<String?> password = const Value.absent(),
           }) =>
               TenantsCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             houseId: houseId,
             unitId: unitId,
@@ -5676,6 +8019,7 @@ class $$TenantsTableTableManager extends RootTableManager<
             isActive: isActive,
             openingBalance: openingBalance,
             agreedRent: agreedRent,
+            password: password,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
@@ -5773,6 +8117,10 @@ typedef $$TenantsTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function(
         {bool houseId, bool unitId, bool rentCyclesRefs, bool paymentsRefs})>;
 typedef $$RentCyclesTableCreateCompanionBuilder = RentCyclesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required int tenantId,
   required String month,
@@ -5791,6 +8139,10 @@ typedef $$RentCyclesTableCreateCompanionBuilder = RentCyclesCompanion Function({
   Value<String?> notes,
 });
 typedef $$RentCyclesTableUpdateCompanionBuilder = RentCyclesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<int> tenantId,
   Value<String> month,
@@ -5841,6 +8193,21 @@ final class $$RentCyclesTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$OtherChargesTable, List<OtherCharge>>
+      _otherChargesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.otherCharges,
+              aliasName: $_aliasNameGenerator(
+                  db.rentCycles.id, db.otherCharges.rentCycleId));
+
+  $$OtherChargesTableProcessedTableManager get otherChargesRefs {
+    final manager = $$OtherChargesTableTableManager($_db, $_db.otherCharges)
+        .filter((f) => f.rentCycleId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_otherChargesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$RentCyclesTableFilterComposer
@@ -5852,6 +8219,18 @@ class $$RentCyclesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -5940,6 +8319,27 @@ class $$RentCyclesTableFilterComposer
             ));
     return f(composer);
   }
+
+  Expression<bool> otherChargesRefs(
+      Expression<bool> Function($$OtherChargesTableFilterComposer f) f) {
+    final $$OtherChargesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.otherCharges,
+        getReferencedColumn: (t) => t.rentCycleId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OtherChargesTableFilterComposer(
+              $db: $db,
+              $table: $db.otherCharges,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$RentCyclesTableOrderingComposer
@@ -5951,6 +8351,18 @@ class $$RentCyclesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -6031,6 +8443,18 @@ class $$RentCyclesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -6116,6 +8540,27 @@ class $$RentCyclesTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> otherChargesRefs<T extends Object>(
+      Expression<T> Function($$OtherChargesTableAnnotationComposer a) f) {
+    final $$OtherChargesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.otherCharges,
+        getReferencedColumn: (t) => t.rentCycleId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OtherChargesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.otherCharges,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$RentCyclesTableTableManager extends RootTableManager<
@@ -6129,7 +8574,8 @@ class $$RentCyclesTableTableManager extends RootTableManager<
     $$RentCyclesTableUpdateCompanionBuilder,
     (RentCycle, $$RentCyclesTableReferences),
     RentCycle,
-    PrefetchHooks Function({bool tenantId, bool paymentsRefs})> {
+    PrefetchHooks Function(
+        {bool tenantId, bool paymentsRefs, bool otherChargesRefs})> {
   $$RentCyclesTableTableManager(_$AppDatabase db, $RentCyclesTable table)
       : super(TableManagerState(
           db: db,
@@ -6141,6 +8587,10 @@ class $$RentCyclesTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$RentCyclesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<int> tenantId = const Value.absent(),
             Value<String> month = const Value.absent(),
@@ -6159,6 +8609,10 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
           }) =>
               RentCyclesCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             tenantId: tenantId,
             month: month,
@@ -6177,6 +8631,10 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             notes: notes,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required int tenantId,
             required String month,
@@ -6195,6 +8653,10 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
           }) =>
               RentCyclesCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             tenantId: tenantId,
             month: month,
@@ -6218,10 +8680,16 @@ class $$RentCyclesTableTableManager extends RootTableManager<
                     $$RentCyclesTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: ({tenantId = false, paymentsRefs = false}) {
+          prefetchHooksCallback: (
+              {tenantId = false,
+              paymentsRefs = false,
+              otherChargesRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [if (paymentsRefs) db.payments],
+              explicitlyWatchedTables: [
+                if (paymentsRefs) db.payments,
+                if (otherChargesRefs) db.otherCharges
+              ],
               addJoins: <
                   T extends TableManagerState<
                       dynamic,
@@ -6262,6 +8730,19 @@ class $$RentCyclesTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.rentCycleId == item.id),
+                        typedResults: items),
+                  if (otherChargesRefs)
+                    await $_getPrefetchedData<RentCycle, $RentCyclesTable,
+                            OtherCharge>(
+                        currentTable: table,
+                        referencedTable: $$RentCyclesTableReferences
+                            ._otherChargesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$RentCyclesTableReferences(db, table, p0)
+                                .otherChargesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.rentCycleId == item.id),
                         typedResults: items)
                 ];
               },
@@ -6281,9 +8762,14 @@ typedef $$RentCyclesTableProcessedTableManager = ProcessedTableManager<
     $$RentCyclesTableUpdateCompanionBuilder,
     (RentCycle, $$RentCyclesTableReferences),
     RentCycle,
-    PrefetchHooks Function({bool tenantId, bool paymentsRefs})>;
+    PrefetchHooks Function(
+        {bool tenantId, bool paymentsRefs, bool otherChargesRefs})>;
 typedef $$PaymentChannelsTableCreateCompanionBuilder = PaymentChannelsCompanion
     Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required String name,
   required String type,
@@ -6291,6 +8777,10 @@ typedef $$PaymentChannelsTableCreateCompanionBuilder = PaymentChannelsCompanion
 });
 typedef $$PaymentChannelsTableUpdateCompanionBuilder = PaymentChannelsCompanion
     Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<String> name,
   Value<String> type,
@@ -6327,6 +8817,18 @@ class $$PaymentChannelsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -6370,6 +8872,18 @@ class $$PaymentChannelsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -6392,6 +8906,18 @@ class $$PaymentChannelsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -6450,24 +8976,40 @@ class $$PaymentChannelsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$PaymentChannelsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> type = const Value.absent(),
             Value<String?> details = const Value.absent(),
           }) =>
               PaymentChannelsCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             name: name,
             type: type,
             details: details,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required String name,
             required String type,
             Value<String?> details = const Value.absent(),
           }) =>
               PaymentChannelsCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             name: name,
             type: type,
@@ -6519,6 +9061,10 @@ typedef $$PaymentChannelsTableProcessedTableManager = ProcessedTableManager<
     PaymentChannel,
     PrefetchHooks Function({bool paymentsRefs})>;
 typedef $$PaymentsTableCreateCompanionBuilder = PaymentsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required int rentCycleId,
   required int tenantId,
@@ -6531,6 +9077,10 @@ typedef $$PaymentsTableCreateCompanionBuilder = PaymentsCompanion Function({
   Value<String?> notes,
 });
 typedef $$PaymentsTableUpdateCompanionBuilder = PaymentsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<int> rentCycleId,
   Value<int> tenantId,
@@ -6602,6 +9152,18 @@ class $$PaymentsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -6693,6 +9255,18 @@ class $$PaymentsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -6784,6 +9358,18 @@ class $$PaymentsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -6889,6 +9475,10 @@ class $$PaymentsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$PaymentsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<int> rentCycleId = const Value.absent(),
             Value<int> tenantId = const Value.absent(),
@@ -6901,6 +9491,10 @@ class $$PaymentsTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
           }) =>
               PaymentsCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             rentCycleId: rentCycleId,
             tenantId: tenantId,
@@ -6913,6 +9507,10 @@ class $$PaymentsTableTableManager extends RootTableManager<
             notes: notes,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required int rentCycleId,
             required int tenantId,
@@ -6925,6 +9523,10 @@ class $$PaymentsTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
           }) =>
               PaymentsCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             rentCycleId: rentCycleId,
             tenantId: tenantId,
@@ -7012,6 +9614,10 @@ typedef $$PaymentsTableProcessedTableManager = ProcessedTableManager<
     Payment,
     PrefetchHooks Function({bool rentCycleId, bool tenantId, bool channelId})>;
 typedef $$ExpensesTableCreateCompanionBuilder = ExpensesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required int ownerId,
   required String title,
@@ -7021,6 +9627,10 @@ typedef $$ExpensesTableCreateCompanionBuilder = ExpensesCompanion Function({
   Value<String?> description,
 });
 typedef $$ExpensesTableUpdateCompanionBuilder = ExpensesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<int> ownerId,
   Value<String> title,
@@ -7058,6 +9668,18 @@ class $$ExpensesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -7106,6 +9728,18 @@ class $$ExpensesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -7154,6 +9788,18 @@ class $$ExpensesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -7216,6 +9862,10 @@ class $$ExpensesTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$ExpensesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<int> ownerId = const Value.absent(),
             Value<String> title = const Value.absent(),
@@ -7225,6 +9875,10 @@ class $$ExpensesTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
           }) =>
               ExpensesCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             ownerId: ownerId,
             title: title,
@@ -7234,6 +9888,10 @@ class $$ExpensesTableTableManager extends RootTableManager<
             description: description,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required int ownerId,
             required String title,
@@ -7243,6 +9901,10 @@ class $$ExpensesTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
           }) =>
               ExpensesCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             ownerId: ownerId,
             title: title,
@@ -7307,6 +9969,10 @@ typedef $$ExpensesTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function({bool ownerId})>;
 typedef $$ElectricReadingsTableCreateCompanionBuilder
     = ElectricReadingsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   required int unitId,
   required DateTime readingDate,
@@ -7315,10 +9981,15 @@ typedef $$ElectricReadingsTableCreateCompanionBuilder
   required double currentReading,
   Value<double> ratePerUnit,
   required double amount,
+  Value<String?> imagePath,
   Value<String?> notes,
 });
 typedef $$ElectricReadingsTableUpdateCompanionBuilder
     = ElectricReadingsCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
   Value<int> id,
   Value<int> unitId,
   Value<DateTime> readingDate,
@@ -7327,6 +9998,7 @@ typedef $$ElectricReadingsTableUpdateCompanionBuilder
   Value<double> currentReading,
   Value<double> ratePerUnit,
   Value<double> amount,
+  Value<String?> imagePath,
   Value<String?> notes,
 });
 
@@ -7359,6 +10031,18 @@ class $$ElectricReadingsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -7380,6 +10064,9 @@ class $$ElectricReadingsTableFilterComposer
 
   ColumnFilters<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imagePath => $composableBuilder(
+      column: $table.imagePath, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
@@ -7414,6 +10101,18 @@ class $$ElectricReadingsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -7435,6 +10134,9 @@ class $$ElectricReadingsTableOrderingComposer
 
   ColumnOrderings<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imagePath => $composableBuilder(
+      column: $table.imagePath, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
@@ -7469,6 +10171,18 @@ class $$ElectricReadingsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -7489,6 +10203,9 @@ class $$ElectricReadingsTableAnnotationComposer
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get imagePath =>
+      $composableBuilder(column: $table.imagePath, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -7538,6 +10255,10 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$ElectricReadingsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             Value<int> unitId = const Value.absent(),
             Value<DateTime> readingDate = const Value.absent(),
@@ -7546,9 +10267,14 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             Value<double> currentReading = const Value.absent(),
             Value<double> ratePerUnit = const Value.absent(),
             Value<double> amount = const Value.absent(),
+            Value<String?> imagePath = const Value.absent(),
             Value<String?> notes = const Value.absent(),
           }) =>
               ElectricReadingsCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             unitId: unitId,
             readingDate: readingDate,
@@ -7557,9 +10283,14 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             currentReading: currentReading,
             ratePerUnit: ratePerUnit,
             amount: amount,
+            imagePath: imagePath,
             notes: notes,
           ),
           createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
             Value<int> id = const Value.absent(),
             required int unitId,
             required DateTime readingDate,
@@ -7568,9 +10299,14 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             required double currentReading,
             Value<double> ratePerUnit = const Value.absent(),
             required double amount,
+            Value<String?> imagePath = const Value.absent(),
             Value<String?> notes = const Value.absent(),
           }) =>
               ElectricReadingsCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
             id: id,
             unitId: unitId,
             readingDate: readingDate,
@@ -7579,6 +10315,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             currentReading: currentReading,
             ratePerUnit: ratePerUnit,
             amount: amount,
+            imagePath: imagePath,
             notes: notes,
           ),
           withReferenceMapper: (p0) => p0
@@ -7637,6 +10374,335 @@ typedef $$ElectricReadingsTableProcessedTableManager = ProcessedTableManager<
     (ElectricReading, $$ElectricReadingsTableReferences),
     ElectricReading,
     PrefetchHooks Function({bool unitId})>;
+typedef $$OtherChargesTableCreateCompanionBuilder = OtherChargesCompanion
+    Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
+  Value<int> id,
+  required int rentCycleId,
+  required double amount,
+  required String category,
+  Value<String?> notes,
+});
+typedef $$OtherChargesTableUpdateCompanionBuilder = OtherChargesCompanion
+    Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
+  Value<int> id,
+  Value<int> rentCycleId,
+  Value<double> amount,
+  Value<String> category,
+  Value<String?> notes,
+});
+
+final class $$OtherChargesTableReferences
+    extends BaseReferences<_$AppDatabase, $OtherChargesTable, OtherCharge> {
+  $$OtherChargesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $RentCyclesTable _rentCycleIdTable(_$AppDatabase db) =>
+      db.rentCycles.createAlias(
+          $_aliasNameGenerator(db.otherCharges.rentCycleId, db.rentCycles.id));
+
+  $$RentCyclesTableProcessedTableManager get rentCycleId {
+    final $_column = $_itemColumn<int>('rent_cycle_id')!;
+
+    final manager = $$RentCyclesTableTableManager($_db, $_db.rentCycles)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_rentCycleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$OtherChargesTableFilterComposer
+    extends Composer<_$AppDatabase, $OtherChargesTable> {
+  $$OtherChargesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get category => $composableBuilder(
+      column: $table.category, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  $$RentCyclesTableFilterComposer get rentCycleId {
+    final $$RentCyclesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.rentCycleId,
+        referencedTable: $db.rentCycles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RentCyclesTableFilterComposer(
+              $db: $db,
+              $table: $db.rentCycles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$OtherChargesTableOrderingComposer
+    extends Composer<_$AppDatabase, $OtherChargesTable> {
+  $$OtherChargesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get category => $composableBuilder(
+      column: $table.category, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  $$RentCyclesTableOrderingComposer get rentCycleId {
+    final $$RentCyclesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.rentCycleId,
+        referencedTable: $db.rentCycles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RentCyclesTableOrderingComposer(
+              $db: $db,
+              $table: $db.rentCycles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$OtherChargesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OtherChargesTable> {
+  $$OtherChargesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  $$RentCyclesTableAnnotationComposer get rentCycleId {
+    final $$RentCyclesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.rentCycleId,
+        referencedTable: $db.rentCycles,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RentCyclesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.rentCycles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$OtherChargesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $OtherChargesTable,
+    OtherCharge,
+    $$OtherChargesTableFilterComposer,
+    $$OtherChargesTableOrderingComposer,
+    $$OtherChargesTableAnnotationComposer,
+    $$OtherChargesTableCreateCompanionBuilder,
+    $$OtherChargesTableUpdateCompanionBuilder,
+    (OtherCharge, $$OtherChargesTableReferences),
+    OtherCharge,
+    PrefetchHooks Function({bool rentCycleId})> {
+  $$OtherChargesTableTableManager(_$AppDatabase db, $OtherChargesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OtherChargesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OtherChargesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OtherChargesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> id = const Value.absent(),
+            Value<int> rentCycleId = const Value.absent(),
+            Value<double> amount = const Value.absent(),
+            Value<String> category = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
+          }) =>
+              OtherChargesCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
+            id: id,
+            rentCycleId: rentCycleId,
+            amount: amount,
+            category: category,
+            notes: notes,
+          ),
+          createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> id = const Value.absent(),
+            required int rentCycleId,
+            required double amount,
+            required String category,
+            Value<String?> notes = const Value.absent(),
+          }) =>
+              OtherChargesCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
+            id: id,
+            rentCycleId: rentCycleId,
+            amount: amount,
+            category: category,
+            notes: notes,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$OtherChargesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({rentCycleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (rentCycleId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.rentCycleId,
+                    referencedTable:
+                        $$OtherChargesTableReferences._rentCycleIdTable(db),
+                    referencedColumn:
+                        $$OtherChargesTableReferences._rentCycleIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$OtherChargesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $OtherChargesTable,
+    OtherCharge,
+    $$OtherChargesTableFilterComposer,
+    $$OtherChargesTableOrderingComposer,
+    $$OtherChargesTableAnnotationComposer,
+    $$OtherChargesTableCreateCompanionBuilder,
+    $$OtherChargesTableUpdateCompanionBuilder,
+    (OtherCharge, $$OtherChargesTableReferences),
+    OtherCharge,
+    PrefetchHooks Function({bool rentCycleId})>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7659,4 +10725,6 @@ class $AppDatabaseManager {
       $$ExpensesTableTableManager(_db, _db.expenses);
   $$ElectricReadingsTableTableManager get electricReadings =>
       $$ElectricReadingsTableTableManager(_db, _db.electricReadings);
+  $$OtherChargesTableTableManager get otherCharges =>
+      $$OtherChargesTableTableManager(_db, _db.otherCharges);
 }

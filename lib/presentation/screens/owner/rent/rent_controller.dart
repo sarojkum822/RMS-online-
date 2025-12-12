@@ -1,4 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/rent_cycle.dart';
@@ -16,7 +18,29 @@ class RentController extends _$RentController {
   @override
   FutureOr<List<RentCycle>> build() async {
     final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-    return _fetchRentCycles(currentMonth);
+    return _fetchDashboardCycles(currentMonth);
+  }
+
+  Future<List<RentCycle>> _fetchDashboardCycles(String currentMonth) async {
+     final repo = ref.read(rentRepositoryProvider);
+     
+     // 1. Current Month (All statuses)
+     final currentValues = await repo.getRentCyclesForMonth(currentMonth);
+     
+     // 2. Past Pending (All months)
+     final pendingValues = await repo.getAllPendingRentCycles();
+     
+     // 3. Merge & Deduplicate
+     final Map<int, RentCycle> merged = {};
+     for(final c in currentValues) {
+       merged[c.id] = c;
+     }
+     for(final c in pendingValues) {
+       merged[c.id] = c;
+     }
+     
+     // 4. Return Values
+     return merged.values.toList();
   }
 
   Future<List<RentCycle>> _fetchRentCycles(String month) async {
@@ -72,7 +96,7 @@ class RentController extends _$RentController {
     }
 
     // Refresh State
-    state = AsyncValue.data(await _fetchRentCycles(currentMonth));
+    state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
     // Invalidate for all active tenants to ensure consistency if they are viewing details
     for(final t in activeTenants) {
@@ -103,7 +127,7 @@ class RentController extends _$RentController {
       id: 0,
       tenantId: tenantId,
       month: month,
-      billNumber: 'MANUAL-${month}-${tenantId}',
+      billNumber: 'MANUAL-$month-$tenantId',
       billPeriodStart: DateTime(parsedDate.year, parsedDate.month, 1),
       billPeriodEnd: DateTime(parsedDate.year, parsedDate.month + 1, 0),
       billGeneratedDate: date,
@@ -125,7 +149,7 @@ class RentController extends _$RentController {
     ref.invalidate(rentCyclesForTenantProvider(tenantId));
      final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
      if(month == currentMonth){
-       state = AsyncValue.data(await _fetchRentCycles(currentMonth));
+       state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
      }
   }
 
@@ -136,7 +160,8 @@ class RentController extends _$RentController {
     required double currentReading,
     required double ratePerUnit,
   }) async {
-    final cycle = await ref.read(rentRepositoryProvider).getRentCycle(rentCycleId);
+    final rentRepo = ref.read(rentRepositoryProvider);
+    final cycle = await rentRepo.getRentCycle(rentCycleId);
     if(cycle == null) return;
     
     final unitsConsumed = currentReading - prevReading;
@@ -147,13 +172,31 @@ class RentController extends _$RentController {
     final updatedCycle = cycle.copyWith(
       electricAmount: electricBill,
       totalDue: newTotalDue,
-      // Status update logic could be complex (if paid amount > new due?), keeping simple
+      // Status update logic
       status: cycle.totalPaid >= newTotalDue ? RentStatus.paid : (cycle.totalPaid > 0 ? RentStatus.partial : RentStatus.pending),
     );
     
-    await ref.read(rentRepositoryProvider).updateRentCycle(updatedCycle);
+    await rentRepo.updateRentCycle(updatedCycle);
+    
+    // SAVE READING TO HISTORY for next month's auto-fill
+    // 1. Need Unit ID (via Tenant)
+    try {
+       // We can iterate cached tenants/repo since we need unitId
+       final allTenants = await ref.read(tenantRepositoryProvider).getAllTenants();
+       final tenant = allTenants.firstWhere((t) => t.id == cycle.tenantId);
+       
+       await rentRepo.addElectricReading(
+         tenant.unitId,
+         DateTime.now(), 
+         currentReading,
+         rate: ratePerUnit
+       );
+    } catch (e) {
+       debugPrint('Failed to save electric history: $e');
+    }
+
      final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-    state = AsyncValue.data(await _fetchRentCycles(currentMonth));
+    state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(rentCyclesForTenantProvider(cycle.tenantId));
   }
@@ -179,7 +222,7 @@ class RentController extends _$RentController {
     
     await ref.read(rentRepositoryProvider).updateRentCycle(updatedCycle);
      final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-    state = AsyncValue.data(await _fetchRentCycles(currentMonth));
+    state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(rentCyclesForTenantProvider(cycle.tenantId));
   }
@@ -210,9 +253,54 @@ class RentController extends _$RentController {
      await ref.read(rentRepositoryProvider).recordPayment(payment);
      // Refresh everything
       final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-     state = AsyncValue.data(await _fetchRentCycles(currentMonth));
+     state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
      ref.invalidate(dashboardStatsProvider);
      ref.invalidate(rentCyclesForTenantProvider(tenantId));
+  }
+  Future<Map<String, double>?> getLastElectricReading(int unitId) async {
+    return ref.read(rentRepositoryProvider).getLastElectricReading(unitId);
+  }
+
+  // --- Deletion Logic ---
+
+  Future<void> deleteBill(int rentCycleId, int tenantId) async {
+    final repo = ref.read(rentRepositoryProvider);
+    await repo.deleteRentCycle(rentCycleId);
+    
+    // Refresh State
+    final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
+    state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
+    ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(rentCyclesForTenantProvider(tenantId));
+  }
+
+  Future<void> deletePayment(int paymentId, int rentCycleId, int tenantId) async {
+    final repo = ref.read(rentRepositoryProvider);
+    
+    // 1. Delete Payment
+    await repo.deletePayment(paymentId);
+    
+    // 2. Recalculate Total Paid for the Cycle
+    final remainingPayments = await repo.getPaymentsForRentCycle(rentCycleId);
+    double newTotalPaid = remainingPayments.fold(0.0, (sum, p) => sum + p.amount); // fold handles empty list
+    
+    // 3. Update Rent Cycle Status
+    final cycle = await repo.getRentCycle(rentCycleId);
+    if (cycle != null) {
+       final updatedCycle = cycle.copyWith(
+         totalPaid: newTotalPaid,
+         status: newTotalPaid >= cycle.totalDue 
+            ? RentStatus.paid 
+            : (newTotalPaid > 0 ? RentStatus.partial : RentStatus.pending),
+       );
+       await repo.updateRentCycle(updatedCycle);
+    }
+
+    // 4. Refresh State
+    final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
+    state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
+    ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(rentCyclesForTenantProvider(tenantId));
   }
 }
 

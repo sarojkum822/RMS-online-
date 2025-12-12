@@ -10,6 +10,7 @@ class Owner with _$Owner {
     required String name,
     String? phone,
     String? email,
+    String? firestoreId, // NEW
     @Default('INR') String currency,
     String? timezone,
     DateTime? createdAt,

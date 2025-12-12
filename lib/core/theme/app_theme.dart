@@ -28,8 +28,6 @@ class AppTheme {
         onSurface: textPrimary,
         error: error,
         onError: Colors.white,
-        background: background,
-        onBackground: textPrimary,
       ),
       scaffoldBackgroundColor: background,
       textTheme: GoogleFonts.outfitTextTheme().apply(

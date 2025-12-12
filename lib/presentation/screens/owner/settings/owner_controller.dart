@@ -29,7 +29,7 @@ class OwnerController extends AsyncNotifier<Owner?> {
     return owner;
   }
 
-  Future<void> updateProfile({required String name, required String email, required String phone}) async {
+  Future<void> updateProfile({required String name, required String email, required String phone, String? firestoreId}) async {
     final repo = ref.read(ownerRepositoryProvider);
     final currentOwner = state.value;
     if (currentOwner == null) return;
@@ -38,6 +38,7 @@ class OwnerController extends AsyncNotifier<Owner?> {
       name: name,
       email: email,
       phone: phone,
+      firestoreId: firestoreId ?? currentOwner.firestoreId, // Update if provided
     );
 
     state = const AsyncValue.loading();

@@ -56,7 +56,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       decoration: const InputDecoration(labelText: 'Category'),
                       items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                       onChanged: (v) => setState(() => _selectedCategory = v!),
@@ -185,7 +185,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Colors.red.withOpacity(0.1),
+                    backgroundColor: Colors.red.withValues(alpha: 0.1),
                     child: const Icon(Icons.receipt_long, color: Colors.red, size: 20),
                   ),
                   title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),

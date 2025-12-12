@@ -67,7 +67,7 @@ class TenantListScreen extends ConsumerWidget {
                       border: Border.all(color: Colors.grey.shade100),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.05),
+                          color: Colors.grey.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -77,10 +77,11 @@ class TenantListScreen extends ConsumerWidget {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       leading: CircleAvatar(
                         backgroundColor: const Color(0xFFE1F5FE),
-                        child: Text(
+                        backgroundImage: tenant.imageUrl != null ? NetworkImage(tenant.imageUrl!) : null,
+                        child: tenant.imageUrl == null ? Text(
                           tenant.name.substring(0, 1).toUpperCase(),
                           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF0288D1)),
-                        ),
+                        ) : null,
                       ),
                       title: Text(
                         tenant.name,
@@ -90,20 +91,36 @@ class TenantListScreen extends ConsumerWidget {
                         '${tenant.phone} • Unit: $unitDisplay',
                         style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[500]),
                       ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: tenant.status == TenantStatus.active ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          tenant.status == TenantStatus.active ? 'Active' : 'Inactive',
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: tenant.status == TenantStatus.active ? Colors.green : Colors.red,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: tenant.status == TenantStatus.active ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              tenant.status == TenantStatus.active ? 'Active' : 'Inactive',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: tenant.status == TenantStatus.active ? Colors.green : Colors.red,
+                              ),
+                            ),
                           ),
-                        ),
+                          PopupMenuButton(
+                            icon: Icon(Icons.more_vert, color: Colors.grey[400]),
+                            itemBuilder: (context) => [
+                               PopupMenuItem(
+                                child: const Text('Delete'),
+                                onTap: () {
+                                   ref.read(tenantControllerProvider.notifier).deleteTenant(tenant.id);
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                       onTap: () {
                          Navigator.of(context).push(

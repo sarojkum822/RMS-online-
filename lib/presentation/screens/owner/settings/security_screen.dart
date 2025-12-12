@@ -49,7 +49,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             child: SwitchListTile(
               secondary: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: const Icon(Icons.fingerprint, color: Colors.purple),
               ),
               title: Text('Biometric Auth', style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
@@ -79,7 +79,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                    // Save to SharedPreferences here
                 }
               },
-              activeColor: Colors.black,
+              activeThumbColor: Colors.black,
             ),
           ),
           
@@ -105,7 +105,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, color: Colors.blue),
         ),
         title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),

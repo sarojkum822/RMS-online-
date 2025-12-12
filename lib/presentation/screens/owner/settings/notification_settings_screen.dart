@@ -92,7 +92,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         subtitle: Text(subtitle, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
         value: value,
         onChanged: onChanged,
-        activeColor: Colors.black,
+        activeThumbColor: Colors.black,
       ),
     );
   }

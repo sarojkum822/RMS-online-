@@ -23,7 +23,7 @@ final databaseProvider = Provider<AppDatabase>.internal(
 // ignore: unused_element
 typedef DatabaseRef = ProviderRef<AppDatabase>;
 String _$propertyRepositoryHash() =>
-    r'574f95731c08e583088e99ab4c1d18121c75f7e5';
+    r'81142942786ce23a54c4946690d2781afee549b5';
 
 /// See also [propertyRepository].
 @ProviderFor(propertyRepository)
@@ -40,7 +40,7 @@ final propertyRepositoryProvider = Provider<IPropertyRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PropertyRepositoryRef = ProviderRef<IPropertyRepository>;
-String _$tenantRepositoryHash() => r'e5c73ae90f89b7fea82a83fa805d3ee37835d1dd';
+String _$tenantRepositoryHash() => r'9529e6bb4311c7fca35ab986b7dd3768311ea3d7';
 
 /// See also [tenantRepository].
 @ProviderFor(tenantRepository)
@@ -57,7 +57,7 @@ final tenantRepositoryProvider = Provider<ITenantRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TenantRepositoryRef = ProviderRef<ITenantRepository>;
-String _$rentRepositoryHash() => r'f653302feb7cd35dccad6165c6f8db00e913b3b0';
+String _$rentRepositoryHash() => r'10b836b0e2fbe690e06b7efa9c29dc4e2054f5a5';
 
 /// See also [rentRepository].
 @ProviderFor(rentRepository)

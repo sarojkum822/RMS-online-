@@ -8,6 +8,7 @@ import '../../../../domain/entities/rent_cycle.dart';
 import '../rent/rent_controller.dart';
 import '../../../providers/data_providers.dart';
 import '../../../widgets/dotted_line_separator.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 class TenantDetailScreen extends ConsumerStatefulWidget {
   final Tenant tenant;
@@ -81,12 +82,12 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                         margin: const EdgeInsets.only(top: 30), // Reduced top margin for better fit
                         padding: const EdgeInsets.fromLTRB(20, 50, 20, 24), // Top padding for Avatar
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1), // Glassy see-through
+                          color: Colors.white.withValues(alpha: 0.1), // Glassy see-through
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -120,7 +121,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                     return Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.15),
+                                        color: Colors.white.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
@@ -169,9 +170,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: Colors.amber.withOpacity(0.15),
+                                            color: Colors.amber.withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                                            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -229,25 +230,26 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
-                              colors: [Colors.greenAccent.withOpacity(0.8), Colors.blueAccent.withOpacity(0.8)],
+                              colors: [Colors.greenAccent.withValues(alpha: 0.8), Colors.blueAccent.withValues(alpha: 0.8)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             boxShadow: [
-                              BoxShadow(color: Colors.greenAccent.withOpacity(0.3), blurRadius: 12, spreadRadius: 2),
+                              BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.3), blurRadius: 12, spreadRadius: 2),
                             ],
                           ),
                           child: CircleAvatar(
                             radius: 36,
-                            backgroundColor: const Color(0xFF0F172A), // Match bg
-                            child: Text(
+                            backgroundColor: const Color(0xFF0F172A), 
+                            backgroundImage: widget.tenant.imageUrl != null ? NetworkImage(widget.tenant.imageUrl!) : null,
+                            child: widget.tenant.imageUrl == null ? Text(
                               widget.tenant.name[0].toUpperCase(),
                               style: GoogleFonts.outfit(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
-                            ),
+                            ) : null,
                           ),
                         ),
                       ),
@@ -283,7 +285,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                         backgroundColor: const Color(0xFF0F172A), // Dark Navy
                         foregroundColor: Colors.white,
                         elevation: 4,
-                        shadowColor: const Color(0xFF0F172A).withOpacity(0.4),
+                        shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.4),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
@@ -321,7 +323,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04), 
+                            color: Colors.black.withValues(alpha: 0.04), 
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -357,20 +359,47 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                     ),
                                   ],
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: isPaid ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    cycle.status.name.toUpperCase(),
-                                    style: GoogleFonts.outfit(
-                                      color: isPaid ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                // Status + Menu
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isPaid ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        cycle.status.name.toUpperCase(),
+                                        style: GoogleFonts.outfit(
+                                          color: isPaid ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    // Menu for Actions (Delete)
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, color: Colors.grey),
+                                      onSelected: (value) {
+                                        if (value == 'delete') {
+                                           _confirmDeleteBill(context, ref, cycle);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete, color: Colors.red, size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Delete Bill', style: TextStyle(color: Colors.red)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -412,13 +441,28 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                   children: [
                                     Text('Paid', style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 13)),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      '₹${cycle.totalPaid.toStringAsFixed(0)}',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: isPaid ? const Color(0xFF2E7D32) : Colors.black87,
-                                      ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '₹${cycle.totalPaid.toStringAsFixed(0)}',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            color: isPaid ? const Color(0xFF2E7D32) : Colors.black87,
+                                          ),
+                                        ),
+                                        if (cycle.totalPaid > 0) ...[
+                                           const SizedBox(width: 4),
+                                           IconButton(
+                                             icon: const Icon(Icons.info_outline, size: 18, color: Colors.blue),
+                                             onPressed: () => _showPaymentHistory(context, ref, cycle),
+                                             tooltip: 'View History',
+                                             constraints: const BoxConstraints(),
+                                             padding: EdgeInsets.zero,
+                                           )
+                                        ]
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -539,6 +583,170 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
+  // --- Deletion Dialogs ---
+
+  void _confirmDeleteBill(BuildContext context, WidgetRef ref, RentCycle cycle) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          final isMatch = controller.text.trim() == 'DELETE';
+          return AlertDialog(
+            title: const Text('Delete Information'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Warning: This action is permanent and cannot be undone.',
+                          style: GoogleFonts.outfit(color: Colors.red[900], fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'To confirm deletion of the bill for ${cycle.month}, please type "DELETE" below:',
+                  style: GoogleFonts.outfit(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'DELETE',
+                  ),
+                  onChanged: (val) => setState(() {}),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  disabledBackgroundColor: Colors.red.withValues(alpha: 0.3),
+                ),
+                onPressed: isMatch ? () async {
+                  Navigator.pop(context); // Close dialog
+                  try {
+                     await ref.read(rentControllerProvider.notifier).deleteBill(cycle.id, widget.tenant.id);
+                     if (context.mounted) {
+                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill deleted')));
+                     }
+                  } catch (e) {
+                     if (context.mounted) {
+                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                     }
+                  }
+                } : null, // Disable if not matching
+                child: const Text('Delete Forever', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        }
+      ),
+    );
+  }
+
+  void _showPaymentHistory(BuildContext context, WidgetRef ref, RentCycle cycle) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Payment History', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: FutureBuilder<List<Payment>>(
+                    future: ref.read(rentRepositoryProvider).getPaymentsForRentCycle(cycle.id),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                      if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+                      final payments = snapshot.data ?? [];
+                      if (payments.isEmpty) return const Center(child: Text('No payments found'));
+
+                      return ListView.builder(
+                        itemCount: payments.length,
+                        itemBuilder: (context, index) {
+                          final p = payments[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 0,
+                            color: Colors.grey[50],
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Colors.white,
+                                child: Icon(Icons.check, color: Colors.green),
+                              ),
+                              title: Text('₹${p.amount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('${DateFormat('dd MMM').format(p.date)} via ${p.method}'),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () {
+                                  // Confirm Delete Payment
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Delete Transaction?'),
+                                      content: const Text('This will reduce the "Paid" amount for this bill.'),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                        TextButton(
+                                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                          onPressed: () async {
+                                            Navigator.pop(ctx); // Close Alert
+                                            
+                                            await ref.read(rentControllerProvider.notifier).deletePayment(p.id, cycle.id, widget.tenant.id);
+                                            
+                                            // Refresh Sheet
+                                            setSheetState(() {});
+                                          },
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    )
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
   void _showPaymentSheet(BuildContext context, RentCycle cycle, WidgetRef ref) {
     final amountController = TextEditingController(text: (cycle.totalDue - cycle.totalPaid).toStringAsFixed(0));
     final refController = TextEditingController();
@@ -594,7 +802,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
 
               // Method Dropdown
               DropdownButtonFormField<String>(
-                value: selectedMethod,
+                initialValue: selectedMethod,
                 decoration: InputDecoration(
                   labelText: 'Payment Method',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -650,6 +858,12 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                      if (context.mounted) {
                        Navigator.pop(context);
                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Recorded')));
+                       
+                       // Prompt for Review if available
+                       final InAppReview inAppReview = InAppReview.instance;
+                       if (await inAppReview.isAvailable()) {
+                         inAppReview.requestReview();
+                       }
                      }
                   },
                   child: const Text('Save Payment', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
@@ -663,13 +877,53 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
-  void _showChargesSheet(BuildContext context, RentCycle cycle, WidgetRef ref) {
+  void _showChargesSheet(BuildContext context, RentCycle cycle, WidgetRef ref) async {
     final prevReadingController = TextEditingController();
     final currReadingController = TextEditingController();
     final rateController = TextEditingController(text: '10'); 
     
     final chargeAmountController = TextEditingController();
     final chargeNoteController = TextEditingController();
+
+    // Determine Pre-fills (Async)
+    double? lastReading;
+    double? lastRate;
+    
+    try {
+      // Note: RentCycle doesn't have unitId, Tenant has unitId.
+      final tenant = widget.tenant; // Since we are on TenantDetailScreen, we have the tenant.
+      
+      final readingData = await ref.read(rentControllerProvider.notifier).getLastElectricReading(tenant.unitId);
+      if (readingData != null) {
+        lastReading = readingData['currentReading'];
+        lastRate = readingData['rate'];
+      } else {
+        // Fallback: If no "Last" reading (e.g. first month), try "Initial Reading"
+        // This handles cases where only 1 reading exists (the initial one) and maybe the desc-sort query failed or returned nothing?
+        // Actually, logic says Last Reading SHOULD return the initial one if it's the only one.
+        // But let's be explicit to satisfy user request "previous reading should become initial reading".
+        final initial = await ref.read(initialReadingProvider(tenant.unitId).future);
+        if (initial != null) {
+          lastReading = initial;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error auto-filling readings: $e');
+      // If error (e.g. index missing for "Last" query), try "Initial" query as backup
+      try {
+         final initial = await ref.read(initialReadingProvider(widget.tenant.unitId).future);
+         if(initial != null) lastReading = initial;
+      } catch (_) {}
+    }
+
+    if (lastReading != null) {
+      prevReadingController.text = lastReading.toString();
+    }
+    if (lastRate != null) {
+      rateController.text = lastRate.toString();
+    }
+
+    if (!context.mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -701,19 +955,23 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                         const SizedBox(height: 20),
                         TextField(
                           controller: prevReadingController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Previous Reading', border: OutlineInputBorder()),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Previous Reading', 
+                            border: const OutlineInputBorder(),
+                            helperText: lastReading != null ? 'Auto-filled from last reading' : null,
+                          ),
                         ),
                         const SizedBox(height: 12),
                          TextField(
                           controller: currReadingController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(labelText: 'Current Reading', border: OutlineInputBorder()),
                         ),
                         const SizedBox(height: 12),
                          TextField(
                           controller: rateController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(labelText: 'Rate per Unit (₹)', border: OutlineInputBorder()),
                         ),
                         const Spacer(),
@@ -748,7 +1006,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                         const SizedBox(height: 20),
                         TextField(
                           controller: chargeAmountController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(labelText: 'Amount (₹)', border: OutlineInputBorder()),
                         ),
                          const SizedBox(height: 12),

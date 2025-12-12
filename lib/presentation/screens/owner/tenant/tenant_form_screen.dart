@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io'; 
+import 'package:image_picker/image_picker.dart';
 import 'tenant_controller.dart';
 import '../house/house_controller.dart';
-import '../../../../domain/entities/house.dart';
-import '../../../../domain/entities/tenant.dart'; 
 
 class TenantFormScreen extends ConsumerStatefulWidget {
   const TenantFormScreen({super.key});
@@ -19,6 +19,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   final _rentCtrl = TextEditingController(); 
   final _electricCtrl = TextEditingController(); 
   
@@ -27,6 +28,17 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   final _floorCtrl = TextEditingController();
 
   int? _selectedHouseId;
+  File? _selectedImage;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 800);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +51,24 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            // Image Picker (Circle)
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+                  child: _selectedImage == null
+                      ? const Icon(Icons.add_a_photo, size: 30, color: Colors.grey)
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Center(child: Text('Add Photo', style: TextStyle(color: Colors.grey))),
+            const SizedBox(height: 24),
+
             Text('Assign Property', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             
@@ -120,8 +150,16 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _emailCtrl,
-              decoration: InputDecoration(labelText: 'Email (Optional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(labelText: 'Email (Login ID)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
               keyboardType: TextInputType.emailAddress,
+              validator: (v) => v!.isEmpty ? 'Required for Login' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordCtrl,
+              decoration: InputDecoration(labelText: 'Password (For Tenant Login)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              obscureText: false, 
+              validator: (v) => v!.length < 6 ? 'Min 6 chars' : null,
             ),
             const SizedBox(height: 16),
             
@@ -173,8 +211,10 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                          tenantName: _nameCtrl.text,
                          phone: _phoneCtrl.text,
                          email: _emailCtrl.text,
+                         password: _passwordCtrl.text,
                          agreedRent: rent,
                          initialElectricReading: initialElectric,
+                         imageFile: _selectedImage, // Pass image
                        );
 
                        if (mounted) context.pop();

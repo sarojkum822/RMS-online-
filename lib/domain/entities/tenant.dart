@@ -18,7 +18,11 @@ class Tenant with _$Tenant {
     required DateTime startDate,
     required TenantStatus status,
     @Default(0.0) double openingBalance,
-    double? agreedRent, // NEW
+    double? agreedRent, 
+    String? password,
+    String? imageUrl,
+    String? authId, // Firebase Auth UID for secure login
+    required String ownerId, // NEW: Needed for fetching payments
   }) = _Tenant;
 
   factory Tenant.fromJson(Map<String, dynamic> json) => _$TenantFromJson(json);

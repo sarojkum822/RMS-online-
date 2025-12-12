@@ -24,6 +24,7 @@ mixin _$Owner {
   String get name => throw _privateConstructorUsedError;
   String? get phone => throw _privateConstructorUsedError;
   String? get email => throw _privateConstructorUsedError;
+  String? get firestoreId => throw _privateConstructorUsedError; // NEW
   String get currency => throw _privateConstructorUsedError;
   String? get timezone => throw _privateConstructorUsedError;
   DateTime? get createdAt => throw _privateConstructorUsedError;
@@ -47,6 +48,7 @@ abstract class $OwnerCopyWith<$Res> {
       String name,
       String? phone,
       String? email,
+      String? firestoreId,
       String currency,
       String? timezone,
       DateTime? createdAt});
@@ -71,6 +73,7 @@ class _$OwnerCopyWithImpl<$Res, $Val extends Owner>
     Object? name = null,
     Object? phone = freezed,
     Object? email = freezed,
+    Object? firestoreId = freezed,
     Object? currency = null,
     Object? timezone = freezed,
     Object? createdAt = freezed,
@@ -91,6 +94,10 @@ class _$OwnerCopyWithImpl<$Res, $Val extends Owner>
       email: freezed == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
+              as String?,
+      firestoreId: freezed == firestoreId
+          ? _value.firestoreId
+          : firestoreId // ignore: cast_nullable_to_non_nullable
               as String?,
       currency: null == currency
           ? _value.currency
@@ -120,6 +127,7 @@ abstract class _$$OwnerImplCopyWith<$Res> implements $OwnerCopyWith<$Res> {
       String name,
       String? phone,
       String? email,
+      String? firestoreId,
       String currency,
       String? timezone,
       DateTime? createdAt});
@@ -142,6 +150,7 @@ class __$$OwnerImplCopyWithImpl<$Res>
     Object? name = null,
     Object? phone = freezed,
     Object? email = freezed,
+    Object? firestoreId = freezed,
     Object? currency = null,
     Object? timezone = freezed,
     Object? createdAt = freezed,
@@ -162,6 +171,10 @@ class __$$OwnerImplCopyWithImpl<$Res>
       email: freezed == email
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
+              as String?,
+      firestoreId: freezed == firestoreId
+          ? _value.firestoreId
+          : firestoreId // ignore: cast_nullable_to_non_nullable
               as String?,
       currency: null == currency
           ? _value.currency
@@ -187,6 +200,7 @@ class _$OwnerImpl implements _Owner {
       required this.name,
       this.phone,
       this.email,
+      this.firestoreId,
       this.currency = 'INR',
       this.timezone,
       this.createdAt});
@@ -203,6 +217,9 @@ class _$OwnerImpl implements _Owner {
   @override
   final String? email;
   @override
+  final String? firestoreId;
+// NEW
+  @override
   @JsonKey()
   final String currency;
   @override
@@ -212,7 +229,7 @@ class _$OwnerImpl implements _Owner {
 
   @override
   String toString() {
-    return 'Owner(id: $id, name: $name, phone: $phone, email: $email, currency: $currency, timezone: $timezone, createdAt: $createdAt)';
+    return 'Owner(id: $id, name: $name, phone: $phone, email: $email, firestoreId: $firestoreId, currency: $currency, timezone: $timezone, createdAt: $createdAt)';
   }
 
   @override
@@ -224,6 +241,8 @@ class _$OwnerImpl implements _Owner {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.phone, phone) || other.phone == phone) &&
             (identical(other.email, email) || other.email == email) &&
+            (identical(other.firestoreId, firestoreId) ||
+                other.firestoreId == firestoreId) &&
             (identical(other.currency, currency) ||
                 other.currency == currency) &&
             (identical(other.timezone, timezone) ||
@@ -234,8 +253,8 @@ class _$OwnerImpl implements _Owner {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, id, name, phone, email, currency, timezone, createdAt);
+  int get hashCode => Object.hash(runtimeType, id, name, phone, email,
+      firestoreId, currency, timezone, createdAt);
 
   /// Create a copy of Owner
   /// with the given fields replaced by the non-null parameter values.
@@ -259,6 +278,7 @@ abstract class _Owner implements Owner {
       required final String name,
       final String? phone,
       final String? email,
+      final String? firestoreId,
       final String currency,
       final String? timezone,
       final DateTime? createdAt}) = _$OwnerImpl;
@@ -273,6 +293,8 @@ abstract class _Owner implements Owner {
   String? get phone;
   @override
   String? get email;
+  @override
+  String? get firestoreId; // NEW
   @override
   String get currency;
   @override

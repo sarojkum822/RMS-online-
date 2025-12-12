@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
@@ -49,11 +50,27 @@ class HouseController extends _$HouseController {
 
     ref.invalidateSelf(); 
   }
+
+  Future<void> updateHouse(House house) async {
+    final repo = ref.read(propertyRepositoryProvider);
+    await repo.updateHouse(house);
+    ref.invalidateSelf();
+  }
   
   Future<void> deleteHouse(int id) async {
      final repo = ref.read(propertyRepositoryProvider);
      await repo.deleteHouse(id);
      ref.invalidateSelf();
+  }
+
+  Future<void> deleteUnit(int id) async {
+     final repo = ref.read(propertyRepositoryProvider);
+     await repo.deleteUnit(id);
+     ref.invalidate(houseUnitsProvider); 
+     // We don't necessarily need to invalidate 'build' (houses list) unless unit count is shown there dynamically and not via separate provider.
+     // But wait, HouseListScreen shows occupancy stats which depends on units. So we might need to invalidate houseStats.
+     // houseStats is a family provider. We can't invalidate all. 
+     // But houseUnitsProvider is what HouseDetailScreen watches.
   }
 }
 
