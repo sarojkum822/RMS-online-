@@ -31,7 +31,16 @@ _$UnitImpl _$$UnitImplFromJson(Map<String, dynamic> json) => _$UnitImpl(
       nameOrNumber: json['nameOrNumber'] as String,
       floor: (json['floor'] as num?)?.toInt(),
       baseRent: (json['baseRent'] as num).toDouble(),
+      bhkTemplateId: (json['bhkTemplateId'] as num?)?.toInt(),
+      bhkType: json['bhkType'] as String?,
+      editableRent: (json['editableRent'] as num?)?.toDouble(),
+      tenantId: (json['tenantId'] as num?)?.toInt(),
+      furnishingStatus: json['furnishingStatus'] as String?,
+      carpetArea: (json['carpetArea'] as num?)?.toDouble(),
+      parkingSlot: json['parkingSlot'] as String?,
+      meterNumber: json['meterNumber'] as String?,
       defaultDueDay: (json['defaultDueDay'] as num?)?.toInt() ?? 1,
+      isOccupied: json['isOccupied'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$UnitImplToJson(_$UnitImpl instance) =>
@@ -41,5 +50,14 @@ Map<String, dynamic> _$$UnitImplToJson(_$UnitImpl instance) =>
       'nameOrNumber': instance.nameOrNumber,
       'floor': instance.floor,
       'baseRent': instance.baseRent,
+      'bhkTemplateId': instance.bhkTemplateId,
+      'bhkType': instance.bhkType,
+      'editableRent': instance.editableRent,
+      'tenantId': instance.tenantId,
+      'furnishingStatus': instance.furnishingStatus,
+      'carpetArea': instance.carpetArea,
+      'parkingSlot': instance.parkingSlot,
+      'meterNumber': instance.meterNumber,
       'defaultDueDay': instance.defaultDueDay,
+      'isOccupied': instance.isOccupied,
     };

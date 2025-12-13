@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'tenant_controller.dart';
 import '../house/house_controller.dart';
+import '../../../../core/extensions/string_extensions.dart';
 
 class TenantFormScreen extends ConsumerStatefulWidget {
   const TenantFormScreen({super.key});
@@ -23,12 +24,12 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   final _rentCtrl = TextEditingController(); 
   final _electricCtrl = TextEditingController(); 
   
-  // Manual Unit Entry Fields
-  final _unitNameCtrl = TextEditingController();
-  final _floorCtrl = TextEditingController();
-
+  // Manual Unit Entry Fields REMOVED
+  
   int? _selectedHouseId;
+  int? _selectedUnitId;
   File? _selectedImage;
+  bool _isLoading = false;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -93,40 +94,48 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Manual Unit Entry (Only if House Selected)
+            // Unit Selection (Only if House Selected)
             if (_selectedHouseId != null) ...[
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _unitNameCtrl,
-                      decoration: InputDecoration(
-                        labelText: 'Unit / Flat No',
-                        hintText: 'e.g. Flat 101',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: TextFormField(
-                      controller: _floorCtrl,
-                      decoration: InputDecoration(
-                        labelText: 'Floor',
-                        hintText: 'e.g. 1',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      keyboardType: TextInputType.number,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
-                    ),
-                  ),
-                ],
-              ),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final unitsAsync = ref.watch(availableUnitsProvider(_selectedHouseId!));
+                    return unitsAsync.when(
+                      data: (units) {
+                         if (units.isEmpty) return const Text('No available flats in this property.', style: TextStyle(color: Colors.red));
+                         
+                         return DropdownButtonFormField<int>(
+                            decoration: InputDecoration(
+                              labelText: 'Select Flat / Unit',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                             items: units.map((u) {
+                               final label = StringBuffer(u.nameOrNumber);
+                               if (u.bhkType != null) label.write(' • ${u.bhkType}');
+                               if (u.furnishingStatus != null) label.write(' • ${u.furnishingStatus}');
+                               label.write(' • ₹${u.baseRent}');
+                               
+                               return DropdownMenuItem(
+                                 value: u.id,
+                                 child: Text(label.toString(), style: const TextStyle(fontSize: 14)),
+                               );
+                             }).toList(),
+                             onChanged: (val) {
+                               setState(() {
+                                 _selectedUnitId = val;
+                                 if (val != null) {
+                                   final selectedUnit = units.firstWhere((u) => u.id == val);
+                                   _rentCtrl.text = selectedUnit.baseRent.toString();
+                                 }
+                               });
+                             },
+                             validator: (v) => v == null ? 'Required' : null,
+                          );
+                      },
+                      error: (e, _) => Text('Error: $e'),
+                      loading: () => const LinearProgressIndicator(),
+                    );
+                  },
+                ),
             ],
               
             const SizedBox(height: 24),
@@ -136,6 +145,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
 
             TextFormField(
               controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(labelText: 'Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
               autovalidateMode: AutovalidateMode.onUserInteraction,
               validator: (v) => v!.isEmpty ? 'Required' : null,
@@ -151,6 +161,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
             TextFormField(
               controller: _emailCtrl,
               decoration: InputDecoration(labelText: 'Email (Login ID)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              textCapitalization: TextCapitalization.none,
               keyboardType: TextInputType.emailAddress,
               validator: (v) => v!.isEmpty ? 'Required for Login' : null,
             ),
@@ -197,24 +208,24 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                   backgroundColor: Colors.black,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () async {
-                  if (_formKey.currentState!.validate() && _selectedHouseId != null) {
+                onPressed: _isLoading ? null : () async {
+                  if (_formKey.currentState!.validate() && _selectedHouseId != null && _selectedUnitId != null) {
+                     setState(() => _isLoading = true);
                      
                      final rent = double.tryParse(_rentCtrl.text);
                      final initialElectric = double.tryParse(_electricCtrl.text);
 
                      try {
-                       await ref.read(tenantControllerProvider.notifier).addTenantWithManualUnit(
+                       await ref.read(tenantControllerProvider.notifier).registerTenant(
                          houseId: _selectedHouseId!,
-                         unitName: _unitNameCtrl.text,
-                         floor: _floorCtrl.text,
-                         tenantName: _nameCtrl.text,
-                         phone: _phoneCtrl.text,
-                         email: _emailCtrl.text,
-                         password: _passwordCtrl.text,
+                         unitId: _selectedUnitId!,
+                         tenantName: _nameCtrl.text.trim().toTitleCase(),
+                         phone: _phoneCtrl.text.trim(),
+                         email: _emailCtrl.text.trim().toLowerCase(),
+                         password: _passwordCtrl.text.trim(),
                          agreedRent: rent,
                          initialElectricReading: initialElectric,
-                         imageFile: _selectedImage, // Pass image
+                         imageFile: _selectedImage, 
                        );
 
                        if (mounted) context.pop();
@@ -226,12 +237,20 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                            SnackBar(content: Text(msg), backgroundColor: Colors.red),
                          );
                        }
+                     } finally {
+                        if (mounted) setState(() => _isLoading = false);
                      }
                   } else if (_selectedHouseId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a house')));
                   }
                 },
-                child: const Text('Save Tenant', style: TextStyle(color: Colors.white, fontSize: 16)),
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 20, 
+                        width: 20, 
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                      )
+                    : const Text('Save Tenant', style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
             ),
           ],

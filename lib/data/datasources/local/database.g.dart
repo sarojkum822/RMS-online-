@@ -1008,6 +1008,483 @@ class HousesCompanion extends UpdateCompanion<House> {
   }
 }
 
+class $BhkTemplatesTable extends BhkTemplates
+    with TableInfo<$BhkTemplatesTable, BhkTemplate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BhkTemplatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _houseIdMeta =
+      const VerificationMeta('houseId');
+  @override
+  late final GeneratedColumn<int> houseId = GeneratedColumn<int>(
+      'house_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES houses (id) ON DELETE CASCADE'));
+  static const VerificationMeta _bhkTypeMeta =
+      const VerificationMeta('bhkType');
+  @override
+  late final GeneratedColumn<String> bhkType = GeneratedColumn<String>(
+      'bhk_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _defaultRentMeta =
+      const VerificationMeta('defaultRent');
+  @override
+  late final GeneratedColumn<double> defaultRent = GeneratedColumn<double>(
+      'default_rent', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _descriptionMeta =
+      const VerificationMeta('description');
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+      'description', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        houseId,
+        bhkType,
+        defaultRent,
+        description
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'bhk_templates';
+  @override
+  VerificationContext validateIntegrity(Insertable<BhkTemplate> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('house_id')) {
+      context.handle(_houseIdMeta,
+          houseId.isAcceptableOrUnknown(data['house_id']!, _houseIdMeta));
+    } else if (isInserting) {
+      context.missing(_houseIdMeta);
+    }
+    if (data.containsKey('bhk_type')) {
+      context.handle(_bhkTypeMeta,
+          bhkType.isAcceptableOrUnknown(data['bhk_type']!, _bhkTypeMeta));
+    } else if (isInserting) {
+      context.missing(_bhkTypeMeta);
+    }
+    if (data.containsKey('default_rent')) {
+      context.handle(
+          _defaultRentMeta,
+          defaultRent.isAcceptableOrUnknown(
+              data['default_rent']!, _defaultRentMeta));
+    } else if (isInserting) {
+      context.missing(_defaultRentMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+          _descriptionMeta,
+          description.isAcceptableOrUnknown(
+              data['description']!, _descriptionMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BhkTemplate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BhkTemplate(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      houseId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}house_id'])!,
+      bhkType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}bhk_type'])!,
+      defaultRent: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}default_rent'])!,
+      description: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}description']),
+    );
+  }
+
+  @override
+  $BhkTemplatesTable createAlias(String alias) {
+    return $BhkTemplatesTable(attachedDatabase, alias);
+  }
+}
+
+class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
+  final int id;
+  final int houseId;
+  final String bhkType;
+  final double defaultRent;
+  final String? description;
+  const BhkTemplate(
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
+      required this.houseId,
+      required this.bhkType,
+      required this.defaultRent,
+      this.description});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['id'] = Variable<int>(id);
+    map['house_id'] = Variable<int>(houseId);
+    map['bhk_type'] = Variable<String>(bhkType);
+    map['default_rent'] = Variable<double>(defaultRent);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    return map;
+  }
+
+  BhkTemplatesCompanion toCompanion(bool nullToAbsent) {
+    return BhkTemplatesCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
+      id: Value(id),
+      houseId: Value(houseId),
+      bhkType: Value(bhkType),
+      defaultRent: Value(defaultRent),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+    );
+  }
+
+  factory BhkTemplate.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BhkTemplate(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      id: serializer.fromJson<int>(json['id']),
+      houseId: serializer.fromJson<int>(json['houseId']),
+      bhkType: serializer.fromJson<String>(json['bhkType']),
+      defaultRent: serializer.fromJson<double>(json['defaultRent']),
+      description: serializer.fromJson<String?>(json['description']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'id': serializer.toJson<int>(id),
+      'houseId': serializer.toJson<int>(houseId),
+      'bhkType': serializer.toJson<String>(bhkType),
+      'defaultRent': serializer.toJson<double>(defaultRent),
+      'description': serializer.toJson<String?>(description),
+    };
+  }
+
+  BhkTemplate copyWith(
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          int? id,
+          int? houseId,
+          String? bhkType,
+          double? defaultRent,
+          Value<String?> description = const Value.absent()}) =>
+      BhkTemplate(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
+        id: id ?? this.id,
+        houseId: houseId ?? this.houseId,
+        bhkType: bhkType ?? this.bhkType,
+        defaultRent: defaultRent ?? this.defaultRent,
+        description: description.present ? description.value : this.description,
+      );
+  BhkTemplate copyWithCompanion(BhkTemplatesCompanion data) {
+    return BhkTemplate(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      id: data.id.present ? data.id.value : this.id,
+      houseId: data.houseId.present ? data.houseId.value : this.houseId,
+      bhkType: data.bhkType.present ? data.bhkType.value : this.bhkType,
+      defaultRent:
+          data.defaultRent.present ? data.defaultRent.value : this.defaultRent,
+      description:
+          data.description.present ? data.description.value : this.description,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BhkTemplate(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('houseId: $houseId, ')
+          ..write('bhkType: $bhkType, ')
+          ..write('defaultRent: $defaultRent, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
+      id, houseId, bhkType, defaultRent, description);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BhkTemplate &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
+          other.id == this.id &&
+          other.houseId == this.houseId &&
+          other.bhkType == this.bhkType &&
+          other.defaultRent == this.defaultRent &&
+          other.description == this.description);
+}
+
+class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
+  final Value<int> id;
+  final Value<int> houseId;
+  final Value<String> bhkType;
+  final Value<double> defaultRent;
+  final Value<String?> description;
+  const BhkTemplatesCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.id = const Value.absent(),
+    this.houseId = const Value.absent(),
+    this.bhkType = const Value.absent(),
+    this.defaultRent = const Value.absent(),
+    this.description = const Value.absent(),
+  });
+  BhkTemplatesCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.id = const Value.absent(),
+    required int houseId,
+    required String bhkType,
+    required double defaultRent,
+    this.description = const Value.absent(),
+  })  : houseId = Value(houseId),
+        bhkType = Value(bhkType),
+        defaultRent = Value(defaultRent);
+  static Insertable<BhkTemplate> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
+    Expression<int>? id,
+    Expression<int>? houseId,
+    Expression<String>? bhkType,
+    Expression<double>? defaultRent,
+    Expression<String>? description,
+  }) {
+    return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (id != null) 'id': id,
+      if (houseId != null) 'house_id': houseId,
+      if (bhkType != null) 'bhk_type': bhkType,
+      if (defaultRent != null) 'default_rent': defaultRent,
+      if (description != null) 'description': description,
+    });
+  }
+
+  BhkTemplatesCompanion copyWith(
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<int>? id,
+      Value<int>? houseId,
+      Value<String>? bhkType,
+      Value<double>? defaultRent,
+      Value<String?>? description}) {
+    return BhkTemplatesCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
+      id: id ?? this.id,
+      houseId: houseId ?? this.houseId,
+      bhkType: bhkType ?? this.bhkType,
+      defaultRent: defaultRent ?? this.defaultRent,
+      description: description ?? this.description,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (houseId.present) {
+      map['house_id'] = Variable<int>(houseId.value);
+    }
+    if (bhkType.present) {
+      map['bhk_type'] = Variable<String>(bhkType.value);
+    }
+    if (defaultRent.present) {
+      map['default_rent'] = Variable<double>(defaultRent.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BhkTemplatesCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('houseId: $houseId, ')
+          ..write('bhkType: $bhkType, ')
+          ..write('defaultRent: $defaultRent, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1078,12 +1555,57 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
   late final GeneratedColumn<int> floor = GeneratedColumn<int>(
       'floor', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _bhkTemplateIdMeta =
+      const VerificationMeta('bhkTemplateId');
+  @override
+  late final GeneratedColumn<int> bhkTemplateId = GeneratedColumn<int>(
+      'bhk_template_id', aliasedName, true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES bhk_templates (id)'));
+  static const VerificationMeta _bhkTypeMeta =
+      const VerificationMeta('bhkType');
+  @override
+  late final GeneratedColumn<String> bhkType = GeneratedColumn<String>(
+      'bhk_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _baseRentMeta =
       const VerificationMeta('baseRent');
   @override
   late final GeneratedColumn<double> baseRent = GeneratedColumn<double>(
       'base_rent', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _editableRentMeta =
+      const VerificationMeta('editableRent');
+  @override
+  late final GeneratedColumn<double> editableRent = GeneratedColumn<double>(
+      'editable_rent', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _furnishingStatusMeta =
+      const VerificationMeta('furnishingStatus');
+  @override
+  late final GeneratedColumn<String> furnishingStatus = GeneratedColumn<String>(
+      'furnishing_status', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _carpetAreaMeta =
+      const VerificationMeta('carpetArea');
+  @override
+  late final GeneratedColumn<double> carpetArea = GeneratedColumn<double>(
+      'carpet_area', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _parkingSlotMeta =
+      const VerificationMeta('parkingSlot');
+  @override
+  late final GeneratedColumn<String> parkingSlot = GeneratedColumn<String>(
+      'parking_slot', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _meterNumberMeta =
+      const VerificationMeta('meterNumber');
+  @override
+  late final GeneratedColumn<String> meterNumber = GeneratedColumn<String>(
+      'meter_number', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _defaultDueDayMeta =
       const VerificationMeta('defaultDueDay');
   @override
@@ -1092,6 +1614,22 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(1));
+  static const VerificationMeta _isOccupiedMeta =
+      const VerificationMeta('isOccupied');
+  @override
+  late final GeneratedColumn<bool> isOccupied = GeneratedColumn<bool>(
+      'is_occupied', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_occupied" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _tenantIdMeta =
+      const VerificationMeta('tenantId');
+  @override
+  late final GeneratedColumn<int> tenantId = GeneratedColumn<int>(
+      'tenant_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -1102,8 +1640,17 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
         houseId,
         nameOrNumber,
         floor,
+        bhkTemplateId,
+        bhkType,
         baseRent,
-        defaultDueDay
+        editableRent,
+        furnishingStatus,
+        carpetArea,
+        parkingSlot,
+        meterNumber,
+        defaultDueDay,
+        isOccupied,
+        tenantId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1156,17 +1703,67 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       context.handle(
           _floorMeta, floor.isAcceptableOrUnknown(data['floor']!, _floorMeta));
     }
+    if (data.containsKey('bhk_template_id')) {
+      context.handle(
+          _bhkTemplateIdMeta,
+          bhkTemplateId.isAcceptableOrUnknown(
+              data['bhk_template_id']!, _bhkTemplateIdMeta));
+    }
+    if (data.containsKey('bhk_type')) {
+      context.handle(_bhkTypeMeta,
+          bhkType.isAcceptableOrUnknown(data['bhk_type']!, _bhkTypeMeta));
+    }
     if (data.containsKey('base_rent')) {
       context.handle(_baseRentMeta,
           baseRent.isAcceptableOrUnknown(data['base_rent']!, _baseRentMeta));
     } else if (isInserting) {
       context.missing(_baseRentMeta);
     }
+    if (data.containsKey('editable_rent')) {
+      context.handle(
+          _editableRentMeta,
+          editableRent.isAcceptableOrUnknown(
+              data['editable_rent']!, _editableRentMeta));
+    }
+    if (data.containsKey('furnishing_status')) {
+      context.handle(
+          _furnishingStatusMeta,
+          furnishingStatus.isAcceptableOrUnknown(
+              data['furnishing_status']!, _furnishingStatusMeta));
+    }
+    if (data.containsKey('carpet_area')) {
+      context.handle(
+          _carpetAreaMeta,
+          carpetArea.isAcceptableOrUnknown(
+              data['carpet_area']!, _carpetAreaMeta));
+    }
+    if (data.containsKey('parking_slot')) {
+      context.handle(
+          _parkingSlotMeta,
+          parkingSlot.isAcceptableOrUnknown(
+              data['parking_slot']!, _parkingSlotMeta));
+    }
+    if (data.containsKey('meter_number')) {
+      context.handle(
+          _meterNumberMeta,
+          meterNumber.isAcceptableOrUnknown(
+              data['meter_number']!, _meterNumberMeta));
+    }
     if (data.containsKey('default_due_day')) {
       context.handle(
           _defaultDueDayMeta,
           defaultDueDay.isAcceptableOrUnknown(
               data['default_due_day']!, _defaultDueDayMeta));
+    }
+    if (data.containsKey('is_occupied')) {
+      context.handle(
+          _isOccupiedMeta,
+          isOccupied.isAcceptableOrUnknown(
+              data['is_occupied']!, _isOccupiedMeta));
+    }
+    if (data.containsKey('tenant_id')) {
+      context.handle(_tenantIdMeta,
+          tenantId.isAcceptableOrUnknown(data['tenant_id']!, _tenantIdMeta));
     }
     return context;
   }
@@ -1193,10 +1790,28 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
           .read(DriftSqlType.string, data['${effectivePrefix}name_or_number'])!,
       floor: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}floor']),
+      bhkTemplateId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}bhk_template_id']),
+      bhkType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}bhk_type']),
       baseRent: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}base_rent'])!,
+      editableRent: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}editable_rent']),
+      furnishingStatus: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}furnishing_status']),
+      carpetArea: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}carpet_area']),
+      parkingSlot: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}parking_slot']),
+      meterNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}meter_number']),
       defaultDueDay: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}default_due_day'])!,
+      isOccupied: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_occupied'])!,
+      tenantId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}tenant_id']),
     );
   }
 
@@ -1215,8 +1830,17 @@ class Unit extends DataClass implements Insertable<Unit> {
   final int houseId;
   final String nameOrNumber;
   final int? floor;
+  final int? bhkTemplateId;
+  final String? bhkType;
   final double baseRent;
+  final double? editableRent;
+  final String? furnishingStatus;
+  final double? carpetArea;
+  final String? parkingSlot;
+  final String? meterNumber;
   final int defaultDueDay;
+  final bool isOccupied;
+  final int? tenantId;
   const Unit(
       {this.firestoreId,
       required this.lastUpdated,
@@ -1226,8 +1850,17 @@ class Unit extends DataClass implements Insertable<Unit> {
       required this.houseId,
       required this.nameOrNumber,
       this.floor,
+      this.bhkTemplateId,
+      this.bhkType,
       required this.baseRent,
-      required this.defaultDueDay});
+      this.editableRent,
+      this.furnishingStatus,
+      this.carpetArea,
+      this.parkingSlot,
+      this.meterNumber,
+      required this.defaultDueDay,
+      required this.isOccupied,
+      this.tenantId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1243,8 +1876,33 @@ class Unit extends DataClass implements Insertable<Unit> {
     if (!nullToAbsent || floor != null) {
       map['floor'] = Variable<int>(floor);
     }
+    if (!nullToAbsent || bhkTemplateId != null) {
+      map['bhk_template_id'] = Variable<int>(bhkTemplateId);
+    }
+    if (!nullToAbsent || bhkType != null) {
+      map['bhk_type'] = Variable<String>(bhkType);
+    }
     map['base_rent'] = Variable<double>(baseRent);
+    if (!nullToAbsent || editableRent != null) {
+      map['editable_rent'] = Variable<double>(editableRent);
+    }
+    if (!nullToAbsent || furnishingStatus != null) {
+      map['furnishing_status'] = Variable<String>(furnishingStatus);
+    }
+    if (!nullToAbsent || carpetArea != null) {
+      map['carpet_area'] = Variable<double>(carpetArea);
+    }
+    if (!nullToAbsent || parkingSlot != null) {
+      map['parking_slot'] = Variable<String>(parkingSlot);
+    }
+    if (!nullToAbsent || meterNumber != null) {
+      map['meter_number'] = Variable<String>(meterNumber);
+    }
     map['default_due_day'] = Variable<int>(defaultDueDay);
+    map['is_occupied'] = Variable<bool>(isOccupied);
+    if (!nullToAbsent || tenantId != null) {
+      map['tenant_id'] = Variable<int>(tenantId);
+    }
     return map;
   }
 
@@ -1261,8 +1919,33 @@ class Unit extends DataClass implements Insertable<Unit> {
       nameOrNumber: Value(nameOrNumber),
       floor:
           floor == null && nullToAbsent ? const Value.absent() : Value(floor),
+      bhkTemplateId: bhkTemplateId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bhkTemplateId),
+      bhkType: bhkType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bhkType),
       baseRent: Value(baseRent),
+      editableRent: editableRent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(editableRent),
+      furnishingStatus: furnishingStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(furnishingStatus),
+      carpetArea: carpetArea == null && nullToAbsent
+          ? const Value.absent()
+          : Value(carpetArea),
+      parkingSlot: parkingSlot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parkingSlot),
+      meterNumber: meterNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(meterNumber),
       defaultDueDay: Value(defaultDueDay),
+      isOccupied: Value(isOccupied),
+      tenantId: tenantId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tenantId),
     );
   }
 
@@ -1278,8 +1961,17 @@ class Unit extends DataClass implements Insertable<Unit> {
       houseId: serializer.fromJson<int>(json['houseId']),
       nameOrNumber: serializer.fromJson<String>(json['nameOrNumber']),
       floor: serializer.fromJson<int?>(json['floor']),
+      bhkTemplateId: serializer.fromJson<int?>(json['bhkTemplateId']),
+      bhkType: serializer.fromJson<String?>(json['bhkType']),
       baseRent: serializer.fromJson<double>(json['baseRent']),
+      editableRent: serializer.fromJson<double?>(json['editableRent']),
+      furnishingStatus: serializer.fromJson<String?>(json['furnishingStatus']),
+      carpetArea: serializer.fromJson<double?>(json['carpetArea']),
+      parkingSlot: serializer.fromJson<String?>(json['parkingSlot']),
+      meterNumber: serializer.fromJson<String?>(json['meterNumber']),
       defaultDueDay: serializer.fromJson<int>(json['defaultDueDay']),
+      isOccupied: serializer.fromJson<bool>(json['isOccupied']),
+      tenantId: serializer.fromJson<int?>(json['tenantId']),
     );
   }
   @override
@@ -1294,8 +1986,17 @@ class Unit extends DataClass implements Insertable<Unit> {
       'houseId': serializer.toJson<int>(houseId),
       'nameOrNumber': serializer.toJson<String>(nameOrNumber),
       'floor': serializer.toJson<int?>(floor),
+      'bhkTemplateId': serializer.toJson<int?>(bhkTemplateId),
+      'bhkType': serializer.toJson<String?>(bhkType),
       'baseRent': serializer.toJson<double>(baseRent),
+      'editableRent': serializer.toJson<double?>(editableRent),
+      'furnishingStatus': serializer.toJson<String?>(furnishingStatus),
+      'carpetArea': serializer.toJson<double?>(carpetArea),
+      'parkingSlot': serializer.toJson<String?>(parkingSlot),
+      'meterNumber': serializer.toJson<String?>(meterNumber),
       'defaultDueDay': serializer.toJson<int>(defaultDueDay),
+      'isOccupied': serializer.toJson<bool>(isOccupied),
+      'tenantId': serializer.toJson<int?>(tenantId),
     };
   }
 
@@ -1308,8 +2009,17 @@ class Unit extends DataClass implements Insertable<Unit> {
           int? houseId,
           String? nameOrNumber,
           Value<int?> floor = const Value.absent(),
+          Value<int?> bhkTemplateId = const Value.absent(),
+          Value<String?> bhkType = const Value.absent(),
           double? baseRent,
-          int? defaultDueDay}) =>
+          Value<double?> editableRent = const Value.absent(),
+          Value<String?> furnishingStatus = const Value.absent(),
+          Value<double?> carpetArea = const Value.absent(),
+          Value<String?> parkingSlot = const Value.absent(),
+          Value<String?> meterNumber = const Value.absent(),
+          int? defaultDueDay,
+          bool? isOccupied,
+          Value<int?> tenantId = const Value.absent()}) =>
       Unit(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -1319,8 +2029,21 @@ class Unit extends DataClass implements Insertable<Unit> {
         houseId: houseId ?? this.houseId,
         nameOrNumber: nameOrNumber ?? this.nameOrNumber,
         floor: floor.present ? floor.value : this.floor,
+        bhkTemplateId:
+            bhkTemplateId.present ? bhkTemplateId.value : this.bhkTemplateId,
+        bhkType: bhkType.present ? bhkType.value : this.bhkType,
         baseRent: baseRent ?? this.baseRent,
+        editableRent:
+            editableRent.present ? editableRent.value : this.editableRent,
+        furnishingStatus: furnishingStatus.present
+            ? furnishingStatus.value
+            : this.furnishingStatus,
+        carpetArea: carpetArea.present ? carpetArea.value : this.carpetArea,
+        parkingSlot: parkingSlot.present ? parkingSlot.value : this.parkingSlot,
+        meterNumber: meterNumber.present ? meterNumber.value : this.meterNumber,
         defaultDueDay: defaultDueDay ?? this.defaultDueDay,
+        isOccupied: isOccupied ?? this.isOccupied,
+        tenantId: tenantId.present ? tenantId.value : this.tenantId,
       );
   Unit copyWithCompanion(UnitsCompanion data) {
     return Unit(
@@ -1336,10 +2059,29 @@ class Unit extends DataClass implements Insertable<Unit> {
           ? data.nameOrNumber.value
           : this.nameOrNumber,
       floor: data.floor.present ? data.floor.value : this.floor,
+      bhkTemplateId: data.bhkTemplateId.present
+          ? data.bhkTemplateId.value
+          : this.bhkTemplateId,
+      bhkType: data.bhkType.present ? data.bhkType.value : this.bhkType,
       baseRent: data.baseRent.present ? data.baseRent.value : this.baseRent,
+      editableRent: data.editableRent.present
+          ? data.editableRent.value
+          : this.editableRent,
+      furnishingStatus: data.furnishingStatus.present
+          ? data.furnishingStatus.value
+          : this.furnishingStatus,
+      carpetArea:
+          data.carpetArea.present ? data.carpetArea.value : this.carpetArea,
+      parkingSlot:
+          data.parkingSlot.present ? data.parkingSlot.value : this.parkingSlot,
+      meterNumber:
+          data.meterNumber.present ? data.meterNumber.value : this.meterNumber,
       defaultDueDay: data.defaultDueDay.present
           ? data.defaultDueDay.value
           : this.defaultDueDay,
+      isOccupied:
+          data.isOccupied.present ? data.isOccupied.value : this.isOccupied,
+      tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
     );
   }
 
@@ -1354,15 +2096,42 @@ class Unit extends DataClass implements Insertable<Unit> {
           ..write('houseId: $houseId, ')
           ..write('nameOrNumber: $nameOrNumber, ')
           ..write('floor: $floor, ')
+          ..write('bhkTemplateId: $bhkTemplateId, ')
+          ..write('bhkType: $bhkType, ')
           ..write('baseRent: $baseRent, ')
-          ..write('defaultDueDay: $defaultDueDay')
+          ..write('editableRent: $editableRent, ')
+          ..write('furnishingStatus: $furnishingStatus, ')
+          ..write('carpetArea: $carpetArea, ')
+          ..write('parkingSlot: $parkingSlot, ')
+          ..write('meterNumber: $meterNumber, ')
+          ..write('defaultDueDay: $defaultDueDay, ')
+          ..write('isOccupied: $isOccupied, ')
+          ..write('tenantId: $tenantId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, houseId, nameOrNumber, floor, baseRent, defaultDueDay);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      houseId,
+      nameOrNumber,
+      floor,
+      bhkTemplateId,
+      bhkType,
+      baseRent,
+      editableRent,
+      furnishingStatus,
+      carpetArea,
+      parkingSlot,
+      meterNumber,
+      defaultDueDay,
+      isOccupied,
+      tenantId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1375,8 +2144,17 @@ class Unit extends DataClass implements Insertable<Unit> {
           other.houseId == this.houseId &&
           other.nameOrNumber == this.nameOrNumber &&
           other.floor == this.floor &&
+          other.bhkTemplateId == this.bhkTemplateId &&
+          other.bhkType == this.bhkType &&
           other.baseRent == this.baseRent &&
-          other.defaultDueDay == this.defaultDueDay);
+          other.editableRent == this.editableRent &&
+          other.furnishingStatus == this.furnishingStatus &&
+          other.carpetArea == this.carpetArea &&
+          other.parkingSlot == this.parkingSlot &&
+          other.meterNumber == this.meterNumber &&
+          other.defaultDueDay == this.defaultDueDay &&
+          other.isOccupied == this.isOccupied &&
+          other.tenantId == this.tenantId);
 }
 
 class UnitsCompanion extends UpdateCompanion<Unit> {
@@ -1388,8 +2166,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   final Value<int> houseId;
   final Value<String> nameOrNumber;
   final Value<int?> floor;
+  final Value<int?> bhkTemplateId;
+  final Value<String?> bhkType;
   final Value<double> baseRent;
+  final Value<double?> editableRent;
+  final Value<String?> furnishingStatus;
+  final Value<double?> carpetArea;
+  final Value<String?> parkingSlot;
+  final Value<String?> meterNumber;
   final Value<int> defaultDueDay;
+  final Value<bool> isOccupied;
+  final Value<int?> tenantId;
   const UnitsCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -1399,8 +2186,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     this.houseId = const Value.absent(),
     this.nameOrNumber = const Value.absent(),
     this.floor = const Value.absent(),
+    this.bhkTemplateId = const Value.absent(),
+    this.bhkType = const Value.absent(),
     this.baseRent = const Value.absent(),
+    this.editableRent = const Value.absent(),
+    this.furnishingStatus = const Value.absent(),
+    this.carpetArea = const Value.absent(),
+    this.parkingSlot = const Value.absent(),
+    this.meterNumber = const Value.absent(),
     this.defaultDueDay = const Value.absent(),
+    this.isOccupied = const Value.absent(),
+    this.tenantId = const Value.absent(),
   });
   UnitsCompanion.insert({
     this.firestoreId = const Value.absent(),
@@ -1411,8 +2207,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     required int houseId,
     required String nameOrNumber,
     this.floor = const Value.absent(),
+    this.bhkTemplateId = const Value.absent(),
+    this.bhkType = const Value.absent(),
     required double baseRent,
+    this.editableRent = const Value.absent(),
+    this.furnishingStatus = const Value.absent(),
+    this.carpetArea = const Value.absent(),
+    this.parkingSlot = const Value.absent(),
+    this.meterNumber = const Value.absent(),
     this.defaultDueDay = const Value.absent(),
+    this.isOccupied = const Value.absent(),
+    this.tenantId = const Value.absent(),
   })  : houseId = Value(houseId),
         nameOrNumber = Value(nameOrNumber),
         baseRent = Value(baseRent);
@@ -1425,8 +2230,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     Expression<int>? houseId,
     Expression<String>? nameOrNumber,
     Expression<int>? floor,
+    Expression<int>? bhkTemplateId,
+    Expression<String>? bhkType,
     Expression<double>? baseRent,
+    Expression<double>? editableRent,
+    Expression<String>? furnishingStatus,
+    Expression<double>? carpetArea,
+    Expression<String>? parkingSlot,
+    Expression<String>? meterNumber,
     Expression<int>? defaultDueDay,
+    Expression<bool>? isOccupied,
+    Expression<int>? tenantId,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -1437,8 +2251,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       if (houseId != null) 'house_id': houseId,
       if (nameOrNumber != null) 'name_or_number': nameOrNumber,
       if (floor != null) 'floor': floor,
+      if (bhkTemplateId != null) 'bhk_template_id': bhkTemplateId,
+      if (bhkType != null) 'bhk_type': bhkType,
       if (baseRent != null) 'base_rent': baseRent,
+      if (editableRent != null) 'editable_rent': editableRent,
+      if (furnishingStatus != null) 'furnishing_status': furnishingStatus,
+      if (carpetArea != null) 'carpet_area': carpetArea,
+      if (parkingSlot != null) 'parking_slot': parkingSlot,
+      if (meterNumber != null) 'meter_number': meterNumber,
       if (defaultDueDay != null) 'default_due_day': defaultDueDay,
+      if (isOccupied != null) 'is_occupied': isOccupied,
+      if (tenantId != null) 'tenant_id': tenantId,
     });
   }
 
@@ -1451,8 +2274,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       Value<int>? houseId,
       Value<String>? nameOrNumber,
       Value<int?>? floor,
+      Value<int?>? bhkTemplateId,
+      Value<String?>? bhkType,
       Value<double>? baseRent,
-      Value<int>? defaultDueDay}) {
+      Value<double?>? editableRent,
+      Value<String?>? furnishingStatus,
+      Value<double?>? carpetArea,
+      Value<String?>? parkingSlot,
+      Value<String?>? meterNumber,
+      Value<int>? defaultDueDay,
+      Value<bool>? isOccupied,
+      Value<int?>? tenantId}) {
     return UnitsCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -1462,8 +2294,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       houseId: houseId ?? this.houseId,
       nameOrNumber: nameOrNumber ?? this.nameOrNumber,
       floor: floor ?? this.floor,
+      bhkTemplateId: bhkTemplateId ?? this.bhkTemplateId,
+      bhkType: bhkType ?? this.bhkType,
       baseRent: baseRent ?? this.baseRent,
+      editableRent: editableRent ?? this.editableRent,
+      furnishingStatus: furnishingStatus ?? this.furnishingStatus,
+      carpetArea: carpetArea ?? this.carpetArea,
+      parkingSlot: parkingSlot ?? this.parkingSlot,
+      meterNumber: meterNumber ?? this.meterNumber,
       defaultDueDay: defaultDueDay ?? this.defaultDueDay,
+      isOccupied: isOccupied ?? this.isOccupied,
+      tenantId: tenantId ?? this.tenantId,
     );
   }
 
@@ -1494,11 +2335,38 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     if (floor.present) {
       map['floor'] = Variable<int>(floor.value);
     }
+    if (bhkTemplateId.present) {
+      map['bhk_template_id'] = Variable<int>(bhkTemplateId.value);
+    }
+    if (bhkType.present) {
+      map['bhk_type'] = Variable<String>(bhkType.value);
+    }
     if (baseRent.present) {
       map['base_rent'] = Variable<double>(baseRent.value);
     }
+    if (editableRent.present) {
+      map['editable_rent'] = Variable<double>(editableRent.value);
+    }
+    if (furnishingStatus.present) {
+      map['furnishing_status'] = Variable<String>(furnishingStatus.value);
+    }
+    if (carpetArea.present) {
+      map['carpet_area'] = Variable<double>(carpetArea.value);
+    }
+    if (parkingSlot.present) {
+      map['parking_slot'] = Variable<String>(parkingSlot.value);
+    }
+    if (meterNumber.present) {
+      map['meter_number'] = Variable<String>(meterNumber.value);
+    }
     if (defaultDueDay.present) {
       map['default_due_day'] = Variable<int>(defaultDueDay.value);
+    }
+    if (isOccupied.present) {
+      map['is_occupied'] = Variable<bool>(isOccupied.value);
+    }
+    if (tenantId.present) {
+      map['tenant_id'] = Variable<int>(tenantId.value);
     }
     return map;
   }
@@ -1514,8 +2382,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
           ..write('houseId: $houseId, ')
           ..write('nameOrNumber: $nameOrNumber, ')
           ..write('floor: $floor, ')
+          ..write('bhkTemplateId: $bhkTemplateId, ')
+          ..write('bhkType: $bhkType, ')
           ..write('baseRent: $baseRent, ')
-          ..write('defaultDueDay: $defaultDueDay')
+          ..write('editableRent: $editableRent, ')
+          ..write('furnishingStatus: $furnishingStatus, ')
+          ..write('carpetArea: $carpetArea, ')
+          ..write('parkingSlot: $parkingSlot, ')
+          ..write('meterNumber: $meterNumber, ')
+          ..write('defaultDueDay: $defaultDueDay, ')
+          ..write('isOccupied: $isOccupied, ')
+          ..write('tenantId: $tenantId')
           ..write(')'))
         .toString();
   }
@@ -6025,6 +6902,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $OwnersTable owners = $OwnersTable(this);
   late final $HousesTable houses = $HousesTable(this);
+  late final $BhkTemplatesTable bhkTemplates = $BhkTemplatesTable(this);
   late final $UnitsTable units = $UnitsTable(this);
   late final $TenantsTable tenants = $TenantsTable(this);
   late final $RentCyclesTable rentCycles = $RentCyclesTable(this);
@@ -6042,6 +6920,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
         owners,
         houses,
+        bhkTemplates,
         units,
         tenants,
         rentCycles,
@@ -6059,6 +6938,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
                 limitUpdateKind: UpdateKind.delete),
             result: [
               TableUpdate('houses', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('houses',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('bhk_templates', kind: UpdateKind.delete),
             ],
           ),
           WritePropagation(
@@ -6557,6 +7443,21 @@ final class $$HousesTableReferences
         manager.$state.copyWith(prefetchedData: [item]));
   }
 
+  static MultiTypedResultKey<$BhkTemplatesTable, List<BhkTemplate>>
+      _bhkTemplatesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.bhkTemplates,
+              aliasName:
+                  $_aliasNameGenerator(db.houses.id, db.bhkTemplates.houseId));
+
+  $$BhkTemplatesTableProcessedTableManager get bhkTemplatesRefs {
+    final manager = $$BhkTemplatesTableTableManager($_db, $_db.bhkTemplates)
+        .filter((f) => f.houseId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_bhkTemplatesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$UnitsTable, List<Unit>> _unitsRefsTable(
           _$AppDatabase db) =>
       MultiTypedResultKey.fromTable(db.units,
@@ -6637,6 +7538,27 @@ class $$HousesTableFilterComposer
                   $removeJoinBuilderFromRootComposer,
             ));
     return composer;
+  }
+
+  Expression<bool> bhkTemplatesRefs(
+      Expression<bool> Function($$BhkTemplatesTableFilterComposer f) f) {
+    final $$BhkTemplatesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.bhkTemplates,
+        getReferencedColumn: (t) => t.houseId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BhkTemplatesTableFilterComposer(
+              $db: $db,
+              $table: $db.bhkTemplates,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
   }
 
   Expression<bool> unitsRefs(
@@ -6789,6 +7711,27 @@ class $$HousesTableAnnotationComposer
     return composer;
   }
 
+  Expression<T> bhkTemplatesRefs<T extends Object>(
+      Expression<T> Function($$BhkTemplatesTableAnnotationComposer a) f) {
+    final $$BhkTemplatesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.bhkTemplates,
+        getReferencedColumn: (t) => t.houseId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BhkTemplatesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.bhkTemplates,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
   Expression<T> unitsRefs<T extends Object>(
       Expression<T> Function($$UnitsTableAnnotationComposer a) f) {
     final $$UnitsTableAnnotationComposer composer = $composerBuilder(
@@ -6843,7 +7786,11 @@ class $$HousesTableTableManager extends RootTableManager<
     $$HousesTableUpdateCompanionBuilder,
     (House, $$HousesTableReferences),
     House,
-    PrefetchHooks Function({bool ownerId, bool unitsRefs, bool tenantsRefs})> {
+    PrefetchHooks Function(
+        {bool ownerId,
+        bool bhkTemplatesRefs,
+        bool unitsRefs,
+        bool tenantsRefs})> {
   $$HousesTableTableManager(_$AppDatabase db, $HousesTable table)
       : super(TableManagerState(
           db: db,
@@ -6903,10 +7850,14 @@ class $$HousesTableTableManager extends RootTableManager<
                   (e.readTable(table), $$HousesTableReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: (
-              {ownerId = false, unitsRefs = false, tenantsRefs = false}) {
+              {ownerId = false,
+              bhkTemplatesRefs = false,
+              unitsRefs = false,
+              tenantsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
+                if (bhkTemplatesRefs) db.bhkTemplates,
                 if (unitsRefs) db.units,
                 if (tenantsRefs) db.tenants
               ],
@@ -6937,6 +7888,18 @@ class $$HousesTableTableManager extends RootTableManager<
               },
               getPrefetchedDataCallback: (items) async {
                 return [
+                  if (bhkTemplatesRefs)
+                    await $_getPrefetchedData<House, $HousesTable, BhkTemplate>(
+                        currentTable: table,
+                        referencedTable:
+                            $$HousesTableReferences._bhkTemplatesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$HousesTableReferences(db, table, p0)
+                                .bhkTemplatesRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.houseId == item.id),
+                        typedResults: items),
                   if (unitsRefs)
                     await $_getPrefetchedData<House, $HousesTable, Unit>(
                         currentTable: table,
@@ -6977,7 +7940,410 @@ typedef $$HousesTableProcessedTableManager = ProcessedTableManager<
     $$HousesTableUpdateCompanionBuilder,
     (House, $$HousesTableReferences),
     House,
-    PrefetchHooks Function({bool ownerId, bool unitsRefs, bool tenantsRefs})>;
+    PrefetchHooks Function(
+        {bool ownerId,
+        bool bhkTemplatesRefs,
+        bool unitsRefs,
+        bool tenantsRefs})>;
+typedef $$BhkTemplatesTableCreateCompanionBuilder = BhkTemplatesCompanion
+    Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
+  Value<int> id,
+  required int houseId,
+  required String bhkType,
+  required double defaultRent,
+  Value<String?> description,
+});
+typedef $$BhkTemplatesTableUpdateCompanionBuilder = BhkTemplatesCompanion
+    Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
+  Value<int> id,
+  Value<int> houseId,
+  Value<String> bhkType,
+  Value<double> defaultRent,
+  Value<String?> description,
+});
+
+final class $$BhkTemplatesTableReferences
+    extends BaseReferences<_$AppDatabase, $BhkTemplatesTable, BhkTemplate> {
+  $$BhkTemplatesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $HousesTable _houseIdTable(_$AppDatabase db) => db.houses
+      .createAlias($_aliasNameGenerator(db.bhkTemplates.houseId, db.houses.id));
+
+  $$HousesTableProcessedTableManager get houseId {
+    final $_column = $_itemColumn<int>('house_id')!;
+
+    final manager = $$HousesTableTableManager($_db, $_db.houses)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_houseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$UnitsTable, List<Unit>> _unitsRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.units,
+          aliasName:
+              $_aliasNameGenerator(db.bhkTemplates.id, db.units.bhkTemplateId));
+
+  $$UnitsTableProcessedTableManager get unitsRefs {
+    final manager = $$UnitsTableTableManager($_db, $_db.units)
+        .filter((f) => f.bhkTemplateId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_unitsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$BhkTemplatesTableFilterComposer
+    extends Composer<_$AppDatabase, $BhkTemplatesTable> {
+  $$BhkTemplatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get bhkType => $composableBuilder(
+      column: $table.bhkType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get defaultRent => $composableBuilder(
+      column: $table.defaultRent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnFilters(column));
+
+  $$HousesTableFilterComposer get houseId {
+    final $$HousesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.houseId,
+        referencedTable: $db.houses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$HousesTableFilterComposer(
+              $db: $db,
+              $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<bool> unitsRefs(
+      Expression<bool> Function($$UnitsTableFilterComposer f) f) {
+    final $$UnitsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.units,
+        getReferencedColumn: (t) => t.bhkTemplateId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UnitsTableFilterComposer(
+              $db: $db,
+              $table: $db.units,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$BhkTemplatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BhkTemplatesTable> {
+  $$BhkTemplatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get bhkType => $composableBuilder(
+      column: $table.bhkType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get defaultRent => $composableBuilder(
+      column: $table.defaultRent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  $$HousesTableOrderingComposer get houseId {
+    final $$HousesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.houseId,
+        referencedTable: $db.houses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$HousesTableOrderingComposer(
+              $db: $db,
+              $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$BhkTemplatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BhkTemplatesTable> {
+  $$BhkTemplatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get bhkType =>
+      $composableBuilder(column: $table.bhkType, builder: (column) => column);
+
+  GeneratedColumn<double> get defaultRent => $composableBuilder(
+      column: $table.defaultRent, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => column);
+
+  $$HousesTableAnnotationComposer get houseId {
+    final $$HousesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.houseId,
+        referencedTable: $db.houses,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$HousesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<T> unitsRefs<T extends Object>(
+      Expression<T> Function($$UnitsTableAnnotationComposer a) f) {
+    final $$UnitsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.units,
+        getReferencedColumn: (t) => t.bhkTemplateId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UnitsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.units,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$BhkTemplatesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $BhkTemplatesTable,
+    BhkTemplate,
+    $$BhkTemplatesTableFilterComposer,
+    $$BhkTemplatesTableOrderingComposer,
+    $$BhkTemplatesTableAnnotationComposer,
+    $$BhkTemplatesTableCreateCompanionBuilder,
+    $$BhkTemplatesTableUpdateCompanionBuilder,
+    (BhkTemplate, $$BhkTemplatesTableReferences),
+    BhkTemplate,
+    PrefetchHooks Function({bool houseId, bool unitsRefs})> {
+  $$BhkTemplatesTableTableManager(_$AppDatabase db, $BhkTemplatesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BhkTemplatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BhkTemplatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BhkTemplatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> id = const Value.absent(),
+            Value<int> houseId = const Value.absent(),
+            Value<String> bhkType = const Value.absent(),
+            Value<double> defaultRent = const Value.absent(),
+            Value<String?> description = const Value.absent(),
+          }) =>
+              BhkTemplatesCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
+            id: id,
+            houseId: houseId,
+            bhkType: bhkType,
+            defaultRent: defaultRent,
+            description: description,
+          ),
+          createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<int> id = const Value.absent(),
+            required int houseId,
+            required String bhkType,
+            required double defaultRent,
+            Value<String?> description = const Value.absent(),
+          }) =>
+              BhkTemplatesCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
+            id: id,
+            houseId: houseId,
+            bhkType: bhkType,
+            defaultRent: defaultRent,
+            description: description,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$BhkTemplatesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({houseId = false, unitsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (unitsRefs) db.units],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (houseId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.houseId,
+                    referencedTable:
+                        $$BhkTemplatesTableReferences._houseIdTable(db),
+                    referencedColumn:
+                        $$BhkTemplatesTableReferences._houseIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (unitsRefs)
+                    await $_getPrefetchedData<BhkTemplate, $BhkTemplatesTable,
+                            Unit>(
+                        currentTable: table,
+                        referencedTable:
+                            $$BhkTemplatesTableReferences._unitsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$BhkTemplatesTableReferences(db, table, p0)
+                                .unitsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.bhkTemplateId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$BhkTemplatesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $BhkTemplatesTable,
+    BhkTemplate,
+    $$BhkTemplatesTableFilterComposer,
+    $$BhkTemplatesTableOrderingComposer,
+    $$BhkTemplatesTableAnnotationComposer,
+    $$BhkTemplatesTableCreateCompanionBuilder,
+    $$BhkTemplatesTableUpdateCompanionBuilder,
+    (BhkTemplate, $$BhkTemplatesTableReferences),
+    BhkTemplate,
+    PrefetchHooks Function({bool houseId, bool unitsRefs})>;
 typedef $$UnitsTableCreateCompanionBuilder = UnitsCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
@@ -6987,8 +8353,17 @@ typedef $$UnitsTableCreateCompanionBuilder = UnitsCompanion Function({
   required int houseId,
   required String nameOrNumber,
   Value<int?> floor,
+  Value<int?> bhkTemplateId,
+  Value<String?> bhkType,
   required double baseRent,
+  Value<double?> editableRent,
+  Value<String?> furnishingStatus,
+  Value<double?> carpetArea,
+  Value<String?> parkingSlot,
+  Value<String?> meterNumber,
   Value<int> defaultDueDay,
+  Value<bool> isOccupied,
+  Value<int?> tenantId,
 });
 typedef $$UnitsTableUpdateCompanionBuilder = UnitsCompanion Function({
   Value<String?> firestoreId,
@@ -6999,8 +8374,17 @@ typedef $$UnitsTableUpdateCompanionBuilder = UnitsCompanion Function({
   Value<int> houseId,
   Value<String> nameOrNumber,
   Value<int?> floor,
+  Value<int?> bhkTemplateId,
+  Value<String?> bhkType,
   Value<double> baseRent,
+  Value<double?> editableRent,
+  Value<String?> furnishingStatus,
+  Value<double?> carpetArea,
+  Value<String?> parkingSlot,
+  Value<String?> meterNumber,
   Value<int> defaultDueDay,
+  Value<bool> isOccupied,
+  Value<int?> tenantId,
 });
 
 final class $$UnitsTableReferences
@@ -7016,6 +8400,21 @@ final class $$UnitsTableReferences
     final manager = $$HousesTableTableManager($_db, $_db.houses)
         .filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_houseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $BhkTemplatesTable _bhkTemplateIdTable(_$AppDatabase db) =>
+      db.bhkTemplates.createAlias(
+          $_aliasNameGenerator(db.units.bhkTemplateId, db.bhkTemplates.id));
+
+  $$BhkTemplatesTableProcessedTableManager? get bhkTemplateId {
+    final $_column = $_itemColumn<int>('bhk_template_id');
+    if ($_column == null) return null;
+    final manager = $$BhkTemplatesTableTableManager($_db, $_db.bhkTemplates)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bhkTemplateIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -7082,11 +8481,36 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
   ColumnFilters<int> get floor => $composableBuilder(
       column: $table.floor, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get bhkType => $composableBuilder(
+      column: $table.bhkType, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<double> get baseRent => $composableBuilder(
       column: $table.baseRent, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<double> get editableRent => $composableBuilder(
+      column: $table.editableRent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get furnishingStatus => $composableBuilder(
+      column: $table.furnishingStatus,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get carpetArea => $composableBuilder(
+      column: $table.carpetArea, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get parkingSlot => $composableBuilder(
+      column: $table.parkingSlot, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get meterNumber => $composableBuilder(
+      column: $table.meterNumber, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get defaultDueDay => $composableBuilder(
       column: $table.defaultDueDay, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isOccupied => $composableBuilder(
+      column: $table.isOccupied, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get tenantId => $composableBuilder(
+      column: $table.tenantId, builder: (column) => ColumnFilters(column));
 
   $$HousesTableFilterComposer get houseId {
     final $$HousesTableFilterComposer composer = $composerBuilder(
@@ -7100,6 +8524,26 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
             $$HousesTableFilterComposer(
               $db: $db,
               $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BhkTemplatesTableFilterComposer get bhkTemplateId {
+    final $$BhkTemplatesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.bhkTemplateId,
+        referencedTable: $db.bhkTemplates,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BhkTemplatesTableFilterComposer(
+              $db: $db,
+              $table: $db.bhkTemplates,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -7182,12 +8626,38 @@ class $$UnitsTableOrderingComposer
   ColumnOrderings<int> get floor => $composableBuilder(
       column: $table.floor, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get bhkType => $composableBuilder(
+      column: $table.bhkType, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get baseRent => $composableBuilder(
       column: $table.baseRent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get editableRent => $composableBuilder(
+      column: $table.editableRent,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get furnishingStatus => $composableBuilder(
+      column: $table.furnishingStatus,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get carpetArea => $composableBuilder(
+      column: $table.carpetArea, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get parkingSlot => $composableBuilder(
+      column: $table.parkingSlot, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get meterNumber => $composableBuilder(
+      column: $table.meterNumber, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get defaultDueDay => $composableBuilder(
       column: $table.defaultDueDay,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isOccupied => $composableBuilder(
+      column: $table.isOccupied, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get tenantId => $composableBuilder(
+      column: $table.tenantId, builder: (column) => ColumnOrderings(column));
 
   $$HousesTableOrderingComposer get houseId {
     final $$HousesTableOrderingComposer composer = $composerBuilder(
@@ -7201,6 +8671,26 @@ class $$UnitsTableOrderingComposer
             $$HousesTableOrderingComposer(
               $db: $db,
               $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BhkTemplatesTableOrderingComposer get bhkTemplateId {
+    final $$BhkTemplatesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.bhkTemplateId,
+        referencedTable: $db.bhkTemplates,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BhkTemplatesTableOrderingComposer(
+              $db: $db,
+              $table: $db.bhkTemplates,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -7240,11 +8730,35 @@ class $$UnitsTableAnnotationComposer
   GeneratedColumn<int> get floor =>
       $composableBuilder(column: $table.floor, builder: (column) => column);
 
+  GeneratedColumn<String> get bhkType =>
+      $composableBuilder(column: $table.bhkType, builder: (column) => column);
+
   GeneratedColumn<double> get baseRent =>
       $composableBuilder(column: $table.baseRent, builder: (column) => column);
 
+  GeneratedColumn<double> get editableRent => $composableBuilder(
+      column: $table.editableRent, builder: (column) => column);
+
+  GeneratedColumn<String> get furnishingStatus => $composableBuilder(
+      column: $table.furnishingStatus, builder: (column) => column);
+
+  GeneratedColumn<double> get carpetArea => $composableBuilder(
+      column: $table.carpetArea, builder: (column) => column);
+
+  GeneratedColumn<String> get parkingSlot => $composableBuilder(
+      column: $table.parkingSlot, builder: (column) => column);
+
+  GeneratedColumn<String> get meterNumber => $composableBuilder(
+      column: $table.meterNumber, builder: (column) => column);
+
   GeneratedColumn<int> get defaultDueDay => $composableBuilder(
       column: $table.defaultDueDay, builder: (column) => column);
+
+  GeneratedColumn<bool> get isOccupied => $composableBuilder(
+      column: $table.isOccupied, builder: (column) => column);
+
+  GeneratedColumn<int> get tenantId =>
+      $composableBuilder(column: $table.tenantId, builder: (column) => column);
 
   $$HousesTableAnnotationComposer get houseId {
     final $$HousesTableAnnotationComposer composer = $composerBuilder(
@@ -7258,6 +8772,26 @@ class $$UnitsTableAnnotationComposer
             $$HousesTableAnnotationComposer(
               $db: $db,
               $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$BhkTemplatesTableAnnotationComposer get bhkTemplateId {
+    final $$BhkTemplatesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.bhkTemplateId,
+        referencedTable: $db.bhkTemplates,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$BhkTemplatesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.bhkTemplates,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -7321,7 +8855,10 @@ class $$UnitsTableTableManager extends RootTableManager<
     (Unit, $$UnitsTableReferences),
     Unit,
     PrefetchHooks Function(
-        {bool houseId, bool tenantsRefs, bool electricReadingsRefs})> {
+        {bool houseId,
+        bool bhkTemplateId,
+        bool tenantsRefs,
+        bool electricReadingsRefs})> {
   $$UnitsTableTableManager(_$AppDatabase db, $UnitsTable table)
       : super(TableManagerState(
           db: db,
@@ -7341,8 +8878,17 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<int> houseId = const Value.absent(),
             Value<String> nameOrNumber = const Value.absent(),
             Value<int?> floor = const Value.absent(),
+            Value<int?> bhkTemplateId = const Value.absent(),
+            Value<String?> bhkType = const Value.absent(),
             Value<double> baseRent = const Value.absent(),
+            Value<double?> editableRent = const Value.absent(),
+            Value<String?> furnishingStatus = const Value.absent(),
+            Value<double?> carpetArea = const Value.absent(),
+            Value<String?> parkingSlot = const Value.absent(),
+            Value<String?> meterNumber = const Value.absent(),
             Value<int> defaultDueDay = const Value.absent(),
+            Value<bool> isOccupied = const Value.absent(),
+            Value<int?> tenantId = const Value.absent(),
           }) =>
               UnitsCompanion(
             firestoreId: firestoreId,
@@ -7353,8 +8899,17 @@ class $$UnitsTableTableManager extends RootTableManager<
             houseId: houseId,
             nameOrNumber: nameOrNumber,
             floor: floor,
+            bhkTemplateId: bhkTemplateId,
+            bhkType: bhkType,
             baseRent: baseRent,
+            editableRent: editableRent,
+            furnishingStatus: furnishingStatus,
+            carpetArea: carpetArea,
+            parkingSlot: parkingSlot,
+            meterNumber: meterNumber,
             defaultDueDay: defaultDueDay,
+            isOccupied: isOccupied,
+            tenantId: tenantId,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
@@ -7365,8 +8920,17 @@ class $$UnitsTableTableManager extends RootTableManager<
             required int houseId,
             required String nameOrNumber,
             Value<int?> floor = const Value.absent(),
+            Value<int?> bhkTemplateId = const Value.absent(),
+            Value<String?> bhkType = const Value.absent(),
             required double baseRent,
+            Value<double?> editableRent = const Value.absent(),
+            Value<String?> furnishingStatus = const Value.absent(),
+            Value<double?> carpetArea = const Value.absent(),
+            Value<String?> parkingSlot = const Value.absent(),
+            Value<String?> meterNumber = const Value.absent(),
             Value<int> defaultDueDay = const Value.absent(),
+            Value<bool> isOccupied = const Value.absent(),
+            Value<int?> tenantId = const Value.absent(),
           }) =>
               UnitsCompanion.insert(
             firestoreId: firestoreId,
@@ -7377,8 +8941,17 @@ class $$UnitsTableTableManager extends RootTableManager<
             houseId: houseId,
             nameOrNumber: nameOrNumber,
             floor: floor,
+            bhkTemplateId: bhkTemplateId,
+            bhkType: bhkType,
             baseRent: baseRent,
+            editableRent: editableRent,
+            furnishingStatus: furnishingStatus,
+            carpetArea: carpetArea,
+            parkingSlot: parkingSlot,
+            meterNumber: meterNumber,
             defaultDueDay: defaultDueDay,
+            isOccupied: isOccupied,
+            tenantId: tenantId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
@@ -7386,6 +8959,7 @@ class $$UnitsTableTableManager extends RootTableManager<
               .toList(),
           prefetchHooksCallback: (
               {houseId = false,
+              bhkTemplateId = false,
               tenantsRefs = false,
               electricReadingsRefs = false}) {
             return PrefetchHooks(
@@ -7414,6 +8988,16 @@ class $$UnitsTableTableManager extends RootTableManager<
                     referencedTable: $$UnitsTableReferences._houseIdTable(db),
                     referencedColumn:
                         $$UnitsTableReferences._houseIdTable(db).id,
+                  ) as T;
+                }
+                if (bhkTemplateId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.bhkTemplateId,
+                    referencedTable:
+                        $$UnitsTableReferences._bhkTemplateIdTable(db),
+                    referencedColumn:
+                        $$UnitsTableReferences._bhkTemplateIdTable(db).id,
                   ) as T;
                 }
 
@@ -7464,7 +9048,10 @@ typedef $$UnitsTableProcessedTableManager = ProcessedTableManager<
     (Unit, $$UnitsTableReferences),
     Unit,
     PrefetchHooks Function(
-        {bool houseId, bool tenantsRefs, bool electricReadingsRefs})>;
+        {bool houseId,
+        bool bhkTemplateId,
+        bool tenantsRefs,
+        bool electricReadingsRefs})>;
 typedef $$TenantsTableCreateCompanionBuilder = TenantsCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
@@ -10711,6 +12298,8 @@ class $AppDatabaseManager {
       $$OwnersTableTableManager(_db, _db.owners);
   $$HousesTableTableManager get houses =>
       $$HousesTableTableManager(_db, _db.houses);
+  $$BhkTemplatesTableTableManager get bhkTemplates =>
+      $$BhkTemplatesTableTableManager(_db, _db.bhkTemplates);
   $$UnitsTableTableManager get units =>
       $$UnitsTableTableManager(_db, _db.units);
   $$TenantsTableTableManager get tenants =>

@@ -157,6 +157,137 @@ class _HouseUnitsProviderElement
   int get houseId => (origin as HouseUnitsProvider).houseId;
 }
 
+String _$availableUnitsHash() => r'3f8447b0b57244593198fb2e69784f458f374ba2';
+
+/// See also [availableUnits].
+@ProviderFor(availableUnits)
+const availableUnitsProvider = AvailableUnitsFamily();
+
+/// See also [availableUnits].
+class AvailableUnitsFamily extends Family<AsyncValue<List<Unit>>> {
+  /// See also [availableUnits].
+  const AvailableUnitsFamily();
+
+  /// See also [availableUnits].
+  AvailableUnitsProvider call(
+    int houseId,
+  ) {
+    return AvailableUnitsProvider(
+      houseId,
+    );
+  }
+
+  @override
+  AvailableUnitsProvider getProviderOverride(
+    covariant AvailableUnitsProvider provider,
+  ) {
+    return call(
+      provider.houseId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'availableUnitsProvider';
+}
+
+/// See also [availableUnits].
+class AvailableUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
+  /// See also [availableUnits].
+  AvailableUnitsProvider(
+    int houseId,
+  ) : this._internal(
+          (ref) => availableUnits(
+            ref as AvailableUnitsRef,
+            houseId,
+          ),
+          from: availableUnitsProvider,
+          name: r'availableUnitsProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$availableUnitsHash,
+          dependencies: AvailableUnitsFamily._dependencies,
+          allTransitiveDependencies:
+              AvailableUnitsFamily._allTransitiveDependencies,
+          houseId: houseId,
+        );
+
+  AvailableUnitsProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.houseId,
+  }) : super.internal();
+
+  final int houseId;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<Unit>> Function(AvailableUnitsRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: AvailableUnitsProvider._internal(
+        (ref) => create(ref as AvailableUnitsRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        houseId: houseId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<Unit>> createElement() {
+    return _AvailableUnitsProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AvailableUnitsProvider && other.houseId == houseId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, houseId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin AvailableUnitsRef on AutoDisposeFutureProviderRef<List<Unit>> {
+  /// The parameter `houseId` of this provider.
+  int get houseId;
+}
+
+class _AvailableUnitsProviderElement
+    extends AutoDisposeFutureProviderElement<List<Unit>>
+    with AvailableUnitsRef {
+  _AvailableUnitsProviderElement(super.provider);
+
+  @override
+  int get houseId => (origin as AvailableUnitsProvider).houseId;
+}
+
 String _$houseStatsHash() => r'0c6d857946a5e31678debcba2ee619cdb61187ac';
 
 /// See also [houseStats].
@@ -289,7 +420,7 @@ class _HouseStatsProviderElement
   int get houseId => (origin as HouseStatsProvider).houseId;
 }
 
-String _$houseControllerHash() => r'b49e0d289cc1b9eb4bc8f5ead7d1a192069c2ac0';
+String _$houseControllerHash() => r'fd51b6841f568374173414069c4542deb653934d';
 
 /// See also [HouseController].
 @ProviderFor(HouseController)

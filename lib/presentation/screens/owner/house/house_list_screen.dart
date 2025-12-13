@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rentpilotpro/presentation/screens/owner/house/house_form_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'house_controller.dart';
 import '../../../widgets/empty_state_widget.dart';
+import '../../../../core/utils/dialog_utils.dart';
 
 class HouseListScreen extends ConsumerWidget {
   const HouseListScreen({super.key});
@@ -115,7 +115,35 @@ class HouseListScreen extends ConsumerWidget {
                                           PopupMenuItem(
                                             child: const Text('Delete'),
                                             onTap: () {
-                                              ref.read(houseControllerProvider.notifier).deleteHouse(house.id);
+                                               showDialog(
+                                                 context: context,
+                                                 builder: (ctx) => AlertDialog(
+                                                   title: const Text('Delete Property'),
+                                                   content: Text('Are you sure you want to delete "${house.name}"? This will also remove all its units.'),
+                                                   actions: [
+                                                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                                     TextButton(
+                                                       onPressed: () async {
+                                                         Navigator.pop(ctx); // Close Dialog
+                                                         try {
+                                                           await DialogUtils.runWithLoading(context, () async {
+                                                              await ref.read(houseControllerProvider.notifier).deleteHouse(house.id);
+                                                           });
+                                                           if (context.mounted) {
+                                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Property deleted')));
+                                                           }
+                                                         } catch (e) {
+                                                           if (context.mounted) {
+                                                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e'), backgroundColor: Colors.red));
+                                                           }
+                                                         }
+                                                       },
+                                                       style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                                       child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                                     ),
+                                                   ],
+                                                 ),
+                                               );
                                             },
                                           ),
                                         ],

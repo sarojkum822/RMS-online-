@@ -1,10 +1,10 @@
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'house_controller.dart';
 import '../../../../domain/entities/house.dart';
+import '../../../../core/extensions/string_extensions.dart';
 
 class HouseFormScreen extends ConsumerStatefulWidget {
   final House? house; // Optional for Edit
@@ -43,8 +43,8 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
           // Edit Mode
           final updatedHouse = House(
             id: widget.house!.id,
-            name: _nameCtrl.text,
-            address: _addressCtrl.text,
+            name: _nameCtrl.text.toTitleCase(),
+            address: _addressCtrl.text.toTitleCase(),
             notes: _notesCtrl.text,
             imageUrl: widget.house!.imageUrl, // Keep old url unless new file overwrites in repo
           );
@@ -53,8 +53,8 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
         } else {
           // Add Mode
           await ref.read(houseControllerProvider.notifier).addHouse(
-            _nameCtrl.text,
-            _addressCtrl.text,
+            _nameCtrl.text.toTitleCase(),
+            _addressCtrl.text.toTitleCase(),
             _notesCtrl.text,
             int.tryParse(_unitsCtrl.text),
           );
@@ -85,12 +85,14 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
 
             TextFormField(
               controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(labelText: 'House Name', hintText: 'e.g. Sunset Villa'),
               validator: (v) => v!.isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _addressCtrl,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(labelText: 'Address', hintText: 'Enter full address'),
               validator: (v) => v!.isEmpty ? 'Required' : null,
             ),

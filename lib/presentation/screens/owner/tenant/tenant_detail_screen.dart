@@ -9,6 +9,7 @@ import '../rent/rent_controller.dart';
 import '../../../providers/data_providers.dart';
 import '../../../widgets/dotted_line_separator.dart';
 import 'package:in_app_review/in_app_review.dart';
+import '../../../../core/utils/dialog_utils.dart';
 
 class TenantDetailScreen extends ConsumerStatefulWidget {
   final Tenant tenant;
@@ -22,8 +23,6 @@ class TenantDetailScreen extends ConsumerStatefulWidget {
 class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
   @override
   Widget build(BuildContext context) {
-    final rentRepo = ref.watch(rentRepositoryProvider);
-
     final screenHeight = MediaQuery.of(context).size.height;
     final headerHeight = (screenHeight * 0.45).clamp(300.0, 420.0); // Responsive height with limits
 
@@ -125,12 +124,19 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
-                                        unitValue.when(
-                                          data: (u) => 'Flat No- ${u?.nameOrNumber ?? 'N/A'}, Floor - ${u?.floor ?? '-'}',
-                                          error: (e, _) => 'Unit ID: ${widget.tenant.unitId}', 
-                                          loading: () => 'Loading...'
-                                        ),
-                                        style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                          unitValue.when(
+                                            data: (u) {
+                                              final sb = StringBuffer('Flat ${u?.nameOrNumber ?? 'N/A'}');
+                                              if (u?.bhkType != null) sb.write(' • ${u!.bhkType}');
+                                              // Show editableRent if available (current tenant rent), otherwise baseRent
+                                              final rent = u?.editableRent ?? u?.baseRent;
+                                              if (rent != null) sb.write(' • ₹${rent.toStringAsFixed(0)}');
+                                              return sb.toString();
+                                            },
+                                            error: (e, _) => 'Unit ID: ${widget.tenant.unitId}', 
+                                            loading: () => 'Loading...'
+                                          ),
+                                          style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
                                       ),
                                     );
                                   },
@@ -213,7 +219,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                   children: [
                                     const Icon(Icons.history, color: Colors.orangeAccent, size: 20),
                                     const SizedBox(height: 4),
-                                    Text('Since 2023', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
+                                    Text('Since ${DateFormat('MMM yyyy').format(widget.tenant.startDate)}', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
                                   ],
                                 ),
                               ],
@@ -565,13 +571,15 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 final amt = double.tryParse(amountController.text) ?? 0;
                 final paid = double.tryParse(paidController.text) ?? 0;
                 if (amt > 0) {
-                  await ref.read(rentControllerProvider.notifier).addPastRentCycle(
-                    tenantId: widget.tenant.id,
-                    month: DateFormat('yyyy-MM').format(selectedMonth),
-                    totalDue: amt,
-                    totalPaid: paid,
-                    date: DateTime.now(),
-                  );
+                  await DialogUtils.runWithLoading(context, () async {
+                    await ref.read(rentControllerProvider.notifier).addPastRentCycle(
+                      tenantId: widget.tenant.id,
+                      month: DateFormat('yyyy-MM').format(selectedMonth),
+                      totalDue: amt,
+                      totalPaid: paid,
+                      date: DateTime.now(),
+                    );
+                  });
                   if (context.mounted) Navigator.pop(context);
                 }
               },
@@ -640,7 +648,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 onPressed: isMatch ? () async {
                   Navigator.pop(context); // Close dialog
                   try {
-                     await ref.read(rentControllerProvider.notifier).deleteBill(cycle.id, widget.tenant.id);
+                     await DialogUtils.runWithLoading(context, () async {
+                        await ref.read(rentControllerProvider.notifier).deleteBill(cycle.id, widget.tenant.id);
+                     });
                      if (context.mounted) {
                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill deleted')));
                      }
@@ -720,7 +730,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                           onPressed: () async {
                                             Navigator.pop(ctx); // Close Alert
                                             
-                                            await ref.read(rentControllerProvider.notifier).deletePayment(p.id, cycle.id, widget.tenant.id);
+                                            await DialogUtils.runWithLoading(context, () async {
+                                               await ref.read(rentControllerProvider.notifier).deletePayment(p.id, cycle.id, widget.tenant.id);
+                                            });
                                             
                                             // Refresh Sheet
                                             setSheetState(() {});

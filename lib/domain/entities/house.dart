@@ -25,7 +25,21 @@ class Unit with _$Unit {
     required String nameOrNumber,
     int? floor,
     required double baseRent,
+    
+    // NEW Fields for BHK
+    int? bhkTemplateId,
+    String? bhkType,
+    double? editableRent,
+    int? tenantId,
+    
+    // Advanced Details
+    String? furnishingStatus,
+    double? carpetArea,
+    String? parkingSlot,
+    String? meterNumber,
+
     @Default(1) int defaultDueDay,
+    @Default(false) bool isOccupied,
   }) = _Unit;
 
   factory Unit.fromJson(Map<String, dynamic> json) => _$UnitFromJson(json);

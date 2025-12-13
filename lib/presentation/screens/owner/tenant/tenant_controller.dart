@@ -6,6 +6,9 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import '../house/house_controller.dart'; 
+import '../rent/rent_controller.dart'; // Import RentController 
+
 part 'tenant_controller.g.dart';
 
 @riverpod
@@ -22,7 +25,20 @@ class TenantController extends _$TenantController {
 
   Future<void> addTenant(Tenant tenant, {double? initialElectricReading, File? imageFile}) async {
     final repo = ref.read(tenantRepositoryProvider);
-    await repo.createTenant(tenant, imageFile: imageFile);
+    final newTenantId = await repo.createTenant(tenant, imageFile: imageFile);
+
+    // Verify unit update
+    final propertyRepo = ref.read(propertyRepositoryProvider);
+    final unit = await propertyRepo.getUnit(tenant.unitId);
+    if (unit != null) {
+      final rentToLock = tenant.agreedRent ?? unit.baseRent;
+      await propertyRepo.updateUnit(unit.copyWith(
+        isOccupied: true,
+        tenantId: newTenantId,
+        editableRent: rentToLock,
+        baseRent: rentToLock,
+      ));
+    }
 
     if (initialElectricReading != null) {
       await ref.read(rentRepositoryProvider).addElectricReading(
@@ -32,83 +48,59 @@ class TenantController extends _$TenantController {
       );
     }
     
-    ref.invalidateSelf();
+    // FAST UPDATE: Update local state immediately instead of waiting for network fetch
+    // This fixes "Unknown" issue by ensuring the tenant is in the list BEFORE rent generation
+    final currentList = state.value ?? [];
+    final newTenant = tenant.copyWith(id: newTenantId);
+    state = AsyncValue.data([...currentList, newTenant]);
+    
+    ref.invalidate(houseUnitsProvider(tenant.houseId)); 
+    
+    // Auto-Generate Rent for this new tenant immediately
+    ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
   }
 
   Future<void> updateTenant(Tenant tenant, {File? imageFile}) async {
      final repo = ref.read(tenantRepositoryProvider);
      await repo.updateTenant(tenant, imageFile: imageFile);
+     
+     // Sync Unit Rent if Tenant Rent changed
+     if (tenant.agreedRent != null) {
+        final propertyRepo = ref.read(propertyRepositoryProvider);
+        final unit = await propertyRepo.getUnit(tenant.unitId);
+        if (unit != null) {
+           await propertyRepo.updateUnit(unit.copyWith(
+              baseRent: tenant.agreedRent!,
+              editableRent: tenant.agreedRent!,
+           ));
+           ref.invalidate(houseUnitsProvider(tenant.houseId));
+        }
+     }
+     
      ref.invalidateSelf();
   }
 
-  Future<void> addTenantWithManualUnit({
+  Future<void> registerTenant({
     required int houseId,
-    required String unitName,
-    required String floor, 
+    required int unitId,
     required String tenantName,
     required String phone,
     String? email,
-    String? password, 
+    String? password,
     double? agreedRent,
     double? initialElectricReading,
-    File? imageFile, // NEW
+    File? imageFile,
   }) async {
-    final propertyRepo = ref.read(propertyRepositoryProvider);
-    
-    // 1. Check or Create Unit
-    final units = await propertyRepo.getUnits(houseId);
-    Unit? targetUnit;
-    try {
-      targetUnit = units.firstWhere(
-        (u) => u.nameOrNumber.trim().toLowerCase() == unitName.trim().toLowerCase(),
-      );
-    } catch (_) {
-      targetUnit = null;
-    }
-
-    int unitId;
-    if (targetUnit != null) {
-      unitId = targetUnit.id;
-    } else {
-      // Create Unit
-      int parsedFloor = 0;
-      final floorInt = int.tryParse(floor);
-      if (floorInt != null) parsedFloor = floorInt;
-
-      final newUnit = Unit(
-        id: 0,
-        houseId: houseId,
-        nameOrNumber: unitName,
-        floor: parsedFloor,
-        baseRent: agreedRent ?? 0.0,
-        defaultDueDay: 1,
-      );
-      unitId = await propertyRepo.createUnit(newUnit);
-    }
-
-    // 2. Create Tenant (Securely)
+    // 1. Create Tenant Auth (Securely)
     String? authId;
     if (email != null && email.isNotEmpty && password != null && password.isNotEmpty) {
       try {
          authId = await _createFirebaseUser(email, password);
       } catch (e) {
          if (e.toString().contains('email-already-in-use')) {
-             // DEADLOCK FIX:
-             // The email exists in Auth (Zombie Account). 
-             // 1. Try to Login with the provided password to see if we can "Claim" it.
-             try {
-                final userCred = await FirebaseAuth.instanceFor(app: Firebase.app('secondary'))
-                    .signInWithEmailAndPassword(email: email, password: password);
-                authId = userCred.user?.uid;
-                
-                // If we are here, we successfully "logged in" to the zombie account.
-                // We can now reuse this User ID for the new Tenant record.
-             } catch (loginError) {
-                // Password didn't match (or other error). We can't claim it.
-                throw Exception('This email is already registered in the system (Firebase Auth) with a DIFFERENT password. \n\nSolutions:\n1. Use the ORIGINAL password you created this user with.\n2. Use a different email address.\n3. (Developer) Go to Firebase Console -> Authentication and manually delete this user.');
-             }
+             throw Exception('This email is already registered. Please use a different email.');
          } else {
-            rethrow;
+             rethrow;
          }
       }
     }
@@ -122,11 +114,11 @@ class TenantController extends _$TenantController {
         phone: phone,
         email: email,
         password: password, 
-        authId: authId, // Set the Real Auth ID
+        authId: authId, 
         startDate: DateTime.now(),
         status: TenantStatus.active,
         agreedRent: agreedRent,
-        ownerId: FirebaseAuth.instance.currentUser?.uid ?? '', // Set Owner ID
+        ownerId: FirebaseAuth.instance.currentUser?.uid ?? '', 
     );
 
     try {
@@ -138,7 +130,7 @@ class TenantController extends _$TenantController {
       rethrow;
     }
   }
-  
+
   Future<String?> _createFirebaseUser(String email, String password) async {
     FirebaseApp app;
     try {
@@ -231,9 +223,10 @@ class TenantController extends _$TenantController {
   Future<void> deleteTenant(int id) async {
     final repo = ref.read(tenantRepositoryProvider);
     
-    // 1. Fetch Tenant details before deleting to get credentials (if available)
+    // 1. Fetch Tenant details before deleting
+    Tenant? tenant;
     try {
-       final tenant = await repo.getTenant(id);
+       tenant = await repo.getTenant(id);
        if (tenant != null && tenant.email != null && tenant.password != null) {
           // Attempt to delete the Auth User
           await _deleteTenantAuth(tenant.email!, tenant.password!);
@@ -244,6 +237,16 @@ class TenantController extends _$TenantController {
 
     // 2. Delete from Database
     await repo.deleteTenant(id);
+
+    // 3. Free up Unit
+    if (tenant != null) {
+       final propertyRepo = ref.read(propertyRepositoryProvider);
+       final unit = await propertyRepo.getUnit(tenant.unitId);
+       if (unit != null) {
+          await propertyRepo.updateUnit(unit.copyWith(isOccupied: false));
+       }
+    }
+
     ref.invalidateSelf();
   }
 }

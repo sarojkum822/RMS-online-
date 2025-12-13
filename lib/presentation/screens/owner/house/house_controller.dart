@@ -57,6 +57,16 @@ class HouseController extends _$HouseController {
     ref.invalidateSelf();
   }
   
+  Future<void> bulkUpdateUnits(List<Unit> units) async {
+     final repo = ref.read(propertyRepositoryProvider);
+     await repo.updateUnitsBatch(units);
+     // We need to invalidate the specific houseUnits provider. 
+     // Since we don't know houseId easily here without passing it or checking units:
+     if (units.isNotEmpty) {
+       ref.invalidate(houseUnitsProvider(units.first.houseId));
+     }
+  }
+
   Future<void> deleteHouse(int id) async {
      final repo = ref.read(propertyRepositoryProvider);
      await repo.deleteHouse(id);
@@ -72,12 +82,32 @@ class HouseController extends _$HouseController {
      // houseStats is a family provider. We can't invalidate all. 
      // But houseUnitsProvider is what HouseDetailScreen watches.
   }
+
+  Future<void> addUnit(int houseId, String name) async {
+     final repo = ref.read(propertyRepositoryProvider);
+     final unit = Unit(
+       id: 0,
+       houseId: houseId,
+       nameOrNumber: name,
+       baseRent: 0.0,
+       defaultDueDay: 1,
+     );
+     await repo.createUnit(unit);
+     ref.invalidate(houseUnitsProvider(houseId));
+  }
 }
 
 @riverpod
 Future<List<Unit>> houseUnits(HouseUnitsRef ref, int houseId) {
   final repo = ref.watch(propertyRepositoryProvider);
   return repo.getUnits(houseId);
+}
+
+@riverpod
+Future<List<Unit>> availableUnits(AvailableUnitsRef ref, int houseId) async {
+  final repo = ref.watch(propertyRepositoryProvider);
+  final units = await repo.getUnits(houseId);
+  return units.where((u) => !u.isOccupied).toList();
 }
 
 @riverpod

@@ -46,5 +46,6 @@ Future<void> seedData(SeedDataRef ref) async {
     startDate: DateTime.now(),
     status: TenantStatus.active,
     agreedRent: 15500, // Custom Rent Example
+    ownerId: 'SEED_DATA', // Placeholder ownerId
   ));
 }

@@ -1,61 +1,100 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // --- SECURITY HELPERS ---
+
+    // 1. Check if User is Authenticated & Matches OwnerId
+    function isOwner(ownerId) {
+      return request.auth != null && request.auth.uid == ownerId;
+    }
+
+    // 2. Prevent Changing Critical Fields (Anti-Tamper)
+    function notUpdating(field) {
+      return request.resource.data[field] == resource.data[field];
+    }
     
-    // Helper function to check if user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
+    // 3. Ensure OwnerId is Correct on Create
+    function isValidOwner() {
+      return request.auth != null && request.resource.data.ownerId == request.auth.uid;
     }
 
-    // Helper to check if the user is the owner of the document
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    // Helper to validate incoming data types (basic examples)
-    function validateString(field) {
-      return field is string;
+    // --- 1. OWNERS COLLECTION ---
+    match /owners/{ownerId} {
+      // Users can only touch their own profile
+      allow read, write: if request.auth != null && request.auth.uid == ownerId;
     }
 
-    function validateNumber(field) {
-      return field is number;
-    }
-
-    // Users (Owners) Collection
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Properties (Houses) Collection
-    match /houses/{houseId} {
-      // Only the owner of the house can read/write
-      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
-      allow read, update, delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
-    }
-
-    // Tenants Collection
-    match /tenants/{tenantId} {
-      // Owner can do everything
-      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+    // --- 2. PROPERTIES (HOUSES) ---
+    match /houses/{docId} {
+      // Create: Must be your own
+      allow create: if isValidOwner()
+                   && request.resource.data.name is string;
       
-      allow create: if isAuthenticated() && (request.resource.data.ownerId == request.auth.uid);
-      allow read: if isAuthenticated() && (
-        resource.data.ownerId == request.auth.uid || 
-        resource.data.authId == request.auth.uid
-      );
-      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid);
-    }
-
-    // Payments/Transactions
-    match /payments/{paymentId} {
-      allow read, write: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || request.resource.data.ownerId == request.auth.uid);
+      // Update: Must be yours AND cannot change ownerId
+      allow update: if isOwner(resource.data.ownerId)
+                   && notUpdating('ownerId'); 
+                   
+      allow read, delete: if isOwner(resource.data.ownerId);
     }
     
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
+    // --- 3. UNITS ---
+    match /units/{docId} {
+      allow create: if isValidOwner() && request.resource.data.baseRent is number;
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      allow read, delete: if isOwner(resource.data.ownerId);
+    }
+
+    // --- 4. TENANTS ---
+    match /tenants/{docId} {
+      // PERMISSION CHANGE: Allow anyone to read/search (Required for Tenant Login)
+      allow read: if true;
+      
+      // Write/Delete remains restricted to Owners only
+      allow create: if isValidOwner() && request.resource.data.name is string;
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+
+    // --- 5. RENT CYCLES (BILLS) ---
+    match /rent_cycles/{docId} {
+      // PERMISSION CHANGE: Allow anyone to read (Required for Tenant Dashboard Bills List)
+      allow read: if true;
+      
+      // Write/Delete remains restricted to Owners only
+      allow create: if isValidOwner() && request.resource.data.totalDue is number;
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+
+    // --- 6. PAYMENTS ---
+    match /payments/{docId} {
+      // PERMISSION CHANGE: Allow anyone to read (Required for Tenant Dashboard Summary)
+      allow read: if true; 
+      
+      // Write/Delete remains restricted to Owners only
+      allow create: if isValidOwner() && request.resource.data.amount is number;
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+    
+    // --- 7. EXPENSES ---
+    match /expenses/{docId} {
+      allow create: if isValidOwner() && request.resource.data.amount is number;
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      allow read, delete: if isOwner(resource.data.ownerId);
+    }
+    
+    // --- 8. ELECTRIC READINGS ---
+    match /electric_readings/{docId} {
+       allow create: if isValidOwner();
+       allow read, update, delete: if isOwner(resource.data.ownerId);
+    }
+
+    // --- 9. BHK TEMPLATES ---
+    match /bhkTemplates/{docId} {
+       allow create: if isValidOwner();
+       allow read, update, delete: if isOwner(resource.data.ownerId);
     }
   }
 }

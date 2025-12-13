@@ -83,17 +83,7 @@ flutter_icons:
 
 flutter_native_splash:
   color: "#4A148C" # Deep Purple Base
-  image: "assets/icon/splash.png"
-  branding: "assets/icon/branding.png"
   color_dark: "#121212"
-  image_dark: "assets/icon/splash_dark.png"
-  branding_dark: "assets/icon/branding_dark.png"
-
-  android_12:
-    image: "assets/icon/splash_android12.png"
-    icon_background_color: "#4A148C"
-    image_dark: "assets/icon/splash_android12_dark.png"
-    icon_background_color_dark: "#121212"
 
 
 flutter:

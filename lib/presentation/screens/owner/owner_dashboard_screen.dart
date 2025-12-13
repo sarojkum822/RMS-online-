@@ -2,8 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
-import 'package:rentpilotpro/domain/repositories/i_rent_repository.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'house/house_list_screen.dart';
 import 'tenant/tenant_list_screen.dart';
@@ -11,12 +9,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import 'rent/rent_controller.dart';
 import '../../../../core/theme/app_theme.dart';
-import 'dart:io';
 import 'settings/settings_screen.dart'; 
 import 'reports/reports_screen.dart'; 
 import 'tenant/tenant_controller.dart';
-import '../../../../domain/entities/tenant.dart';
-import 'package:rentpilotpro/domain/entities/expense.dart';
 // For DashboardStats
 import 'expense/expense_screens.dart';
 import '../../widgets/skeleton_loader.dart';
@@ -43,7 +38,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -143,17 +141,24 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF1E3A8A), Color(0xFF7E22CE)], // Deep Blue to Purple
+                          colors: [Color(0xFFF3F0FF), Color(0xFFE5DEFF), Color(0xFFD3E4FF)], // Ultra-soft Pastel Mesh
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(32), // More rounded (iOS style)
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5), // Glass Border
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF7E22CE).withValues(alpha: 0.3),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          )
+                            color: const Color(0xFF97A7C3).withValues(alpha: 0.15), // Soft grey-blue shadow
+                            blurRadius: 40,
+                            spreadRadius: -10,
+                            offset: const Offset(0, 20),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            blurRadius: 20,
+                            offset: const Offset(-5, -5),
+                          ),
                         ],
                       ),
                       child: Column(
@@ -167,46 +172,49 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                  children: [
                                    Text(
                                      'Collected (This Month)',
-                                     style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                                     style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600), // Slate 500
                                    ),
-                                   const SizedBox(height: 4),
+                                   const SizedBox(height: 8),
                                    Text(
                                      '₹${stats.thisMonthCollected.toStringAsFixed(0)}',
-                                     style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                                     style: GoogleFonts.outfit(color: const Color(0xFF0F172A), fontSize: 42, fontWeight: FontWeight.bold, letterSpacing: -1.0), // Slate 900, Bigger
                                    ),
                                  ],
                                ),
                                Container(
-                                 padding: const EdgeInsets.all(12),
+                                 padding: const EdgeInsets.all(16),
                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(16),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                                    ]
                                  ),
-                                 child: const Icon(Icons.wallet, color: Colors.white, size: 28),
+                                 child: const Icon(Icons.wallet, color: Color(0xFF6366F1), size: 28), // Indigo Icon
                                )
                              ],
                            ),
-                           const SizedBox(height: 24),
+                           const SizedBox(height: 28),
                            // Progress Bar
                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(10),
                               child: LinearProgressIndicator(
                                 value: (stats.thisMonthCollected + stats.totalPending) > 0 
                                        ? stats.thisMonthCollected / (stats.thisMonthCollected + stats.totalPending) 
                                        : 0,
-                                backgroundColor: Colors.white24,
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF69F0AE)), // Green Accent
-                                minHeight: 6,
+                                backgroundColor: Colors.white,
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)), // Indigo Accent
+                                minHeight: 12, // Thicker ios style
                               ),
                            ),
-                           const SizedBox(height: 24),
+                           const SizedBox(height: 28),
                            
                            Row(
                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                              children: [
-                               _buildMiniStat('Pending', '₹${stats.totalPending.toStringAsFixed(0)}', Colors.orangeAccent),
-                               Container(width: 1, height: 30, color: Colors.white12),
-                               _buildMiniStat('Revenue (Total)', '₹${stats.totalCollected.toStringAsFixed(0)}', Colors.white),
+                               _buildMiniStat('Pending', '₹${stats.totalPending.toStringAsFixed(0)}', const Color(0xFFEF4444)), // Red for pending
+                               Container(width: 1, height: 40, color: const Color(0xFFCBD5E1)), // Slate 300 Divider
+                               _buildMiniStat('Revenue (Total)', '₹${stats.totalCollected.toStringAsFixed(0)}', const Color(0xFF0F172A)), // Slate 900
                              ],
                            ),
                         ],
@@ -240,7 +248,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     crossAxisCount: 4, // 4 items in a row
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.85,
+                    childAspectRatio: 0.75,
                     children: [
                       _buildQuickAction(context, Icons.person_add, 'Add\nTenant', () => context.push('/owner/tenants/add'), Colors.blue),
                       _buildQuickAction(context, Icons.add_home_work, 'Add\nProperty', () => context.push('/owner/houses/add'), Colors.orange),
@@ -282,12 +290,12 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
           // List (Rent List)
           rentAsync.when(
             data: (cycles) {
+              // Ensure we have fresh tenants whenever the rent list changes (e.g. after adding new one)
               final tenantsAsync = ref.watch(tenantControllerProvider);
               
               return tenantsAsync.when(
                 data: (tenants) {
-                  // 1. Join Tenant Name
-                  // 2. Sort: Pending first
+                  // 1. Sort: Pending first
                   final sortedCycles = List.of(cycles);
                   sortedCycles.sort((a, b) {
                      if (a.status.name == 'pending' && b.status.name != 'pending') return -1;
@@ -295,7 +303,13 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                      return 0;
                   });
 
-                  if (sortedCycles.isEmpty) {
+                  // 2. Filter out orphaned cycles (where tenant has been deleted)
+                  // This fixes the "Unknown" issue by hiding bills for tenants that don't exist anymore.
+                  final validCycles = sortedCycles.where((cycle) {
+                    return tenants.any((t) => t.id == cycle.tenantId);
+                  }).toList();
+
+                  if (validCycles.isEmpty) {
                      return SliverToBoxAdapter(
                       child: Center(
                         child: Padding(
@@ -317,9 +331,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          final c = sortedCycles[index];
+                          final c = validCycles[index];
                           final isPaid = c.status.name == 'paid';
-                          final tenant = tenants.firstWhere((t) => t.id == c.tenantId, orElse: () => Tenant(id: -1, houseId: 0, unitId: 0, tenantCode: '', name: 'Unknown', phone: '', startDate: DateTime.now(), status: TenantStatus.active, ownerId: ''));
+                          // We know tenant exists because of the filter above
+                          final tenant = tenants.firstWhere((t) => t.id == c.tenantId);
                           
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -405,14 +420,38 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                       icon: const Icon(Icons.send, color: Colors.green),
                                       onPressed: () async {
                                         final message = 'Hello ${tenant.name}, your rent of ₹${c.totalDue.toStringAsFixed(0)} is pending. Please pay soon.';
-                                        // Use generic whatsapp url scheme
-                                        final url = Uri.parse('https://wa.me/${tenant.phone}?text=${Uri.encodeComponent(message)}');
-                                        if (await canLaunchUrl(url)) {
-                                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                                        } else {
-                                           if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
+                                        final encodedMessage = Uri.encodeComponent(message);
+                                        
+                                        // Format Phone Number
+                                        String phone = tenant.phone.trim().replaceAll(RegExp(r'[^0-9+]'), '');
+                                        if (!phone.startsWith('+')) {
+                                          if (phone.length == 10) {
+                                            phone = '+91$phone'; // Default to India
+                                          } else {
+                                            phone = '+$phone'; // Hope for the best if not 10 digits
                                           }
+                                        }
+                                        
+                                        // 1. Try Native App Scheme
+                                        final nativeUrl = Uri.parse('whatsapp://send?phone=$phone&text=$encodedMessage');
+                                        
+                                        // 2. Fallback Web URL
+                                        final webUrl = Uri.parse('https://wa.me/$phone?text=$encodedMessage');
+
+                                        try {
+                                          if (await canLaunchUrl(nativeUrl)) {
+                                            await launchUrl(nativeUrl);
+                                          } else if (await canLaunchUrl(webUrl)) {
+                                            await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+                                          } else {
+                                            if (context.mounted) {
+                                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp. Is it installed?')));
+                                            }
+                                          }
+                                        } catch (e) {
+                                           if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error launching WhatsApp: $e')));
+                                           }
                                         }
                                       },
                                     ),
@@ -421,7 +460,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                             ),
                           );
                         },
-                        childCount: sortedCycles.length,
+                        childCount: validCycles.length,
                       ),
                     ),
                   );
@@ -458,9 +497,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: GoogleFonts.outfit(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-        const SizedBox(height: 4),
-        Text(value, style: GoogleFonts.outfit(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(label.toUpperCase(), style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8)), // Slate 500
+        const SizedBox(height: 6),
+        Text(value, style: GoogleFonts.outfit(color: color, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
       ],
     );
   }
@@ -473,14 +512,15 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: color.withValues(alpha: 0.08), // Lighter background
+              borderRadius: BorderRadius.circular(20), // More rounded
+              border: Border.all(color: color.withValues(alpha: 0.1), width: 1), // Subtle border
             ),
             child: Icon(icon, color: color, size: 28),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             label,
             textAlign: TextAlign.center,
@@ -488,6 +528,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppTheme.textPrimary,
+              height: 1.2
             ),
           ),
         ],
@@ -496,93 +537,4 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final double value;
-  final double total;
-  final List<Color> gradientColors; // Changed from single Color
-  final IconData icon;
 
-
-  const _SummaryCard({
-    required this.title,
-    required this.value,
-    required this.total,
-    required this.gradientColors,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Progress calculation
-    final progress = total > 0 ? value / total : 0.0;
-    
-    return Container(
-      width: double.infinity, // Full width for vertical stack
-      // height: 140, // Removed fixed height to allow content to dictate size
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: gradientColors.last.withValues(alpha: 0.3), // Colored shadow
-            blurRadius: 12,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        // mainAxisAlignment: MainAxisAlignment.spaceBetween, // Removed
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-          
-          const SizedBox(height: 16), // Added spacing since spaceBetween is removed
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.outfit(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '₹${value.toStringAsFixed(0)}',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  minHeight: 4,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

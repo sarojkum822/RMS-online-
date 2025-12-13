@@ -46,23 +46,39 @@ class TenantDashboardScreen extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF0D47A1), Color(0xFF1976D2)]),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD3E4FF), Color(0xFFE5DEFF)], // Pastel Blue to Purple
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10)),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Total Outstanding', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
-                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), shape: BoxShape.circle),
+                            child: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF1E293B)),
+                          ),
+                          const SizedBox(width: 12),
+                          Text('Total Outstanding', style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 16, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
                       FutureBuilder<List<RentCycle>>(
                         future: rentRepo.getRentCyclesForTenant(tenant.id),
                         builder: (context, snapshot) {
-                          if (!snapshot.hasData) return const Text('...', style: TextStyle(color: Colors.white));
+                          if (!snapshot.hasData) return const Text('Loading...', style: TextStyle(color: Colors.black54));
                           final cycles = snapshot.data!;
                           final totalDue = cycles.fold(0.0, (sum, c) => sum + (c.totalDue - c.totalPaid));
                            
-                           // Only show Pay button if there is due
                            final showPay = totalDue > 0;
             
                           return Column(
@@ -70,20 +86,29 @@ class TenantDashboardScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 '₹${totalDue.toStringAsFixed(0)}',
-                                style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.outfit(color: const Color(0xFF0F172A), fontSize: 40, fontWeight: FontWeight.bold),
                               ),
+                              const SizedBox(height: 8),
+                              if (totalDue == 0)
+                                Text('You are all caught up! 🎉', style: GoogleFonts.outfit(color: const Color(0xFF059669), fontWeight: FontWeight.w600)),
+                                
                               if(showPay) ...[
-                                const SizedBox(height: 20),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Online Payment Coming Soon!')));
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF0D47A1),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Online Payment Coming Soon!')));
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1E293B), // Dark Slate
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    ),
+                                    child: const Text('Pay Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                   ),
-                                  child: const Text('Pay Now'),
                                 ),
                               ]
                             ],

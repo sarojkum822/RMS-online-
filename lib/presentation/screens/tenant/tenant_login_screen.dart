@@ -57,6 +57,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  textCapitalization: TextCapitalization.none,
                   decoration: const InputDecoration(
                     labelText: 'Email Address',
                     prefixIcon: Icon(Icons.email_outlined),
@@ -81,7 +82,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                   height: 56,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : () async {
-                      final email = _emailController.text.trim();
+                      final email = _emailController.text.trim().toLowerCase();
                       final password = _passwordController.text.trim();
                       
                       if (email.isEmpty || password.isEmpty) {

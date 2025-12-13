@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/expense.dart';
 import '../../../providers/data_providers.dart';
+import '../../../../core/extensions/string_extensions.dart';
 
 // -----------------------------------------------------------------------------
 // Add Expense Screen
@@ -38,6 +39,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             children: [
               TextFormField(
                 controller: _titleCtrl,
+                textCapitalization: TextCapitalization.words, // User requested First Letter Capital
                 decoration: const InputDecoration(labelText: 'Title', hintText: 'e.g. Broken Tap Repair'),
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
@@ -113,7 +115,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         final amount = double.parse(_amountCtrl.text);
         final expense = Expense(
           id: 0,
-          title: _titleCtrl.text,
+          title: _titleCtrl.text.toTitleCase(),
           amount: amount,
           date: _selectedDate,
           category: _selectedCategory,

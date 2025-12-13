@@ -6,7 +6,7 @@ part of 'tenant_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$tenantControllerHash() => r'e07375d29b50857c475abb9d98008ffbc70d10d2';
+String _$tenantControllerHash() => r'50d0bee74b6f82931b7860f1f2e6c038c3de3ebf';
 
 /// See also [TenantController].
 @ProviderFor(TenantController)

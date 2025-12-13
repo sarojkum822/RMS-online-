@@ -137,6 +137,18 @@ class TenantRepositoryImpl implements ITenantRepository {
   Future<int> createTenant(domain.Tenant tenant, {File? imageFile}) async {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
+
+    // Check for duplicate email
+    final duplicateSnapshot = await _firestore.collection('tenants')
+        .where('ownerId', isEqualTo: uid)
+        .where('email', isEqualTo: tenant.email)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (duplicateSnapshot.docs.isNotEmpty) {
+      throw Exception('A tenant with this email already exists.');
+    }
     
     final id = DateTime.now().millisecondsSinceEpoch;
 
@@ -211,22 +223,19 @@ class TenantRepositoryImpl implements ITenantRepository {
         .get();
 
     if (snapshot.docs.isNotEmpty) {
-      // Soft delete tenant
-      await snapshot.docs.first.reference.update({
-        'isDeleted': true,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      // Hard Delete Tenant
+      await snapshot.docs.first.reference.delete();
 
       final cyclesSnapshot = await _firestore.collection('rent_cycles')
+          .where('ownerId', isEqualTo: _uid) // Safety
           .where('tenantId', isEqualTo: id)
           .get();
 
+      final batch = _firestore.batch();
       for (final doc in cyclesSnapshot.docs) {
-          await doc.reference.update({
-            'isDeleted': true,
-            'lastUpdated': FieldValue.serverTimestamp()
-          });
+          batch.delete(doc.reference); // Hard Delete Bills
       }
+      await batch.commit();
     }
   }
 

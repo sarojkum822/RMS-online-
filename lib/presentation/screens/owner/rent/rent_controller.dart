@@ -67,9 +67,9 @@ class RentController extends _$RentController {
         final unit = units.firstWhere((u) => u.id == tenant.unitId);
 
         // Determine Rent Amount (Agreed vs Base)
-        final rentAmount = (tenant.agreedRent != null && tenant.agreedRent! > 0) 
-            ? tenant.agreedRent! 
-            : unit.baseRent;
+        // Determine Rent Amount (Prioritize Unit's editableRent -> Tenant's agreedRent -> Base Rent)
+        final rentAmount = unit.editableRent ?? 
+                           (tenant.agreedRent != null && tenant.agreedRent! > 0 ? tenant.agreedRent! : unit.baseRent);
 
         final newCycle = RentCycle(
           id: 0, // Auto-inc

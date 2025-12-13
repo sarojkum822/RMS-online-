@@ -7,6 +7,7 @@ import '../../../../domain/entities/tenant.dart';
 import '../../../providers/data_providers.dart';
 import '../../../../domain/entities/house.dart'; // For Unit
 import 'tenant_detail_screen.dart';
+import '../../../../core/utils/dialog_utils.dart';
 
 class TenantListScreen extends ConsumerWidget {
   const TenantListScreen({super.key});
@@ -115,7 +116,9 @@ class TenantListScreen extends ConsumerWidget {
                                PopupMenuItem(
                                 child: const Text('Delete'),
                                 onTap: () {
-                                   ref.read(tenantControllerProvider.notifier).deleteTenant(tenant.id);
+                                   DialogUtils.runWithLoading(context, () async {
+                                      await ref.read(tenantControllerProvider.notifier).deleteTenant(tenant.id);
+                                   });
                                 },
                               ),
                             ],

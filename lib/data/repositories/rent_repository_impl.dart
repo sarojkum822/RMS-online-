@@ -121,6 +121,16 @@ class RentRepositoryImpl implements IRentRepository {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
+    // Deterministic Document ID: prevents valid duplicates at DB level
+    final docId = '${rentCycle.tenantId}_${rentCycle.month}'; 
+    final docRef = _firestore.collection('rent_cycles').doc(docId);
+
+    final snapshot = await docRef.get();
+    if (snapshot.exists) {
+       // already exists
+       return snapshot.data()!['id'] as int;
+    }
+
     final id = DateTime.now().millisecondsSinceEpoch;
 
     final data = {
@@ -146,12 +156,12 @@ class RentRepositoryImpl implements IRentRepository {
       'isDeleted': false,
     };
 
-    await _firestore.collection('rent_cycles').add(data);
+    await docRef.set(data);
 
     if (rentCycle.dueDate != null) {
       try {
         await NotificationService().scheduleNotification(
-          id: id, // Int ID works for local notifications
+          id: id,
           title: 'Rent Due Reminder',
           body: 'Rent for ${rentCycle.month} is due today.',
           scheduledDate: rentCycle.dueDate!,

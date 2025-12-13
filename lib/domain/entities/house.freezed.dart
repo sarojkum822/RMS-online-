@@ -277,8 +277,18 @@ mixin _$Unit {
   int get houseId => throw _privateConstructorUsedError;
   String get nameOrNumber => throw _privateConstructorUsedError;
   int? get floor => throw _privateConstructorUsedError;
-  double get baseRent => throw _privateConstructorUsedError;
+  double get baseRent =>
+      throw _privateConstructorUsedError; // NEW Fields for BHK
+  int? get bhkTemplateId => throw _privateConstructorUsedError;
+  String? get bhkType => throw _privateConstructorUsedError;
+  double? get editableRent => throw _privateConstructorUsedError;
+  int? get tenantId => throw _privateConstructorUsedError; // Advanced Details
+  String? get furnishingStatus => throw _privateConstructorUsedError;
+  double? get carpetArea => throw _privateConstructorUsedError;
+  String? get parkingSlot => throw _privateConstructorUsedError;
+  String? get meterNumber => throw _privateConstructorUsedError;
   int get defaultDueDay => throw _privateConstructorUsedError;
+  bool get isOccupied => throw _privateConstructorUsedError;
 
   /// Serializes this Unit to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -300,7 +310,16 @@ abstract class $UnitCopyWith<$Res> {
       String nameOrNumber,
       int? floor,
       double baseRent,
-      int defaultDueDay});
+      int? bhkTemplateId,
+      String? bhkType,
+      double? editableRent,
+      int? tenantId,
+      String? furnishingStatus,
+      double? carpetArea,
+      String? parkingSlot,
+      String? meterNumber,
+      int defaultDueDay,
+      bool isOccupied});
 }
 
 /// @nodoc
@@ -323,7 +342,16 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
     Object? nameOrNumber = null,
     Object? floor = freezed,
     Object? baseRent = null,
+    Object? bhkTemplateId = freezed,
+    Object? bhkType = freezed,
+    Object? editableRent = freezed,
+    Object? tenantId = freezed,
+    Object? furnishingStatus = freezed,
+    Object? carpetArea = freezed,
+    Object? parkingSlot = freezed,
+    Object? meterNumber = freezed,
     Object? defaultDueDay = null,
+    Object? isOccupied = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -346,10 +374,46 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
           ? _value.baseRent
           : baseRent // ignore: cast_nullable_to_non_nullable
               as double,
+      bhkTemplateId: freezed == bhkTemplateId
+          ? _value.bhkTemplateId
+          : bhkTemplateId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      bhkType: freezed == bhkType
+          ? _value.bhkType
+          : bhkType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      editableRent: freezed == editableRent
+          ? _value.editableRent
+          : editableRent // ignore: cast_nullable_to_non_nullable
+              as double?,
+      tenantId: freezed == tenantId
+          ? _value.tenantId
+          : tenantId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      furnishingStatus: freezed == furnishingStatus
+          ? _value.furnishingStatus
+          : furnishingStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+      carpetArea: freezed == carpetArea
+          ? _value.carpetArea
+          : carpetArea // ignore: cast_nullable_to_non_nullable
+              as double?,
+      parkingSlot: freezed == parkingSlot
+          ? _value.parkingSlot
+          : parkingSlot // ignore: cast_nullable_to_non_nullable
+              as String?,
+      meterNumber: freezed == meterNumber
+          ? _value.meterNumber
+          : meterNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
       defaultDueDay: null == defaultDueDay
           ? _value.defaultDueDay
           : defaultDueDay // ignore: cast_nullable_to_non_nullable
               as int,
+      isOccupied: null == isOccupied
+          ? _value.isOccupied
+          : isOccupied // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -367,7 +431,16 @@ abstract class _$$UnitImplCopyWith<$Res> implements $UnitCopyWith<$Res> {
       String nameOrNumber,
       int? floor,
       double baseRent,
-      int defaultDueDay});
+      int? bhkTemplateId,
+      String? bhkType,
+      double? editableRent,
+      int? tenantId,
+      String? furnishingStatus,
+      double? carpetArea,
+      String? parkingSlot,
+      String? meterNumber,
+      int defaultDueDay,
+      bool isOccupied});
 }
 
 /// @nodoc
@@ -387,7 +460,16 @@ class __$$UnitImplCopyWithImpl<$Res>
     Object? nameOrNumber = null,
     Object? floor = freezed,
     Object? baseRent = null,
+    Object? bhkTemplateId = freezed,
+    Object? bhkType = freezed,
+    Object? editableRent = freezed,
+    Object? tenantId = freezed,
+    Object? furnishingStatus = freezed,
+    Object? carpetArea = freezed,
+    Object? parkingSlot = freezed,
+    Object? meterNumber = freezed,
     Object? defaultDueDay = null,
+    Object? isOccupied = null,
   }) {
     return _then(_$UnitImpl(
       id: null == id
@@ -410,10 +492,46 @@ class __$$UnitImplCopyWithImpl<$Res>
           ? _value.baseRent
           : baseRent // ignore: cast_nullable_to_non_nullable
               as double,
+      bhkTemplateId: freezed == bhkTemplateId
+          ? _value.bhkTemplateId
+          : bhkTemplateId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      bhkType: freezed == bhkType
+          ? _value.bhkType
+          : bhkType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      editableRent: freezed == editableRent
+          ? _value.editableRent
+          : editableRent // ignore: cast_nullable_to_non_nullable
+              as double?,
+      tenantId: freezed == tenantId
+          ? _value.tenantId
+          : tenantId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      furnishingStatus: freezed == furnishingStatus
+          ? _value.furnishingStatus
+          : furnishingStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+      carpetArea: freezed == carpetArea
+          ? _value.carpetArea
+          : carpetArea // ignore: cast_nullable_to_non_nullable
+              as double?,
+      parkingSlot: freezed == parkingSlot
+          ? _value.parkingSlot
+          : parkingSlot // ignore: cast_nullable_to_non_nullable
+              as String?,
+      meterNumber: freezed == meterNumber
+          ? _value.meterNumber
+          : meterNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
       defaultDueDay: null == defaultDueDay
           ? _value.defaultDueDay
           : defaultDueDay // ignore: cast_nullable_to_non_nullable
               as int,
+      isOccupied: null == isOccupied
+          ? _value.isOccupied
+          : isOccupied // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -427,7 +545,16 @@ class _$UnitImpl implements _Unit {
       required this.nameOrNumber,
       this.floor,
       required this.baseRent,
-      this.defaultDueDay = 1});
+      this.bhkTemplateId,
+      this.bhkType,
+      this.editableRent,
+      this.tenantId,
+      this.furnishingStatus,
+      this.carpetArea,
+      this.parkingSlot,
+      this.meterNumber,
+      this.defaultDueDay = 1,
+      this.isOccupied = false});
 
   factory _$UnitImpl.fromJson(Map<String, dynamic> json) =>
       _$$UnitImplFromJson(json);
@@ -442,13 +569,34 @@ class _$UnitImpl implements _Unit {
   final int? floor;
   @override
   final double baseRent;
+// NEW Fields for BHK
+  @override
+  final int? bhkTemplateId;
+  @override
+  final String? bhkType;
+  @override
+  final double? editableRent;
+  @override
+  final int? tenantId;
+// Advanced Details
+  @override
+  final String? furnishingStatus;
+  @override
+  final double? carpetArea;
+  @override
+  final String? parkingSlot;
+  @override
+  final String? meterNumber;
   @override
   @JsonKey()
   final int defaultDueDay;
+  @override
+  @JsonKey()
+  final bool isOccupied;
 
   @override
   String toString() {
-    return 'Unit(id: $id, houseId: $houseId, nameOrNumber: $nameOrNumber, floor: $floor, baseRent: $baseRent, defaultDueDay: $defaultDueDay)';
+    return 'Unit(id: $id, houseId: $houseId, nameOrNumber: $nameOrNumber, floor: $floor, baseRent: $baseRent, bhkTemplateId: $bhkTemplateId, bhkType: $bhkType, editableRent: $editableRent, tenantId: $tenantId, furnishingStatus: $furnishingStatus, carpetArea: $carpetArea, parkingSlot: $parkingSlot, meterNumber: $meterNumber, defaultDueDay: $defaultDueDay, isOccupied: $isOccupied)';
   }
 
   @override
@@ -463,14 +611,46 @@ class _$UnitImpl implements _Unit {
             (identical(other.floor, floor) || other.floor == floor) &&
             (identical(other.baseRent, baseRent) ||
                 other.baseRent == baseRent) &&
+            (identical(other.bhkTemplateId, bhkTemplateId) ||
+                other.bhkTemplateId == bhkTemplateId) &&
+            (identical(other.bhkType, bhkType) || other.bhkType == bhkType) &&
+            (identical(other.editableRent, editableRent) ||
+                other.editableRent == editableRent) &&
+            (identical(other.tenantId, tenantId) ||
+                other.tenantId == tenantId) &&
+            (identical(other.furnishingStatus, furnishingStatus) ||
+                other.furnishingStatus == furnishingStatus) &&
+            (identical(other.carpetArea, carpetArea) ||
+                other.carpetArea == carpetArea) &&
+            (identical(other.parkingSlot, parkingSlot) ||
+                other.parkingSlot == parkingSlot) &&
+            (identical(other.meterNumber, meterNumber) ||
+                other.meterNumber == meterNumber) &&
             (identical(other.defaultDueDay, defaultDueDay) ||
-                other.defaultDueDay == defaultDueDay));
+                other.defaultDueDay == defaultDueDay) &&
+            (identical(other.isOccupied, isOccupied) ||
+                other.isOccupied == isOccupied));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType, id, houseId, nameOrNumber, floor, baseRent, defaultDueDay);
+      runtimeType,
+      id,
+      houseId,
+      nameOrNumber,
+      floor,
+      baseRent,
+      bhkTemplateId,
+      bhkType,
+      editableRent,
+      tenantId,
+      furnishingStatus,
+      carpetArea,
+      parkingSlot,
+      meterNumber,
+      defaultDueDay,
+      isOccupied);
 
   /// Create a copy of Unit
   /// with the given fields replaced by the non-null parameter values.
@@ -495,7 +675,16 @@ abstract class _Unit implements Unit {
       required final String nameOrNumber,
       final int? floor,
       required final double baseRent,
-      final int defaultDueDay}) = _$UnitImpl;
+      final int? bhkTemplateId,
+      final String? bhkType,
+      final double? editableRent,
+      final int? tenantId,
+      final String? furnishingStatus,
+      final double? carpetArea,
+      final String? parkingSlot,
+      final String? meterNumber,
+      final int defaultDueDay,
+      final bool isOccupied}) = _$UnitImpl;
 
   factory _Unit.fromJson(Map<String, dynamic> json) = _$UnitImpl.fromJson;
 
@@ -508,9 +697,27 @@ abstract class _Unit implements Unit {
   @override
   int? get floor;
   @override
-  double get baseRent;
+  double get baseRent; // NEW Fields for BHK
+  @override
+  int? get bhkTemplateId;
+  @override
+  String? get bhkType;
+  @override
+  double? get editableRent;
+  @override
+  int? get tenantId; // Advanced Details
+  @override
+  String? get furnishingStatus;
+  @override
+  double? get carpetArea;
+  @override
+  String? get parkingSlot;
+  @override
+  String? get meterNumber;
   @override
   int get defaultDueDay;
+  @override
+  bool get isOccupied;
 
   /// Create a copy of Unit
   /// with the given fields replaced by the non-null parameter values.

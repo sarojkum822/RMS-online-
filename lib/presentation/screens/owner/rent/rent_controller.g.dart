@@ -24,7 +24,7 @@ final dashboardStatsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DashboardStatsRef = AutoDisposeFutureProviderRef<DashboardStats>;
-String _$rentControllerHash() => r'4e45e077b35004bbc778d1294d92cf04994ded0e';
+String _$rentControllerHash() => r'fdacb2f85f421804b5697c890e83d7cbfe715fb4';
 
 /// See also [RentController].
 @ProviderFor(RentController)

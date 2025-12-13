@@ -203,155 +203,164 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'KirayaBook',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.outfit(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
-                          ),
-                          Text(
-                            subtitle,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 48),
-                          
-                          if (_errorMessage != null)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red.shade200),
-                              ),
-                              child: Text(
-                                _errorMessage!,
-                                style: TextStyle(color: Colors.red.shade800),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-        
-                          TextFormField(
-                            controller: _emailCtrl,
-                            decoration: InputDecoration(
-                              labelText: isOwner ? 'Email' : 'Phone / Email', 
-                              prefixIcon: const Icon(Icons.person_outline),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            // Fix: Allow alphabets for Tenants too (Email/User ID)
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (v) => v!.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outlined),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            obscureText: true,
-                            validator: (v) => v!.length < 6 ? 'Min 6 chars' : null,
-                          ),
-                          const SizedBox(height: 24),
-        
-                          // Biometric Button
-                          if (_canCheckBiometrics) ...[
-                            SizedBox(
-                              height: 50,
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  side: BorderSide(color: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669)),
-                                ),
-                                onPressed: _isLoading ? null : () {
-                                  HapticFeedback.lightImpact();
-                                  _loginWithBiometrics();
-                                },
-                                icon: const Icon(Icons.fingerprint, size: 28),
-                                label: const Text("Login with Biometrics"),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                          
-                          SizedBox(
-                            height: 50,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: _isLoading ? null : () {
-                                HapticFeedback.lightImpact();
-                                _submit();
-                              },
-                              child: _isLoading 
-                                ? const CircularProgressIndicator(color: Colors.white) 
-                                : Text(
-                                    _isLogin ? 'Login' : 'Create Account',
-                                    style: const TextStyle(fontSize: 16, color: Colors.white),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 48, // Adjust for padding
+                ),
+                child: Center(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 600),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  'KirayaBook',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669),
                                   ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  title,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
+                                ),
+                                Text(
+                                  subtitle,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 48),
+                                
+                                if (_errorMessage != null)
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.red.shade200),
+                                    ),
+                                    child: Text(
+                                      _errorMessage!,
+                                      style: TextStyle(color: Colors.red.shade800),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+              
+                                TextFormField(
+                                  controller: _emailCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: isOwner ? 'Email' : 'Phone / Email', 
+                                    prefixIcon: const Icon(Icons.person_outline),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  // Fix: Allow alphabets for Tenants too (Email/User ID)
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _passwordCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: 'Password',
+                                    prefixIcon: const Icon(Icons.lock_outlined),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  obscureText: true,
+                                  validator: (v) => v!.length < 6 ? 'Min 6 chars' : null,
+                                ),
+                                const SizedBox(height: 24),
+              
+                                // Biometric Button
+                                if (_canCheckBiometrics) ...[
+                                  SizedBox(
+                                    height: 50,
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        side: BorderSide(color: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669)),
+                                      ),
+                                      onPressed: _isLoading ? null : () {
+                                        HapticFeedback.lightImpact();
+                                        _loginWithBiometrics();
+                                      },
+                                      icon: const Icon(Icons.fingerprint, size: 28),
+                                      label: const Text("Login with Biometrics"),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                                
+                                SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    onPressed: _isLoading ? null : () {
+                                      HapticFeedback.lightImpact();
+                                      _submit();
+                                    },
+                                    child: _isLoading 
+                                      ? const CircularProgressIndicator(color: Colors.white) 
+                                      : Text(
+                                          _isLogin ? 'Login' : 'Create Account',
+                                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                                        ),
+                                  ),
+                                ),
+                                
+                                const SizedBox(height: 24),
+                                if (isOwner)
+                                 Row(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+                                   children: [
+                                     Text(_isLogin ? "Don't have an account? " : "Already have an account? "),
+                                     TextButton(
+                                       onPressed: () => setState(() {
+                                           _isLogin = !_isLogin;
+                                           _errorMessage = null;
+                                       }),
+                                       child: Text(_isLogin ? 'Sign Up' : 'Login'),
+                                     ),
+                                   ],
+                                 )
+                                else
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                    child: Text(
+                                      'Note: Only your Makaan Malik (Owner) can create your account. Please ask them for your credentials.',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 14),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          
-                          const SizedBox(height: 24),
-                          if (isOwner)
-                           Row(
-                             mainAxisAlignment: MainAxisAlignment.center,
-                             children: [
-                               Text(_isLogin ? "Don't have an account? " : "Already have an account? "),
-                               TextButton(
-                                 onPressed: () => setState(() {
-                                     _isLogin = !_isLogin;
-                                     _errorMessage = null;
-                                 }),
-                                 child: Text(_isLogin ? 'Sign Up' : 'Login'),
-                               ),
-                             ],
-                           )
-                          else
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Text(
-                                'Note: Only your Makaan Malik (Owner) can create your account. Please ask them for your credentials.',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 14),
-                              ),
-                            ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

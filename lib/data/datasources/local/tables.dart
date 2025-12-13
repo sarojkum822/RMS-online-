@@ -26,13 +26,39 @@ class Houses extends Table with SyncableTable {
   TextColumn get notes => text().nullable()();
 }
 
+class BhkTemplates extends Table with SyncableTable {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get houseId => integer().references(Houses, #id, onDelete: KeyAction.cascade)();
+  TextColumn get bhkType => text()(); // "1BHK", "Studio"
+  RealColumn get defaultRent => real()();
+  TextColumn get description => text().nullable()();
+}
+
 class Units extends Table with SyncableTable {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get houseId => integer().references(Houses, #id, onDelete: KeyAction.cascade)();
   TextColumn get nameOrNumber => text()(); 
   IntColumn get floor => integer().nullable()();
-  RealColumn get baseRent => real()();
+  
+  // BHK Relations
+  IntColumn get bhkTemplateId => integer().nullable().references(BhkTemplates, #id)(); 
+  TextColumn get bhkType => text().nullable()(); // Denormalized for display
+  
+  // Rents
+  RealColumn get baseRent => real()(); // Copied from Template
+  RealColumn get editableRent => real().nullable()(); // Tenant specific override
+
+  // Advanced Details
+  TextColumn get furnishingStatus => text().nullable()(); // 'Unfurnished', 'Semi', 'Fully'
+  RealColumn get carpetArea => real().nullable()(); // Sq Ft
+  TextColumn get parkingSlot => text().nullable()(); 
+  TextColumn get meterNumber => text().nullable()();
+
   IntColumn get defaultDueDay => integer().withDefault(const Constant(1))();
+  BoolColumn get isOccupied => boolean().withDefault(const Constant(false))();
+  
+  // Current Tenant Association
+  IntColumn get tenantId => integer().nullable()(); // Circular reference removed for Drift generation
 }
 
 class Tenants extends Table with SyncableTable {
