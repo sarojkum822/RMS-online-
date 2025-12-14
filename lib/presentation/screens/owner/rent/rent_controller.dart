@@ -10,6 +10,7 @@ import '../../../providers/data_providers.dart';
 import '../../../../domain/repositories/i_rent_repository.dart'; // Import for DashboardStats
 
 import '../../../../domain/entities/house.dart'; // Import for Unit
+import '../reports/reports_controller.dart';
 
 part 'rent_controller.g.dart';
 
@@ -98,6 +99,7 @@ class RentController extends _$RentController {
     // Refresh State
     state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(reportsControllerProvider); // REFRESH REPORTS
     // Invalidate for all active tenants to ensure consistency if they are viewing details
     for(final t in activeTenants) {
       ref.invalidate(rentCyclesForTenantProvider(t.id));
@@ -131,26 +133,43 @@ class RentController extends _$RentController {
       billPeriodStart: DateTime(parsedDate.year, parsedDate.month, 1),
       billPeriodEnd: DateTime(parsedDate.year, parsedDate.month + 1, 0),
       billGeneratedDate: date,
-      baseRent: totalDue, // Assuming base rent = total due for manual
+      baseRent: totalDue,
       electricAmount: 0,
-       otherCharges: 0,
-       discount: 0,
+      otherCharges: 0,
+      discount: 0,
       totalDue: totalDue,
-      totalPaid: totalPaid,
-      status: totalPaid >= totalDue ? RentStatus.paid : (totalPaid > 0 ? RentStatus.partial : RentStatus.pending),
+      // Initialize as Unpaid. Logic below creates payment if needed.
+      totalPaid: 0, 
+      status: RentStatus.pending,
       dueDate: DateTime(parsedDate.year, parsedDate.month, 5),
       notes: 'Manual Past Record',
     );
     
-    await ref.read(rentRepositoryProvider).createRentCycle(newCycle);
+    // Create Cycle and get ID
+    final newId = await ref.read(rentRepositoryProvider).createRentCycle(newCycle);
     
-    // Refresh stats
-    ref.invalidate(dashboardStatsProvider);
-    ref.invalidate(rentCyclesForTenantProvider(tenantId));
-     final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-     if(month == currentMonth){
-       state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
-     }
+    // Record Payment if applicable
+    if (totalPaid > 0) {
+       await recordPayment(
+         rentCycleId: newId,
+         tenantId: tenantId,
+         amount: totalPaid,
+         date: date,
+         method: 'Cash', // Default for manual entry
+         notes: 'Manual Entry (Past Record)'
+       );
+    } else {
+       // If no payment, we must refresh manually
+       ref.invalidate(dashboardStatsProvider);
+       ref.invalidate(reportsControllerProvider);
+       ref.invalidate(rentCyclesForTenantProvider(tenantId));
+       // Force Refresh of Main List
+       ref.invalidateSelf();
+       final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
+       if(month == currentMonth){
+         state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
+       }
+    }
   }
 
   // Restore Missing Method
@@ -198,6 +217,7 @@ class RentController extends _$RentController {
      final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
     state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(reportsControllerProvider); // REFRESH REPORTS
     ref.invalidate(rentCyclesForTenantProvider(cycle.tenantId));
   }
 
@@ -224,6 +244,7 @@ class RentController extends _$RentController {
      final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
     state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(reportsControllerProvider); // REFRESH REPORTS
     ref.invalidate(rentCyclesForTenantProvider(cycle.tenantId));
   }
   
@@ -255,6 +276,7 @@ class RentController extends _$RentController {
       final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
      state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
      ref.invalidate(dashboardStatsProvider);
+     ref.invalidate(reportsControllerProvider); // REFRESH REPORTS
      ref.invalidate(rentCyclesForTenantProvider(tenantId));
   }
   Future<Map<String, double>?> getLastElectricReading(int unitId) async {
@@ -271,6 +293,7 @@ class RentController extends _$RentController {
     final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
     state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(reportsControllerProvider); // REFRESH REPORTS
     ref.invalidate(rentCyclesForTenantProvider(tenantId));
   }
 
@@ -300,6 +323,7 @@ class RentController extends _$RentController {
     final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
     state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
     ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(reportsControllerProvider); // REFRESH REPORTS
     ref.invalidate(rentCyclesForTenantProvider(tenantId));
   }
 }

@@ -17,6 +17,9 @@ import '../screens/owner/settings/currency_settings_screen.dart';
 import '../screens/owner/settings/security_screen.dart';
 import '../screens/owner/settings/support_screen.dart';
 import '../screens/owner/settings/tenant_access_screen.dart';
+import '../screens/owner/settings/active_sessions_screen.dart';
+import '../screens/owner/settings/backup_restore_screen.dart'; // NEW
+import '../screens/owner/settings/terms_privacy_screen.dart';
 
 GoRouter createRouter({required String initialLocation, Object? initialExtra}) {
   return GoRouter(
@@ -77,6 +80,12 @@ GoRouter createRouter({required String initialLocation, Object? initialExtra}) {
       GoRoute(
         path: '/owner/settings/security',
         builder: (context, state) => const SecurityScreen(),
+        routes: [
+           GoRoute(
+            path: 'active-sessions',
+            builder: (context, state) => const ActiveSessionsScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/owner/settings/support',
@@ -86,7 +95,18 @@ GoRouter createRouter({required String initialLocation, Object? initialExtra}) {
         path: '/owner/settings/tenant-access',
         builder: (context, state) => const TenantAccessScreen(),
       ),
-
+      GoRoute(
+        path: '/owner/settings/tenant-access',
+        builder: (context, state) => const TenantAccessScreen(),
+      ),
+      GoRoute(
+        path: '/owner/settings/backup',
+        builder: (context, state) => const BackupRestoreScreen(),
+      ),
+      GoRoute(
+        path: '/owner/settings/terms',
+        builder: (context, state) => const TermsPrivacyScreen(),
+      ),
       // Tenant Routes
       GoRoute(
         path: '/tenant/login',

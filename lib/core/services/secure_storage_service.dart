@@ -1,6 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:encrypt/encrypt.dart';
-import 'dart:convert';
 
 class SecureStorageService {
   static const _kEmailKey = 'k_secure_email';

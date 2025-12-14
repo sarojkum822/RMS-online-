@@ -101,6 +101,17 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
+  Stream<List<domain.RentCycle>> watchRentCyclesByTenantAccess(int tenantId, String ownerId) {
+    return _firestore.collection('rent_cycles')
+        .where('ownerId', isEqualTo: ownerId)
+        .where('tenantId', isEqualTo: tenantId)
+        .where('isDeleted', isEqualTo: false)
+        .orderBy('month', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((c) => _mapToDomain(c)).toList());
+  }
+
+  @override
   Future<domain.RentCycle?> getRentCycle(int id) async {
     if (_uid == null) return null;
 
@@ -241,6 +252,16 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
+  Future<List<domain.Payment>> getPaymentsForRentCycleForTenant(int rentCycleId, String ownerId) async {
+    final snapshot = await _firestore.collection('payments')
+        .where('ownerId', isEqualTo: ownerId)
+        .where('rentCycleId', isEqualTo: rentCycleId)
+        .where('isDeleted', isEqualTo: false)
+        .get();
+    return snapshot.docs.map((p) => _mapPaymentToDomain(p)).toList();
+  }
+
+  @override
   Future<List<domain.Payment>> getPaymentsForTenant(int tenantId) async {
      if (_uid == null) return [];
 
@@ -261,6 +282,16 @@ class RentRepositoryImpl implements IRentRepository {
         .where('isDeleted', isEqualTo: false)
         .get();
     return snapshot.docs.map((p) => _mapPaymentToDomain(p)).toList();
+  }
+
+  @override
+  Stream<List<domain.Payment>> watchPaymentsByTenantAccess(int tenantId, String ownerId) {
+    return _firestore.collection('payments')
+        .where('ownerId', isEqualTo: ownerId)
+        .where('tenantId', isEqualTo: tenantId)
+        .where('isDeleted', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((p) => _mapPaymentToDomain(p)).toList());
   }
 
   @override
@@ -436,6 +467,59 @@ class RentRepositoryImpl implements IRentRepository {
     });
 
     return validDocs.map((d) => (d.data()['currentReading'] as num).toDouble()).toList();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getElectricReadingsWithDetails(int unitId) async {
+    if (_uid == null) return [];
+
+    final snapshot = await _firestore.collection('electric_readings')
+        .where('ownerId', isEqualTo: _uid)
+        .where('unitId', isEqualTo: unitId)
+        .get();
+        
+    final validDocs = snapshot.docs.where((d) => d.data()['isDeleted'] != true).toList();
+    
+    // Sort descending by date (latest first)
+    validDocs.sort((a, b) {
+       final da = DateTime.tryParse(a.data()['readingDate']) ?? DateTime(0);
+       final db = DateTime.tryParse(b.data()['readingDate']) ?? DateTime(0);
+       return db.compareTo(da);
+    });
+
+    return validDocs.map((d) {
+      final data = d.data();
+      return {
+        'reading': (data['currentReading'] as num).toDouble(),
+        'date': DateTime.parse(data['readingDate']),
+        'rate': (data['rate'] as num?)?.toDouble() ?? 0.0,
+      };
+    }).toList();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getElectricReadingsForTenant(int unitId, String ownerId) async {
+    final snapshot = await _firestore.collection('electric_readings')
+        .where('ownerId', isEqualTo: ownerId)
+        .where('unitId', isEqualTo: unitId)
+        .get();
+        
+    final validDocs = snapshot.docs.where((d) => d.data()['isDeleted'] != true).toList();
+    
+    validDocs.sort((a, b) {
+       final da = DateTime.tryParse(a.data()['readingDate']) ?? DateTime(0);
+       final db = DateTime.tryParse(b.data()['readingDate']) ?? DateTime(0);
+       return db.compareTo(da);
+    });
+
+    return validDocs.map((d) {
+      final data = d.data();
+      return {
+        'reading': (data['currentReading'] as num).toDouble(),
+        'date': DateTime.parse(data['readingDate']),
+        'rate': (data['rate'] as num?)?.toDouble() ?? 0.0,
+      };
+    }).toList();
   }
   
   // NEW: Get Last Reading for smart pre-fill

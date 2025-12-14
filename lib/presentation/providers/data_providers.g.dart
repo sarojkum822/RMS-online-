@@ -91,7 +91,7 @@ final backupServiceProvider = Provider<BackupService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef BackupServiceRef = ProviderRef<BackupService>;
-String _$printServiceHash() => r'847ad8ba3876acfa2c6d6f43991b994bf150b8a7';
+String _$printServiceHash() => r'ae6713861b6616d687dcbdfe165112ade6de52a1';
 
 /// See also [printService].
 @ProviderFor(printService)
@@ -107,5 +107,23 @@ final printServiceProvider = Provider<PrintService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PrintServiceRef = ProviderRef<PrintService>;
+String _$notificationServiceHash() =>
+    r'015117d47fe71bf44664bf802ad1290b1e2492d4';
+
+/// See also [notificationService].
+@ProviderFor(notificationService)
+final notificationServiceProvider = Provider<NotificationService>.internal(
+  notificationService,
+  name: r'notificationServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$notificationServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef NotificationServiceRef = ProviderRef<NotificationService>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

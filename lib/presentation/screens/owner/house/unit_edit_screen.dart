@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../domain/entities/house.dart';
-import '../../../../domain/entities/bhk_template.dart';
 import '../../../providers/data_providers.dart';
 import 'house_controller.dart';
 import 'bhk_template_controller.dart';
@@ -65,7 +64,7 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Basic Info', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo)),
+            Text('Basic Info', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -87,7 +86,7 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
             ),
             
             const SizedBox(height: 24),
-            Text('BHK & Pricing', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo)),
+            Text('BHK & Pricing', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
             const SizedBox(height: 12),
             
             bhkTemplatesAsync.when(
@@ -101,7 +100,7 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
                  }
                  
                  return DropdownButtonFormField<int>(
-                   value: _selectedBhkTemplateId,
+                   initialValue: _selectedBhkTemplateId,
                    decoration: const InputDecoration(
                      labelText: 'Select BHK Type',
                      border: OutlineInputBorder(),
@@ -140,12 +139,12 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
             ),
             
             const SizedBox(height: 24),
-            Text('Advanced Details', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo)),
+            Text('Advanced Details', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
             const SizedBox(height: 12),
             
             // Furnishing
             DropdownButtonFormField<String>(
-              value: _furnishingStatus,
+              initialValue: _furnishingStatus,
               decoration: const InputDecoration(labelText: 'Furnishing Status', border: OutlineInputBorder()),
               items: ['Unfurnished', 'Semi-Furnished', 'Fully-Furnished'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (v) => setState(() => _furnishingStatus = v),
@@ -182,7 +181,7 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
               onPressed: _save,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
-                backgroundColor: Colors.indigo,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Update Unit'),

@@ -23,11 +23,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }
 
   Future<void> _loadSettings() async {
+    // Ideally use ref.read(notificationServiceProvider) but require Consumer
+    // For now create new instance is safe as it wraps singleton plugins internally or is stateless wrapper
     final enabled = await NotificationService().areNotificationsEnabled;
     if (mounted) {
       setState(() {
         _pushNotifs = enabled;
-        // Logic: if push enabled, we assume Rent Due is enabled for now or align them
         _rentDueReminders = enabled; 
         _isLoading = false;
       });
@@ -37,7 +38,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   Future<void> _updateSettings(bool value) async {
     setState(() => _pushNotifs = value);
     await NotificationService().setNotificationsEnabled(value);
-    // Also update sub-toggles to reflect the master switch visually
     setState(() => _rentDueReminders = value);
   }
 

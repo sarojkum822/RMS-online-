@@ -3,92 +3,95 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Brand Colors
-  static const Color primary = Color(0xFF00897B);
-  static const Color primaryContainer = Color(0xFFE0F2F1);
-  static const Color secondary = Color(0xFF00ACC1);
-  static const Color accent = Color(0xFFFF7043);
-  static const Color background = Color(0xFFF5F7FA);
-  static const Color surface = Colors.white;
-  static const Color error = Color(0xFFD32F2F);
-  static const Color textPrimary = Color(0xFF1E293B);
-  static const Color textSecondary = Color(0xFF64748B);
+  static const Color primary = Color(0xFF2563EB); // Vibrant Blue (iOS Style)
+  static const Color primaryContainer = Color(0xFFDBEAFE); // Blue 100
+  
+  // Minimal Palette
+  static const Color lightBackground = Color(0xFFF8FAFC); // Slate 50
+  static const Color darkBackground = Color(0xFF000000);  // True Black
+  
+  static const Color lightSurface = Colors.white;
+  static const Color darkSurface = Color(0xFF1C1C1E);     // iOS System Gray 6
+  
+  static const Color background = Color(0xFFF5F7FA); // Legacy compatibility
+
+  static const Color lightTextPrimary = Color(0xFF0F172A); // Slate 900
+  static const Color darkTextPrimary = Color(0xFFF8FAFC);  // Slate 50
+  
+  static const Color lightTextSecondary = Color(0xFF64748B); // Slate 500
+  static const Color darkTextSecondary = Color(0xFF94A3B8);  // Slate 400
 
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme: ColorScheme.light(
+      scaffoldBackgroundColor: lightBackground,
+      colorScheme: const ColorScheme.light(
         primary: primary,
         onPrimary: Colors.white,
-        primaryContainer: primaryContainer,
-        onPrimaryContainer: Color(0xFF004D40),
-        secondary: secondary,
+        secondary: Color(0xFF6366F1), // Indigo Accent
         onSecondary: Colors.white,
-        surface: surface,
-        onSurface: textPrimary,
-        error: error,
+        surface: lightSurface,
+        onSurface: lightTextPrimary,
+        error: Color(0xFFEF4444),
         onError: Colors.white,
+        outline: Color(0xFFE2E8F0), // Slate 200
       ),
-      scaffoldBackgroundColor: background,
       textTheme: GoogleFonts.outfitTextTheme().apply(
-        bodyColor: textPrimary,
-        displayColor: textPrimary,
+        bodyColor: lightTextPrimary,
+        displayColor: lightTextPrimary,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: surface,
+        backgroundColor: lightBackground, // Match Scaffold for minimal look
         elevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: textPrimary),
+        iconTheme: IconThemeData(color: lightTextPrimary),
         titleTextStyle: TextStyle(
-          color: textPrimary,
+          color: lightTextPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Outfit',
         ),
       ),
-      // Commented out to resolve build error
-      /*
-      cardTheme: const CardTheme(
-        color: surface,
+      iconTheme: const IconThemeData(color: lightTextPrimary),
+      dividerColor: const Color(0xFFE2E8F0),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: darkBackground,
+      colorScheme: const ColorScheme.dark(
+        primary: primary,
+        onPrimary: Colors.white,
+        secondary: Color(0xFF818CF8), // Lighter Indigo
+        onSecondary: Colors.white,
+        surface: darkSurface,
+        onSurface: darkTextPrimary,
+        error: Color(0xFFFCA5A5), // Red 300 (Salmon) - Readable on dark
+        onError: Colors.white,
+        outline: Color(0xFF2C2C2E),
+      ),
+      textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme).apply(
+        bodyColor: darkTextPrimary,
+        displayColor: darkTextPrimary,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: darkBackground,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
-          side: BorderSide(color: Color(0xFFE2E8F0), width: 1),
-        ),
-        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      ),
-      */
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: darkTextPrimary),
+        titleTextStyle: TextStyle(
+          color: darkTextPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Outfit',
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
+      iconTheme: const IconThemeData(color: darkTextPrimary),
+       dividerColor: const Color(0xFF2C2C2E),
     );
   }
 }

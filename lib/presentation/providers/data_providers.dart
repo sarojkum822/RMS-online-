@@ -2,7 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/print_service.dart';
 import '../../core/services/biometric_service.dart';
-import '../../core/services/data_management_service.dart'; // NEW
+import '../../core/services/data_management_service.dart';
+import '../../core/services/notification_service.dart'; // NEW
+import '../../core/services/user_session_service.dart';
+import '../../core/services/migration_service.dart';
+import '../../core/services/pdf_service.dart'; // NEW // NEW
 import '../../data/datasources/local/database.dart' hide Unit; // Keeping for BackupService
 import '../../data/repositories/property_repository_impl.dart';
 import '../../data/repositories/rent_repository_impl.dart';
@@ -54,23 +58,43 @@ final ownerRepositoryProvider = Provider<IOwnerRepository>((ref) {
 
 @Riverpod(keepAlive: true)
 BackupService backupService(BackupServiceRef ref) {
-  final db = ref.watch(databaseProvider);
-  return BackupService(db);
+  final firestore = ref.watch(firestoreProvider);
+  return BackupService(firestore);
 }
+
+final migrationServiceProvider = Provider<MigrationService>((ref) {
+  final firestore = ref.watch(firestoreProvider);
+  final dataManager = ref.watch(dataManagementServiceProvider);
+  return MigrationService(firestore, dataManager);
+});
 
 @Riverpod(keepAlive: true)
 PrintService printService(PrintServiceRef ref) {
-  final db = ref.watch(databaseProvider);
-  return PrintService(db);
+  return PrintService();
+}
+
+@Riverpod(keepAlive: true)
+NotificationService notificationService(NotificationServiceRef ref) {
+  return NotificationService();
 }
 
 final biometricServiceProvider = Provider<BiometricService>((ref) {
   return BiometricService();
 });
 
+final userSessionServiceProvider = Provider<UserSessionService>((ref) {
+  final firestore = ref.watch(firestoreProvider);
+  final notificationService = ref.watch(notificationServiceProvider);
+  return UserSessionService(firestore: firestore, notificationService: notificationService);
+});
+
 final dataManagementServiceProvider = Provider<DataManagementService>((ref) {
   final firestore = ref.watch(firestoreProvider);
   return DataManagementService(firestore);
+});
+
+final pdfServiceProvider = Provider<PdfService>((ref) {
+  return PdfService();
 });
 
 final allUnitsProvider = FutureProvider<List<Unit>>((ref) {

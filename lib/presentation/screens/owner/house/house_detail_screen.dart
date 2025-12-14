@@ -34,21 +34,23 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
   Widget build(BuildContext context) {
     final unitsAsync = ref.watch(houseUnitsProvider(widget.house.id));
     final templatesAsync = ref.watch(bhkTemplateControllerProvider(widget.house.id));
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(widget.house.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: Text(widget.house.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black), 
-        titleTextStyle: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+        iconTheme: theme.iconTheme, 
+        titleTextStyle: TextStyle(color: theme.textTheme.titleLarge?.color, fontSize: 20, fontWeight: FontWeight.bold),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddUnitDialog(context, ref),
         label: Text('Add Unit', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
-        backgroundColor: Colors.teal,
+        backgroundColor: theme.colorScheme.primary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -81,7 +83,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
              Row(
                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                children: [
-                 Text('Units', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                 Text('Units', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                  TextButton.icon(
                    onPressed: () => Navigator.push(
                      context,
@@ -95,9 +97,9 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
              
              // Bulk Toggle
              SwitchListTile(
-               title: Text('Apply same configuration to all units', style: GoogleFonts.outfit(fontSize: 14)),
+               title: Text('Apply same configuration to all units', style: GoogleFonts.outfit(fontSize: 14, color: theme.textTheme.bodyMedium?.color)),
                value: _isBulkConfigEnabled, 
-               activeColor: Colors.teal, // Keep activeColor for now as activeThumbColor might need verify
+               activeThumbColor: theme.colorScheme.primary, 
                contentPadding: EdgeInsets.zero,
                onChanged: (val) => setState(() => _isBulkConfigEnabled = val),
              ),
@@ -105,11 +107,11 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
              const SizedBox(height: 12),
              
              if (_isBulkConfigEnabled)
-               _buildBulkConfigSection(templatesAsync, unitsAsync)
+               _buildBulkConfigSection(templatesAsync, unitsAsync, theme, isDark)
              else 
                unitsAsync.when(
                  data: (units) {
-                   if (units.isEmpty) return const Text('No units found.');
+                   if (units.isEmpty) return Text('No units found.', style: TextStyle(color: theme.textTheme.bodyMedium?.color));
                    return ListView.separated(
                      shrinkWrap: true,
                      physics: const NeverScrollableScrollPhysics(),
@@ -121,7 +123,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                    );
                  },
                  loading: () => const Center(child: CircularProgressIndicator()),
-                 error: (e, s) => Text('Error: $e'),
+                 error: (e, s) => Text('Error: $e', style: TextStyle(color: theme.colorScheme.error)),
                ),
           ],
         ),
@@ -161,27 +163,34 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
     );
   }
   
-  Widget _buildBulkConfigSection(AsyncValue<List<BhkTemplate>> templatesAsync, AsyncValue<List<Unit>> unitsAsync) {
+  Widget _buildBulkConfigSection(AsyncValue<List<BhkTemplate>> templatesAsync, AsyncValue<List<Unit>> unitsAsync, ThemeData theme, bool isDark) {
      return Container(
        padding: const EdgeInsets.all(16),
        decoration: BoxDecoration(
-         color: Colors.teal.shade50,
+         color: isDark ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.blue.shade50,
          borderRadius: BorderRadius.circular(16),
-         border: Border.all(color: Colors.teal.shade100),
+         border: Border.all(color: isDark ? theme.colorScheme.primary.withValues(alpha: 0.3) : Colors.blue.shade100),
        ),
        child: Column(
          crossAxisAlignment: CrossAxisAlignment.start,
          children: [
-           Text('Master Configuration', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.teal)),
+           Text('Master Configuration', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
            const SizedBox(height: 4),
-           Text('Saving will update ALL units in this property.', style: GoogleFonts.outfit(fontSize: 12, color: Colors.teal.shade800)),
+           Text('Saving will update ALL units in this property.', style: GoogleFonts.outfit(fontSize: 12, color: isDark ? Colors.blueAccent : Colors.blue.shade800)),
            const SizedBox(height: 16),
            
            templatesAsync.when(
               data: (templates) => DropdownButtonFormField<int>(
-                   value: _bulkBhkTemplateId,
-                   decoration: const InputDecoration(labelText: 'Select BHK Type', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
-                   items: templates.map((t) => DropdownMenuItem(value: t.id, child: Text(t.bhkType))).toList(),
+                   initialValue: _bulkBhkTemplateId,
+                   decoration: InputDecoration(
+                     labelText: 'Select BHK Type', 
+                     border: const OutlineInputBorder(), 
+                     filled: true, 
+                     fillColor: theme.cardColor,
+                     labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                   ),
+                   dropdownColor: theme.cardColor,
+                   items: templates.map((t) => DropdownMenuItem(value: t.id, child: Text(t.bhkType, style: TextStyle(color: theme.textTheme.bodyLarge?.color)))).toList(),
                    onChanged: (val) {
                      if (val != null) {
                        final t = templates.firstWhere((e) => e.id == val);
@@ -204,7 +213,14 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                  child: TextFormField(
                    key: ValueKey(_bulkRent), // Force rebuild if key changes
                    initialValue: _bulkRent?.toString(),
-                   decoration: const InputDecoration(labelText: 'Rent', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
+                   decoration: InputDecoration(
+                     labelText: 'Rent', 
+                     border: const OutlineInputBorder(), 
+                     filled: true, 
+                     fillColor: theme.cardColor,
+                     labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                   ),
+                   style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                    keyboardType: TextInputType.number,
                    onChanged: (v) => _bulkRent = double.tryParse(v),
                  ),
@@ -212,7 +228,14 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                const SizedBox(width: 12),
                Expanded(
                  child: TextFormField(
-                   decoration: const InputDecoration(labelText: 'Area (sqft)', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
+                   decoration: InputDecoration(
+                     labelText: 'Area (sqft)', 
+                     border: const OutlineInputBorder(), 
+                     filled: true, 
+                     fillColor: theme.cardColor,
+                     labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                   ),
+                   style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                    keyboardType: TextInputType.number,
                    onChanged: (v) => _bulkArea = double.tryParse(v),
                  ),
@@ -221,8 +244,15 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
            ),
            const SizedBox(height: 12),
            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Furnishing', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
-              items: ['Unfurnished', 'Semi-Furnished', 'Fully-Furnished'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              decoration: InputDecoration(
+                labelText: 'Furnishing', 
+                border: const OutlineInputBorder(), 
+                filled: true, 
+                fillColor: theme.cardColor,
+                labelStyle: TextStyle(color: theme.textTheme.bodyMedium?.color),
+              ),
+              dropdownColor: theme.cardColor,
+              items: ['Unfurnished', 'Semi-Furnished', 'Fully-Furnished'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: TextStyle(color: theme.textTheme.bodyLarge?.color)))).toList(),
               onChanged: (v) => _bulkFurnishing = v,
            ),
            const SizedBox(height: 16),
@@ -230,7 +260,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
            SizedBox(
              width: double.infinity,
              child: ElevatedButton(
-               style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+               style: ElevatedButton.styleFrom(backgroundColor: theme.colorScheme.primary, foregroundColor: Colors.white),
                onPressed: () async {
                   if (_bulkBhkTemplateId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a BHK Template')));
@@ -296,7 +326,7 @@ class _HouseInfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00897B), Color(0xFF4DB6AC)],
+          colors: [Color(0xFF2563EB), Color(0xFF60A5FA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

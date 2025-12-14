@@ -12,20 +12,24 @@ class HouseListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final housesAsync = ref.watch(houseControllerProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('My Properties', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: Text('My Properties', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
+        iconTheme: theme.iconTheme,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/owner/houses/add'),
-        label: Text('Add Property', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-        icon: const Icon(Icons.add),
-        backgroundColor: const Color(0xFF00897B),
+        label: Text('Add Property', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+        icon: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color(0xFF2563EB),
         elevation: 4,
       ),
       body: housesAsync.when(
@@ -49,11 +53,12 @@ class HouseListScreen extends ConsumerWidget {
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
+                  border: isDark ? Border.all(color: Colors.white10) : null,
+                  boxShadow: isDark ? [] : [
                     BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.08),
+                      color: Colors.grey.withOpacity(0.08),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -79,8 +84,8 @@ class HouseListScreen extends ConsumerWidget {
                                       height: 150,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => Container(height: 150, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
-                                      errorWidget: (context, url, error) => Container(height: 150, color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                                      placeholder: (context, url) => Container(height: 150, color: isDark ? Colors.grey[800] : Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
+                                      errorWidget: (context, url, error) => Container(height: 150, color: isDark ? Colors.grey[800] : Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
                                    ),
                                ),
                              ),
@@ -97,29 +102,31 @@ class HouseListScreen extends ConsumerWidget {
                                          Container(
                                            padding: const EdgeInsets.all(10),
                                            decoration: BoxDecoration(
-                                             color: const Color(0xFFE0F2F1),
+                                             color: theme.colorScheme.primaryContainer,
                                              borderRadius: BorderRadius.circular(12),
                                            ),
-                                           child: const Icon(Icons.apartment, color: Color(0xFF00897B)),
+                                           child: Icon(Icons.apartment, color: theme.colorScheme.primary),
                                          ),
                                       const Spacer(), // Spacer if no icon
                                       PopupMenuButton(
-                                        icon: Icon(Icons.more_horiz, color: Colors.grey[400]),
+                                        icon: Icon(Icons.more_horiz, color: theme.iconTheme.color?.withOpacity(0.5)),
+                                        color: theme.cardColor,
                                         itemBuilder: (context) => [
                                           PopupMenuItem(
-                                            child: const Text('Edit'),
+                                            child: Text('Edit', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
                                             onTap: () {
                                                context.push('/owner/houses/edit/${house.id}', extra: house);
                                             },
                                           ),
                                           PopupMenuItem(
-                                            child: const Text('Delete'),
+                                            child: Text('Delete', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
                                             onTap: () {
                                                showDialog(
                                                  context: context,
                                                  builder: (ctx) => AlertDialog(
-                                                   title: const Text('Delete Property'),
-                                                   content: Text('Are you sure you want to delete "${house.name}"? This will also remove all its units.'),
+                                                   backgroundColor: theme.cardColor,
+                                                   title: Text('Delete Property', style: TextStyle(color: theme.textTheme.titleLarge?.color)),
+                                                   content: Text('Are you sure you want to delete "${house.name}"? This will also remove all its units.', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
                                                    actions: [
                                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                                                      TextButton(
@@ -156,20 +163,20 @@ class HouseListScreen extends ConsumerWidget {
                                     style: GoogleFonts.outfit(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1E293B),
+                                      color: theme.textTheme.titleLarge?.color,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Icon(Icons.location_on_outlined, size: 16, color: Colors.grey[500]),
+                                      Icon(Icons.location_on_outlined, size: 16, color: theme.textTheme.bodySmall?.color),
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
                                           house.address,
                                           style: GoogleFonts.outfit(
                                             fontSize: 14,
-                                            color: const Color(0xFF64748B),
+                                            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -178,7 +185,7 @@ class HouseListScreen extends ConsumerWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 20),
-                                  const Divider(height: 1),
+                                  Divider(height: 1, color: theme.dividerColor),
                                   const SizedBox(height: 12),
                                   Consumer(
                                     builder: (context, ref, child) {
@@ -193,7 +200,7 @@ class HouseListScreen extends ConsumerWidget {
                                               _InfoBadge(
                                                 icon: Icons.people_outline, 
                                                 text: '$occupiedCount Occupied',
-                                                color: Colors.blue[700],
+                                                color: Colors.blue[600], // Keep semantic color
                                               ),
                                               const SizedBox(width: 12),
                                               _InfoBadge(
@@ -205,7 +212,7 @@ class HouseListScreen extends ConsumerWidget {
                                           );
                                         },
                                         loading: () => const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                                        error: (e, s) => const Text('Error'),
+                                        error: (e, s) => Text('Error', style: TextStyle(color: theme.colorScheme.error)),
                                       );
                                     },
                                   ),
@@ -220,7 +227,7 @@ class HouseListScreen extends ConsumerWidget {
             },
           );
         },
-        error: (e, st) => Center(child: Text('Error: $e')),
+        error: (e, st) => Center(child: Text('Error: $e', style: TextStyle(color: theme.textTheme.bodyMedium?.color))),
         loading: () => const Center(child: CircularProgressIndicator()),
       ), // Closing parentheses for housesAsync.when
     ); // Closing parentheses for Scaffold

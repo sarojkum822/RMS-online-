@@ -108,13 +108,13 @@ ReportsData _processReportsData(List<dynamic> results) {
     final currentCycles = allRentCycles.where((c) => c.month == currentMonthStr).toList();
     
     double totalExpected = 0;
-    double totalPaid = 0; 
+    double accrualPaid = 0; // Paid specifically for this month's bills
     
     for (final c in currentCycles) {
       totalExpected += c.totalDue;
-      totalPaid += c.totalPaid;
+      accrualPaid += c.totalPaid;
     }
-    final totalPending = totalExpected - totalPaid;
+    final totalPending = totalExpected - accrualPaid;
 
     // 2. Expenses & Net Profit
     final currentMonthExpenses = allExpenses.where((e) {
@@ -123,18 +123,29 @@ ReportsData _processReportsData(List<dynamic> results) {
     }).toList();
     
     double totalExpenses = currentMonthExpenses.fold(0, (sum, item) => sum + item.amount);
-    final netProfit = totalPaid - totalExpenses;
 
-    // 3. Payment Methods (This Month)
+    // 3. Payment Methods (This Month) - CASH BASIS
     final currentPayments = allPayments.where((p) {
         final pMonth = DateFormat('yyyy-MM').format(p.date);
         return pMonth == currentMonthStr;
     }).toList();
 
     Map<String, double> paymentMethods = {};
+    double totalCashCollected = 0;
     for (final p in currentPayments) {
         paymentMethods[p.method] = (paymentMethods[p.method] ?? 0) + p.amount;
+        totalCashCollected += p.amount;
     }
+    
+    // Net Profit = Cash In - Cash Out
+    final netProfit = totalCashCollected - totalExpenses;
+
+    // Return Data
+    // Note: totalCollected now reflects ACTUAL CASH RECEIVED this month (including past arrears paid now)
+    // totalPending reflects THIS MONTH'S Unpaid rent.
+    // totalExpected reflects THIS MONTH'S Rent Roll.
+    
+    // ... (rest of logic same)
 
     // 4. Revenue Trend (Last 6 Months)
     List<MonthlyStats> revenueTrend = [];
@@ -227,7 +238,7 @@ ReportsData _processReportsData(List<dynamic> results) {
     final recentPayments = allPayments.take(10).toList();
 
     return ReportsData(
-      totalCollected: totalPaid,
+      totalCollected: totalCashCollected,
       totalPending: totalPending,
       totalExpected: totalExpected,
       totalExpenses: totalExpenses,

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'tenant_controller.dart';
 import '../house/house_controller.dart';
 import '../../../../core/extensions/string_extensions.dart';
+import '../../../../core/utils/dialog_utils.dart';
 
 class TenantFormScreen extends ConsumerStatefulWidget {
   const TenantFormScreen({super.key});
@@ -43,6 +44,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final housesValue = ref.watch(houseControllerProvider);
 
     return Scaffold(
@@ -205,7 +207,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: theme.colorScheme.primary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: _isLoading ? null : () async {
@@ -229,15 +231,13 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                        );
 
                        if (mounted) context.pop();
-                     } catch (e) {
-                       if (mounted) {
-                         // Extract clean message
-                         final msg = e.toString().replaceAll('Exception: ', '');
-                         ScaffoldMessenger.of(context).showSnackBar(
-                           SnackBar(content: Text(msg), backgroundColor: Colors.red),
-                         );
-                       }
-                     } finally {
+                       } catch (e) {
+                         if (mounted) {
+                           // Extract clean message
+                           final msg = e.toString().replaceAll('Exception: ', '');
+                           DialogUtils.showErrorDialog(context, title: 'Registration Failed', message: msg);
+                         }
+                       } finally {
                         if (mounted) setState(() => _isLoading = false);
                      }
                   } else if (_selectedHouseId == null) {

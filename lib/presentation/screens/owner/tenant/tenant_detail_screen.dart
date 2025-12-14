@@ -10,6 +10,9 @@ import '../../../providers/data_providers.dart';
 import '../../../widgets/dotted_line_separator.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../../../../core/utils/dialog_utils.dart';
+import 'package:printing/printing.dart'; // NEW
+import '../../../../core/services/pdf_service.dart'; // NEW
+import 'package:rentpilotpro/presentation/screens/owner/settings/owner_controller.dart'; // NEW
 
 class TenantDetailScreen extends ConsumerStatefulWidget {
   final Tenant tenant;
@@ -24,10 +27,12 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final headerHeight = (screenHeight * 0.45).clamp(300.0, 420.0); // Responsive height with limits
+    final headerHeight = (screenHeight * 0.45).clamp(300.0, 420.0);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9), 
+      backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true, 
       appBar: AppBar(
         title: Text(widget.tenant.name, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
@@ -38,6 +43,13 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+            tooltip: 'Download Statement',
+            onPressed: () => _handleDownloadStatement(context, ref),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -47,7 +59,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                // 1. Deep Blue Gradient Background
+                // 1. Deep Blue Gradient Background (Keep distinct for brand/header feel)
                 Container(
                   height: headerHeight, 
                   width: double.infinity,
@@ -56,8 +68,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                         Color(0xFF0F172A), // Dark Navy/Black
-                         Color(0xFF1E3A8A), // Deep Blue
+                         Color(0xFF2563EB), // Vibrant Blue
+                         Color(0xFF1E40AF), // Darker Blue
                       ],
                     ),
                     borderRadius: BorderRadius.only(
@@ -69,7 +81,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 
                 // 2. Glassmorphism Profile Card
                 Positioned(
-                  top: headerHeight * 0.28, // Responsive positioning
+                  top: headerHeight * 0.28,
                   left: 20,
                   right: 20,
                   child: Stack(
@@ -78,10 +90,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                     children: [
                       // The Card Content
                       Container(
-                        margin: const EdgeInsets.only(top: 30), // Reduced top margin for better fit
-                        padding: const EdgeInsets.fromLTRB(20, 50, 20, 24), // Top padding for Avatar
+                        margin: const EdgeInsets.only(top: 30),
+                        padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1), // Glassy see-through
+                          color: Colors.white.withValues(alpha: 0.1), 
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
                           boxShadow: [
@@ -128,7 +140,6 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                             data: (u) {
                                               final sb = StringBuffer('Flat ${u?.nameOrNumber ?? 'N/A'}');
                                               if (u?.bhkType != null) sb.write(' • ${u!.bhkType}');
-                                              // Show editableRent if available (current tenant rent), otherwise baseRent
                                               final rent = u?.editableRent ?? u?.baseRent;
                                               if (rent != null) sb.write(' • ₹${rent.toStringAsFixed(0)}');
                                               return sb.toString();
@@ -246,7 +257,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                           ),
                           child: CircleAvatar(
                             radius: 36,
-                            backgroundColor: const Color(0xFF0F172A), 
+                            backgroundColor: const Color(0xFF2563EB), 
                             backgroundImage: widget.tenant.imageUrl != null ? NetworkImage(widget.tenant.imageUrl!) : null,
                             child: widget.tenant.imageUrl == null ? Text(
                               widget.tenant.name[0].toUpperCase(),
@@ -265,11 +276,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               ],
             ),
 
-            const SizedBox(height: 60), // Increased spacing as requested
+            const SizedBox(height: 60),
 
             // "Bill History" Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0), // Added vertical margin
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -278,7 +289,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                     style: GoogleFonts.outfit(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: theme.textTheme.titleLarge?.color,
                     ),
                   ),
                    const SizedBox(width: 8),
@@ -288,7 +299,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                       icon: const Icon(Icons.history, size: 18, color: Colors.white),
                       label: FittedBox(child: Text('Add Past Record', style: GoogleFonts.outfit(fontWeight: FontWeight.w600))),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0F172A), // Dark Navy
+                        backgroundColor: const Color(0xFF2563EB), // Blue Brand
                         foregroundColor: Colors.white,
                         elevation: 4,
                         shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.4),
@@ -308,9 +319,24 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
               error: (e, s) => Center(child: Text('Error: $e')),
               data: (data) {
-                final cycles = List<RentCycle>.from(data)..sort((a,b) => b.month.compareTo(a.month));
+                final cycles = List<RentCycle>.from(data);
+                final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
+
+                int getPriority(RentCycle c) {
+                  if (c.status == RentStatus.paid) return 3;
+                  if (c.month.compareTo(currentMonth) < 0) return 0; // Overdue
+                  if (c.month == currentMonth) return 1; // Current Due
+                  return 2; // Future Due
+                }
+
+                cycles.sort((a, b) {
+                  final pA = getPriority(a);
+                  final pB = getPriority(b);
+                  if (pA != pB) return pA.compareTo(pB);
+                  return b.month.compareTo(a.month); // Descending Date
+                });
                 
-                if (cycles.isEmpty) return const Padding(padding: EdgeInsets.all(40), child: Text('No history'));
+                if (cycles.isEmpty) return Padding(padding: const EdgeInsets.all(40), child: Text('No history', style: TextStyle(color: theme.textTheme.bodyMedium?.color)));
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -325,15 +351,16 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: theme.cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
+                        boxShadow: isDark ? [] : [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.04), 
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
                         ],
+                        border: isDark ? Border.all(color: Colors.white10) : null,
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
@@ -349,10 +376,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.grey[100], 
+                                        color: isDark ? Colors.white12 : Colors.grey[100], 
                                         borderRadius: BorderRadius.circular(12)
                                       ),
-                                      child: const Icon(Icons.calendar_today, size: 20, color: Colors.black87),
+                                      child: Icon(Icons.calendar_today, size: 20, color: theme.iconTheme.color),
                                     ),
                                     const SizedBox(width: 12),
                                     Text(
@@ -360,7 +387,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                       style: GoogleFonts.outfit(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
+                                        color: theme.textTheme.titleMedium?.color,
                                       ),
                                     ),
                                   ],
@@ -384,15 +411,28 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    // Menu for Actions (Delete)
+                                    // Menu for Actions
                                     PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert, color: Colors.grey),
-                                      onSelected: (value) {
+                                      icon: Icon(Icons.more_vert, color: theme.iconTheme.color?.withOpacity(0.5)),
+                                      color: theme.cardColor,
+                                      onSelected: (value) async {
                                         if (value == 'delete') {
                                            _confirmDeleteBill(context, ref, cycle);
+                                        } else if (value == 'print') {
+                                           await _handlePrintReceipt(context, ref, cycle);
                                         }
                                       },
                                       itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'print',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.print, color: Colors.blue, size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Print Receipt', style: TextStyle(color: Colors.blue)),
+                                            ],
+                                          ),
+                                        ),
                                         const PopupMenuItem(
                                           value: 'delete',
                                           child: Row(
@@ -412,10 +452,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                             
                             const SizedBox(height: 8),
                             Padding(
-                              padding: const EdgeInsets.only(left: 54.0), // Align with text
+                              padding: const EdgeInsets.only(left: 54.0),
                               child: Text(
                                 'Bill #: ${cycle.billNumber ?? "N/A"}',
-                                style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey[500]),
+                                style: GoogleFonts.outfit(fontSize: 13, color: theme.textTheme.bodySmall?.color),
                               ),
                             ),
                             
@@ -430,14 +470,14 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Total Due', style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 13)),
+                                    Text('Total Due', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
                                     const SizedBox(height: 4),
                                     Text(
                                       '₹${cycle.totalDue.toStringAsFixed(0)}',
                                       style: GoogleFonts.outfit(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
+                                        color: theme.textTheme.bodyLarge?.color,
                                       ),
                                     ),
                                   ],
@@ -445,7 +485,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text('Paid', style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 13)),
+                                    Text('Paid', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
                                     const SizedBox(height: 4),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -455,7 +495,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                           style: GoogleFonts.outfit(
                                             fontSize: 22,
                                             fontWeight: FontWeight.bold,
-                                            color: isPaid ? const Color(0xFF2E7D32) : Colors.black87,
+                                            color: isPaid ? const Color(0xFF2E7D32) : theme.textTheme.bodyLarge?.color,
                                           ),
                                         ),
                                         if (cycle.totalPaid > 0) ...[
@@ -484,8 +524,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                      child: OutlinedButton(
                                        onPressed: () => _showChargesSheet(context, cycle, ref),
                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: const Color(0xFF0F172A),
-                                          side: const BorderSide(color: Color(0xFF0F172A)),
+                                          foregroundColor: theme.textTheme.bodyLarge?.color,
+                                          side: BorderSide(color: theme.dividerColor),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                           padding: const EdgeInsets.symmetric(vertical: 14),
                                        ),
@@ -497,7 +537,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                      child: ElevatedButton(
                                        onPressed: () => _showPaymentSheet(context, cycle, ref),
                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF0F172A),
+                                          backgroundColor: const Color(0xFF2563EB),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                           padding: const EdgeInsets.symmetric(vertical: 14),
                                           elevation: 2,
@@ -524,6 +564,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
   }
 
   void _showAddPastRecordDialog(BuildContext context, WidgetRef ref) {
+    // ... no changes to dialog logic itself, but colors will inherit theme or need dialog theme
+    // For now assuming default dialog theme is OK or handled globally
     final amountController = TextEditingController();
     final paidController = TextEditingController(); 
     DateTime selectedMonth = DateTime.now().subtract(const Duration(days: 30));
@@ -536,9 +578,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Record a bill from your manual register.', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12)),
+              Text('Record a bill from your manual register.', style: GoogleFonts.outfit(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12)),
               const SizedBox(height: 16),
-              
+              // ... rest
               InkWell(
                 onTap: () async {
                    final d = await showDatePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime.now(), initialDate: selectedMonth);
@@ -608,7 +650,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                   child: Row(
                     children: [
                       const Icon(Icons.warning_amber_rounded, color: Colors.red),
@@ -670,9 +712,12 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
   }
 
   void _showPaymentHistory(BuildContext context, WidgetRef ref, RentCycle cycle) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: theme.scaffoldBackgroundColor,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
           return Container(
@@ -684,8 +729,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Payment History', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
-                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                    Text('Payment History', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: theme.iconTheme.color)),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -696,7 +741,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                       if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                       if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
                       final payments = snapshot.data ?? [];
-                      if (payments.isEmpty) return const Center(child: Text('No payments found'));
+                      if (payments.isEmpty) return Center(child: Text('No payments found', style: TextStyle(color: theme.textTheme.bodyMedium?.color)));
 
                       return ListView.builder(
                         itemCount: payments.length,
@@ -705,15 +750,15 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             elevation: 0,
-                            color: Colors.grey[50],
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            color: theme.cardColor,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: isDark ? BorderSide(color: Colors.white12) : BorderSide.none),
                             child: ListTile(
                               leading: const CircleAvatar(
                                 backgroundColor: Colors.white,
                                 child: Icon(Icons.check, color: Colors.green),
                               ),
-                              title: Text('₹${p.amount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('${DateFormat('dd MMM').format(p.date)} via ${p.method}'),
+                              title: Text('₹${p.amount.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
+                              subtitle: Text('${DateFormat('dd MMM').format(p.date)} via ${p.method}', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                                 onPressed: () {
@@ -759,10 +804,35 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
   
+  Future<void> _handleDownloadStatement(BuildContext context, WidgetRef ref) async {
+    await DialogUtils.runWithLoading(context, () async {
+      try {
+        final ownerState = ref.read(ownerControllerProvider);
+        if (ownerState.value == null) throw Exception('Owner profile not found');
+        final owner = ownerState.value!;
+        final cyclesAsync = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(widget.tenant.id);
+        
+        final pdfData = await ref.read(pdfServiceProvider).generateStatement(
+          tenant: widget.tenant,
+          cycles: cyclesAsync,
+          owner: owner,
+        );
+
+        await Printing.layoutPdf(
+          onLayout: (format) => pdfData,
+          name: 'Statement_${widget.tenant.name.replaceAll(' ', '_')}_${DateFormat('MMM_yyyy').format(DateTime.now())}',
+        );
+      } catch (e) {
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating PDF: $e')));
+      }
+    });
+  }
+
   void _showPaymentSheet(BuildContext context, RentCycle cycle, WidgetRef ref) {
     final amountController = TextEditingController(text: (cycle.totalDue - cycle.totalPaid).toStringAsFixed(0));
     final refController = TextEditingController();
     final notesController = TextEditingController();
+
     String selectedMethod = 'Cash';
     DateTime selectedDate = DateTime.now();
 
@@ -849,7 +919,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00897B),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -948,10 +1018,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const TabBar(
-                labelColor: Colors.teal,
+              TabBar(
+                labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.teal,
+                indicatorColor: Theme.of(context).colorScheme.primary,
                 tabs: [
                   Tab(text: 'Electricity', icon: Icon(Icons.electric_bolt)),
                   Tab(text: 'Other Charges', icon: Icon(Icons.post_add)),
@@ -1056,5 +1126,64 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handlePrintReceipt(BuildContext context, WidgetRef ref, RentCycle cycle) async {
+    await DialogUtils.runWithLoading(context, () async {
+      try {
+        final houseRepo = ref.read(propertyRepositoryProvider);
+        final rentRepo = ref.read(rentRepositoryProvider);
+        
+        // 1. Fetch House
+        final house = await houseRepo.getHouse(widget.tenant.houseId);
+        if (house == null) throw Exception('House not found');
+        
+        // 2. Fetch Unit
+        final unitDetails = await houseRepo.getUnit(widget.tenant.unitId);
+        if (unitDetails == null) throw Exception('Unit not found');
+        
+        // 3. Fetch Payments
+        final payments = await rentRepo.getPaymentsForRentCycle(cycle.id);
+        
+        // 4. Fetch Readings
+        final allReadings = await rentRepo.getElectricReadingsWithDetails(widget.tenant.unitId);
+        
+        Map<String, dynamic>? currentReading;
+        Map<String, dynamic>? previousReading;
+        
+        if (allReadings.isNotEmpty) {
+           try {
+             // Find reading closest to billGeneratedDate
+             currentReading = allReadings.firstWhere((r) {
+               final rDate = r['date'] as DateTime;
+               return rDate.isBefore(cycle.billGeneratedDate.add(const Duration(days: 1))); 
+             });
+             
+             final currentIndex = allReadings.indexOf(currentReading);
+             if (currentIndex + 1 < allReadings.length) {
+               previousReading = allReadings[currentIndex + 1];
+             }
+           } catch (e) {
+             // Not found
+           }
+        }
+        
+        // 5. Print
+        await ref.read(printServiceProvider).printRentReceipt(
+          rentCycle: cycle,
+          tenant: widget.tenant,
+          house: house,
+          unit: unitDetails,
+          payments: payments,
+          currentReading: currentReading,
+          previousReading: previousReading,
+        );
+        
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating receipt: $e')));
+        }
+      }
+    });
   }
 }

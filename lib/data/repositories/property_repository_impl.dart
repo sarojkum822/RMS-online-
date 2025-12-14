@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
  
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -39,6 +37,20 @@ class PropertyRepositoryImpl implements IPropertyRepository {
 
     final snapshot = await _firestore.collection('houses')
       .where('ownerId', isEqualTo: _uid) // CRITICAL
+      .where('id', isEqualTo: id)
+      .limit(1)
+      .get();
+      
+    if (snapshot.docs.isEmpty) return null;
+    final data = snapshot.docs.first.data();
+    if (data['isDeleted'] == true) return null;
+    return _mapHouse(snapshot.docs.first);
+  }
+
+  @override
+  Future<domain.House?> getHouseForTenant(int id, String ownerId) async {
+    final snapshot = await _firestore.collection('houses')
+      .where('ownerId', isEqualTo: ownerId)
       .where('id', isEqualTo: id)
       .limit(1)
       .get();
@@ -156,6 +168,20 @@ class PropertyRepositoryImpl implements IPropertyRepository {
 
     final snapshot = await _firestore.collection('units')
       .where('ownerId', isEqualTo: _uid) // CRITICAL
+      .where('id', isEqualTo: id)
+      .limit(1)
+      .get();
+      
+    if (snapshot.docs.isEmpty) return null;
+    final data = snapshot.docs.first.data();
+    if (data['isDeleted'] == true) return null;
+    return _mapUnit(snapshot.docs.first);
+  }
+
+  @override
+  Future<domain.Unit?> getUnitForTenant(int id, String ownerId) async {
+    final snapshot = await _firestore.collection('units')
+      .where('ownerId', isEqualTo: ownerId)
       .where('id', isEqualTo: id)
       .limit(1)
       .get();
@@ -292,6 +318,7 @@ class PropertyRepositoryImpl implements IPropertyRepository {
 
   // --- BHK Templates ---
   
+  @override
   Future<int> createBhkTemplate(domain.BhkTemplate template) async {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
@@ -314,6 +341,7 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     return id;
   }
   
+  @override
   Future<List<domain.BhkTemplate>> getBhkTemplates(int houseId) async {
     if (_uid == null) return [];
     

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/services/user_session_service.dart';
+
+import '../../providers/data_providers.dart'; // NEW
 import '../owner/tenant/tenant_controller.dart'; 
 
 class TenantLoginScreen extends ConsumerStatefulWidget {
@@ -19,14 +20,16 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Tenant Login', style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: Text('Tenant Login', style: GoogleFonts.outfit(color: theme.textTheme.titleLarge?.color, fontWeight: FontWeight.bold)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color),
           onPressed: () => context.go('/'),
         ),
       ),
@@ -41,7 +44,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                         style: GoogleFonts.outfit(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
+                          color: theme.textTheme.headlineMedium?.color, // Was 0xFF1E293B
                         ),
                       ),
                 const SizedBox(height: 8),
@@ -49,7 +52,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                   'Enter your credentials provided by the property owner.',
                   style: GoogleFonts.outfit(
                     fontSize: 16,
-                    color: const Color(0xFF64748B),
+                    color: theme.textTheme.bodyMedium?.color, // Was 0xFF64748B
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -58,20 +61,24 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textCapitalization: TextCapitalization.none,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Email Address',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    filled: true,
+                    fillColor: theme.cardColor,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    filled: true,
+                    fillColor: theme.cardColor,
                   ),
                 ),
                 
@@ -99,8 +106,12 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                         final tenant = await ref.read(tenantControllerProvider.notifier).login(email, password);
                         
                         if (tenant != null && context.mounted) {
-                           await ref.read(userSessionServiceProvider).saveSession(role: 'tenant', tenantId: tenant.id);
-                           context.go('/tenant/dashboard', extra: tenant);
+                           final sessionService = ref.read(userSessionServiceProvider);
+                           await sessionService.saveSession(role: 'tenant', tenantId: tenant.id);
+                           // Save Token for Notifications
+                           await sessionService.saveTenantFcmToken(tenant.id);
+                           
+                           if (context.mounted) context.go('/tenant/dashboard', extra: tenant);
                         } else if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Invalid Credentials or Account Inactive.'))
@@ -117,9 +128,10 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00897B),
+                      backgroundColor: theme.colorScheme.primary, // Was Color(0xFF00897B)
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 2,
+                      foregroundColor: Colors.white,
                     ),
                     child: _isLoading 
                       ? const CircularProgressIndicator(color: Colors.white)

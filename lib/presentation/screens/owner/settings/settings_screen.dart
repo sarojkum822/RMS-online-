@@ -7,32 +7,42 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../core/services/user_session_service.dart';
 import '../../../providers/data_providers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../core/theme/theme_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Settings', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text('Settings', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
+        iconTheme: theme.iconTheme,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            
+            _buildSectionHeader(context, 'General'),
             // Profile Section
             GestureDetector(
               onTap: () => context.push('/owner/settings/profile'), 
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+                  border: isDark ? Border.all(color: Colors.white10) : null,
+                  boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
                 ),
                 child: Row(
                   children: [
@@ -46,36 +56,79 @@ class SettingsScreen extends ConsumerWidget {
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
-                           Text('Owner Profile', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-                           Text('View & Edit Profile', style: GoogleFonts.outfit(color: Colors.grey)),
+                           Text('Owner Profile', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+                           Text('View & Edit Profile', style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color)),
                          ],
                        ),
                      ),
-                     const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                     Icon(Icons.arrow_forward_ios, size: 16, color: theme.iconTheme.color?.withValues(alpha: 0.5)),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
-            // Settings List
-            _buildSettingItem(
-              context: context,
-              icon: Icons.notifications, 
-              title: 'Notifications', 
-              onTap: () => context.push('/owner/settings/notifications'),
+            // Appearance Section
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: isDark ? Border.all(color: Colors.white10) : null,
+              ),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final themeMode = ref.watch(themeProvider);
+                  final isDarkModeOn = themeMode == ThemeMode.dark;
+                  
+                  return SwitchListTile(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    secondary: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1), 
+                        borderRadius: BorderRadius.circular(8)
+                      ),
+                      child: Icon(isDarkModeOn ? Icons.dark_mode : Icons.light_mode, color: theme.colorScheme.primary),
+                    ),
+                    title: Text('Dark Mode', style: GoogleFonts.outfit(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color)),
+                    subtitle: Text(isDarkModeOn ? 'On' : 'Off', style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 12)),
+                    value: isDarkModeOn,
+                    activeColor: theme.colorScheme.primary,
+                    onChanged: (val) {
+                      ref.read(themeProvider.notifier).setTheme(val ? ThemeMode.dark : ThemeMode.light);
+                    },
+                  );
+                }
+              ),
             ),
+
             _buildSettingItem(
               context: context,
               icon: Icons.currency_rupee, 
               title: 'Currency & Format', 
               onTap: () => context.push('/owner/settings/currency'),
+              theme: theme,
+              isDark: isDark,
+            ),
+            
+            _buildSectionHeader(context, 'Notification & Security'),
+             _buildSettingItem(
+              context: context,
+              icon: Icons.notifications, 
+              title: 'Notifications', 
+              onTap: () => context.push('/owner/settings/notifications'),
+              theme: theme,
+              isDark: isDark,
             ),
             _buildSettingItem(
               context: context,
               icon: Icons.security, 
               title: 'Security', 
               onTap: () => context.push('/owner/settings/security'),
+              theme: theme,
+              isDark: isDark,
             ),
 
             _buildSettingItem(
@@ -84,81 +137,19 @@ class SettingsScreen extends ConsumerWidget {
               title: 'Tenant Access', 
               subtitle: 'View credentials & Share',
               onTap: () => context.push('/owner/settings/tenant-access'),
+              theme: theme,
+              isDark: isDark,
             ),
 
-             _buildSettingItem(
-              context: context,
-              icon: Icons.share, 
-              title: 'Share Backup', 
-              onTap: () async {
-                 try {
-                   await ref.read(backupServiceProvider).exportData(share: true);
-                 } catch (e) {
-                   if(context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Share Failed: $e')),
-                      );
-                   }
-                 }
-              },
-            ),
-            
+            _buildSectionHeader(context, 'Data Management'),
             _buildSettingItem(
               context: context,
-              icon: Icons.save_alt, 
-              title: 'Save Backup to Device', 
-              subtitle: 'Save to Downloads/Documents',
-              onTap: () async {
-                 try {
-                   await ref.read(backupServiceProvider).exportData(share: false);
-                    if(context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Backup Saved to Device!')),
-                      );
-                   }
-                 } catch (e) {
-                   if(context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Save Failed: $e')),
-                      );
-                   }
-                 }
-              },
-            ),
-            
-            _buildSettingItem(
-              context: context,
-              icon: Icons.restore,
-              title: 'Import Backup',
-              onTap: () async {
-                 try {
-                   FilePickerResult? result = await FilePicker.platform.pickFiles(
-                     type: FileType.custom,
-                     allowedExtensions: ['json'],
-                   );
-
-                   if (result != null && result.files.single.path != null) {
-                     final file = File(result.files.single.path!);
-                     if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restoring Data...')));
-                     }
-                     
-                     await ref.read(backupServiceProvider).restoreData(file);
-                     
-                     if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Backup Restored Successfully!')),
-                        );
-                     }
-                   }
-                 } catch (e) {
-                   if(context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Restore Failed: $e')),
-                      );
-                   }
-                 }
-              },
+              icon: Icons.cloud_sync_outlined, 
+              title: 'Backup & Restore', 
+              subtitle: 'Data Export, Import, and Repair',
+              onTap: () => context.push('/owner/settings/backup'),
+              theme: theme,
+              isDark: isDark,
             ),
 
             _buildSettingItem(
@@ -167,7 +158,16 @@ class SettingsScreen extends ConsumerWidget {
               title: 'Print Data',
               onTap: () async {
                  try {
-                   await ref.read(printServiceProvider).printBackupData();
+                   // Fetch Live Data
+                   final tenants = await ref.read(tenantRepositoryProvider).getAllTenants();
+                   final rentCycles = await ref.read(rentRepositoryProvider).getAllRentCycles();
+                   final payments = await ref.read(rentRepositoryProvider).getAllPayments();
+
+                   await ref.read(printServiceProvider).printBackupData(
+                     tenants: tenants,
+                     rentCycles: rentCycles,
+                     payments: payments,
+                   );
                  } catch (e) {
                    if(context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -176,15 +176,49 @@ class SettingsScreen extends ConsumerWidget {
                    }
                  }
               },
+              theme: theme,
+              isDark: isDark,
             ),
 
 
-
+            _buildSectionHeader(context, 'Support'),
+            
             _buildSettingItem(
               context: context,
-              icon: Icons.help_outline, 
-              title: 'Help & Support', 
+              icon: Icons.help_center_outlined, 
+              title: 'Help Center', 
               onTap: () => context.push('/owner/settings/support'),
+              theme: theme,
+              isDark: isDark,
+            ),
+            _buildSettingItem(
+              context: context,
+              icon: Icons.mail_outline, 
+              title: 'Contact Us', 
+              onTap: () async {
+                 final Uri emailLaunchUri = Uri(
+                   scheme: 'mailto',
+                   path: 'support@rentpilotpro.com',
+                   queryParameters: {'subject': 'Support Request'},
+                 );
+                 if (await canLaunchUrl(emailLaunchUri)) {
+                   await launchUrl(emailLaunchUri);
+                 } else {
+                   if(context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch email client')));
+                   }
+                 }
+              },
+              theme: theme,
+              isDark: isDark,
+            ),
+             _buildSettingItem(
+              context: context,
+              icon: Icons.privacy_tip_outlined, 
+              title: 'Terms & Privacy', 
+                onTap: () => context.push('/owner/settings/terms'),
+              theme: theme,
+              isDark: isDark,
             ),
             
             const SizedBox(height: 32),
@@ -253,7 +287,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
              const SizedBox(height: 20),
-             Text('App Version 1.0.0', style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 12)),
+             Text('App Version 1.0.0', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 12)),
           ],
         ),
       ),
@@ -267,28 +301,35 @@ class SettingsScreen extends ConsumerWidget {
     String? subtitle,
     required VoidCallback onTap,
     Color? iconColor,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
+        border: isDark ? Border.all(color: Colors.white10) : null,
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: (iconColor ?? Colors.grey).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: iconColor ?? Colors.black54),
+          decoration: BoxDecoration(
+            color: (iconColor ?? (isDark ? Colors.white70 : Colors.black54)).withValues(alpha: 0.1), 
+            borderRadius: BorderRadius.circular(8)
+          ),
+          child: Icon(icon, color: iconColor ?? (isDark ? Colors.white70 : Colors.black54)),
         ),
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
-        subtitle: subtitle != null ? Text(subtitle, style: GoogleFonts.outfit(color: Colors.grey[500], fontSize: 12)) : null,
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color)),
+        subtitle: subtitle != null ? Text(subtitle, style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 12)) : null,
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: theme.iconTheme.color?.withValues(alpha: 0.5)),
         onTap: onTap,
       ),
     );
   }
 
   void _showResetConfirmation(BuildContext context, WidgetRef ref) {
+    // ... no changes to dialog logic ...
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -359,6 +400,19 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8, top: 12),
+      child: Text(
+        title, 
+        style: GoogleFonts.outfit(
+          fontSize: 14, 
+          fontWeight: FontWeight.bold, 
+          color: Theme.of(context).colorScheme.primary
+        ),
       ),
     );
   }

@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../domain/entities/tenant.dart';
-import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -96,12 +95,18 @@ class TenantController extends _$TenantController {
     if (email != null && email.isNotEmpty && password != null && password.isNotEmpty) {
       try {
          authId = await _createFirebaseUser(email, password);
-      } catch (e) {
-         if (e.toString().contains('email-already-in-use')) {
-             throw Exception('This email is already registered. Please use a different email.');
+      } on FirebaseAuthException catch (e) {
+         if (e.code == 'email-already-in-use') {
+             throw Exception('The email address is already in use by another account.');
+         } else if (e.code == 'weak-password') {
+             throw Exception('The password provided is too weak.');
+         } else if (e.code == 'invalid-email') {
+             throw Exception('The email address is invalid.');
          } else {
-             rethrow;
+             throw Exception(e.message ?? 'Authentication failed.');
          }
+      } catch (e) {
+          throw Exception('Failed to create login: ${e.toString()}');
       }
     }
 

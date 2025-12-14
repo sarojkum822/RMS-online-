@@ -34,23 +34,24 @@ service cloud.firestore {
       // Update: Must be yours AND cannot change ownerId
       allow update: if isOwner(resource.data.ownerId)
                    && notUpdating('ownerId'); 
-                   
-      allow read, delete: if isOwner(resource.data.ownerId);
+      
+      // PERMISSION CHANGE: Allow read for Tenants (who are unauthenticated)
+      allow read: if true;
+      allow delete: if isOwner(resource.data.ownerId);
     }
     
     // --- 3. UNITS ---
     match /units/{docId} {
       allow create: if isValidOwner() && request.resource.data.baseRent is number;
       allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
-      allow read, delete: if isOwner(resource.data.ownerId);
+      // PERMISSION CHANGE: Allow read for Tenants
+      allow read: if true;
+      allow delete: if isOwner(resource.data.ownerId);
     }
 
     // --- 4. TENANTS ---
     match /tenants/{docId} {
-      // PERMISSION CHANGE: Allow anyone to read/search (Required for Tenant Login)
       allow read: if true;
-      
-      // Write/Delete remains restricted to Owners only
       allow create: if isValidOwner() && request.resource.data.name is string;
       allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
       allow delete: if isOwner(resource.data.ownerId);
@@ -58,10 +59,7 @@ service cloud.firestore {
 
     // --- 5. RENT CYCLES (BILLS) ---
     match /rent_cycles/{docId} {
-      // PERMISSION CHANGE: Allow anyone to read (Required for Tenant Dashboard Bills List)
       allow read: if true;
-      
-      // Write/Delete remains restricted to Owners only
       allow create: if isValidOwner() && request.resource.data.totalDue is number;
       allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
       allow delete: if isOwner(resource.data.ownerId);
@@ -69,10 +67,7 @@ service cloud.firestore {
 
     // --- 6. PAYMENTS ---
     match /payments/{docId} {
-      // PERMISSION CHANGE: Allow anyone to read (Required for Tenant Dashboard Summary)
       allow read: if true; 
-      
-      // Write/Delete remains restricted to Owners only
       allow create: if isValidOwner() && request.resource.data.amount is number;
       allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
       allow delete: if isOwner(resource.data.ownerId);
@@ -88,7 +83,9 @@ service cloud.firestore {
     // --- 8. ELECTRIC READINGS ---
     match /electric_readings/{docId} {
        allow create: if isValidOwner();
-       allow read, update, delete: if isOwner(resource.data.ownerId);
+       // PERMISSION CHANGE: Allow read for Tenants (receipt generation)
+       allow read: if true;
+       allow update, delete: if isOwner(resource.data.ownerId);
     }
 
     // --- 9. BHK TEMPLATES ---

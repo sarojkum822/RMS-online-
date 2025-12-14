@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/rent_cycle.dart';
-import '../../../../core/services/user_session_service.dart';
+
 import '../../providers/data_providers.dart';
 
 class TenantDashboardScreen extends ConsumerWidget {
@@ -16,12 +16,14 @@ class TenantDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rentRepo = ref.watch(rentRepositoryProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Welcome, ${tenant.name}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: Text('Welcome, ${tenant.name}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -29,7 +31,7 @@ class TenantDashboardScreen extends ConsumerWidget {
               await ref.read(userSessionServiceProvider).clearSession();
               if (context.mounted) context.go('/');
             }, 
-            icon: const Icon(Icons.logout, color: Colors.black)
+            icon: Icon(Icons.logout, color: theme.iconTheme.color)
           ),
         ],
       ),
@@ -46,15 +48,21 @@ class TenantDashboardScreen extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD3E4FF), Color(0xFFE5DEFF)], // Pastel Blue to Purple
+                    gradient: LinearGradient(
+                      colors: isDark 
+                          ? [const Color(0xFF1E3A8A), const Color(0xFF2563EB)] // Deep Blue to Vibrant Blue
+                          : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)], // Blue 50 to Blue 100
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.5),
+                    border: Border.all(color: isDark ? Colors.white10 : Colors.white.withValues(alpha: 0.6), width: 1.5),
                     boxShadow: [
-                      BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10)),
+                      BoxShadow(
+                        color: isDark ? Colors.black26 : const Color(0xFF6366F1).withValues(alpha: 0.15), 
+                        blurRadius: 20, 
+                        offset: const Offset(0, 10)
+                      ),
                     ],
                   ),
                   child: Column(
@@ -64,18 +72,30 @@ class TenantDashboardScreen extends ConsumerWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), shape: BoxShape.circle),
-                            child: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF1E293B)),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.5), 
+                              shape: BoxShape.circle
+                            ),
+                            child: Icon(Icons.account_balance_wallet_outlined, color: isDark ? Colors.white : theme.colorScheme.primary),
                           ),
                           const SizedBox(width: 12),
-                          Text('Total Outstanding', style: GoogleFonts.outfit(color: const Color(0xFF64748B), fontSize: 16, fontWeight: FontWeight.w500)),
+                          Text(
+                            'Total Outstanding', 
+                            style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white70 : const Color(0xFF64748B), 
+                              fontSize: 16, 
+                              fontWeight: FontWeight.w500
+                            )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      FutureBuilder<List<RentCycle>>(
-                        future: rentRepo.getRentCyclesForTenant(tenant.id),
+                      StreamBuilder<List<RentCycle>>(
+                        stream: rentRepo.watchRentCyclesByTenantAccess(tenant.id, tenant.ownerId),
                         builder: (context, snapshot) {
-                          if (!snapshot.hasData) return const Text('Loading...', style: TextStyle(color: Colors.black54));
+                          // Note: Stream will emit waiting first, so we might want to handle that gracefully or show cache first?
+                          // For now, loading state is fine.
+                          if (!snapshot.hasData) return Text('Loading...', style: TextStyle(color: theme.textTheme.bodyMedium?.color));
                           final cycles = snapshot.data!;
                           final totalDue = cycles.fold(0.0, (sum, c) => sum + (c.totalDue - c.totalPaid));
                            
@@ -86,11 +106,15 @@ class TenantDashboardScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 '₹${totalDue.toStringAsFixed(0)}',
-                                style: GoogleFonts.outfit(color: const Color(0xFF0F172A), fontSize: 40, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.outfit(
+                                  color: isDark ? Colors.white : theme.colorScheme.primary, 
+                                  fontSize: 40, 
+                                  fontWeight: FontWeight.bold
+                                ),
                               ),
                               const SizedBox(height: 8),
                               if (totalDue == 0)
-                                Text('You are all caught up! 🎉', style: GoogleFonts.outfit(color: const Color(0xFF059669), fontWeight: FontWeight.w600)),
+                                Text('You are all caught up! 🎉', style: GoogleFonts.outfit(color: isDark ? Colors.greenAccent : const Color(0xFF059669), fontWeight: FontWeight.w600)),
                                 
                               if(showPay) ...[
                                 const SizedBox(height: 24),
@@ -102,8 +126,8 @@ class TenantDashboardScreen extends ConsumerWidget {
                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Online Payment Coming Soon!')));
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1E293B), // Dark Slate
-                                      foregroundColor: Colors.white,
+                                      backgroundColor: isDark ? Colors.white : theme.colorScheme.primary, // White button on dark gradient? Or inverse.
+                                      foregroundColor: isDark ? theme.colorScheme.primary : Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                     ),
@@ -128,8 +152,8 @@ class TenantDashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Payment Summary Card
-                      FutureBuilder<List<Payment>>( 
-                        future: ref.read(rentRepositoryProvider).getPaymentsByTenantAccess(tenant.id, tenant.ownerId),
+                      StreamBuilder<List<Payment>>( 
+                        stream: ref.read(rentRepositoryProvider).watchPaymentsByTenantAccess(tenant.id, tenant.ownerId),
                         builder: (context, snapshot) {
                            if (!snapshot.hasData) return const SizedBox();
                            final payments = snapshot.data!;
@@ -143,22 +167,23 @@ class TenantDashboardScreen extends ConsumerWidget {
                              width: double.infinity,
                              padding: const EdgeInsets.all(20),
                              decoration: BoxDecoration(
-                               color: Colors.white,
+                               color: theme.cardColor,
                                borderRadius: BorderRadius.circular(20),
-                               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                               boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                               border: isDark ? Border.all(color: Colors.white10) : null,
                              ),
                              child: Column(
                                crossAxisAlignment: CrossAxisAlignment.start,
                                children: [
-                                 Text('Lifetime Payment Summary', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                                 Text('Lifetime Payment Summary', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                                  const SizedBox(height: 16),
                                  Row(
                                    children: [
-                                     Expanded(child: _buildSummaryItem('Total Paid', totalPaid, Colors.blue)),
-                                     Container(width: 1, height: 40, color: Colors.grey[200]),
-                                     Expanded(child: _buildSummaryItem('Cash', cashPaid, Colors.orange)),
-                                     Container(width: 1, height: 40, color: Colors.grey[200]),
-                                     Expanded(child: _buildSummaryItem('Online/UPI', onlinePaid, Colors.green)),
+                                     Expanded(child: _buildSummaryItem('Total Paid', totalPaid, Colors.blue, theme)),
+                                     Container(width: 1, height: 40, color: theme.dividerColor),
+                                     Expanded(child: _buildSummaryItem('Cash', cashPaid, Colors.orange, theme)),
+                                     Container(width: 1, height: 40, color: theme.dividerColor),
+                                     Expanded(child: _buildSummaryItem('Online/UPI', onlinePaid, Colors.green, theme)),
                                    ],
                                  )
                                ],
@@ -168,21 +193,21 @@ class TenantDashboardScreen extends ConsumerWidget {
                       ),
                   
                       const SizedBox(height: 24),
-                      Text('Your Bills', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('Your Bills', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                        
                       // List of Bills
-                      FutureBuilder<List<RentCycle>>(
-                          future: rentRepo.getRentCyclesByTenantAccess(tenant.id, tenant.ownerId),
+                      StreamBuilder<List<RentCycle>>(
+                          stream: rentRepo.watchRentCyclesByTenantAccess(tenant.id, tenant.ownerId),
                           builder: (context, snapshot) {
-                            if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+                            if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: theme.colorScheme.error)));
                             if (!snapshot.hasData) return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
                             final cycles = snapshot.data!;
-                            if (cycles.isEmpty) return const Center(child: Text('No bills found.'));
+                            if (cycles.isEmpty) return Center(child: Text('No bills found.', style: TextStyle(color: theme.textTheme.bodyMedium?.color)));
                             
                             // Sort by month desc
                             cycles.sort((a,b) => b.month.compareTo(a.month));
                   
-                            if(cycles.isEmpty) return const Padding(padding: EdgeInsets.only(top: 20), child: Text('No bills found.'));
+                            if(cycles.isEmpty) return Padding(padding: const EdgeInsets.only(top: 20), child: Text('No bills found.', style: TextStyle(color: theme.textTheme.bodyMedium?.color)));
                   
                             return ListView.builder(
                               shrinkWrap: true,
@@ -194,9 +219,9 @@ class TenantDashboardScreen extends ConsumerWidget {
                                 final isPaid = c.status == RentStatus.paid;
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: isDark ? const BorderSide(color: Colors.white10) : BorderSide.none),
                                   elevation: 0,
-                                  color: Colors.white,
+                                  color: theme.cardColor,
                                   child: InkWell(
                                     onTap: () => _showBillDetails(context, c, ref), // Show Details
                                     borderRadius: BorderRadius.circular(16),
@@ -214,15 +239,15 @@ class TenantDashboardScreen extends ConsumerWidget {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(DateFormat('MMMM yyyy').format(DateTime.parse('${c.month}-01')), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                                                Text('Bill: ${c.billNumber ?? 'N/A'}', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+                                                Text(DateFormat('MMMM yyyy').format(DateTime.parse('${c.month}-01')), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.bodyLarge?.color)),
+                                                Text('Bill: ${c.billNumber ?? 'N/A'}', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                                               ],
                                             ),
                                           ),
                                           Column(
                                             crossAxisAlignment: CrossAxisAlignment.end,
                                             children: [
-                                              Text('₹${c.totalDue.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                                              Text('₹${c.totalDue.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.bodyLarge?.color)),
                                               if(isPaid)
                                                 Text('PAID', style: GoogleFonts.outfit(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold))
                                               else
@@ -230,7 +255,7 @@ class TenantDashboardScreen extends ConsumerWidget {
                                             ],
                                           ),
                                           const SizedBox(width: 8),
-                                          const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                                          Icon(Icons.chevron_right, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 20),
                                         ],
                                       ),
                                     ),
@@ -252,10 +277,14 @@ class TenantDashboardScreen extends ConsumerWidget {
   }
 
   void _showBillDetails(BuildContext context, RentCycle c, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: theme.scaffoldBackgroundColor,
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.6,
         minChildSize: 0.4,
@@ -264,52 +293,67 @@ class TenantDashboardScreen extends ConsumerWidget {
         builder: (context, scrollController) {
           return Container(
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+              border: isDark ? Border.all(color: Colors.white12) : null,
             ),
             child: ListView(
               controller: scrollController,
               children: [
-                 Text('Bill Details', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
+                 Text('Bill Details', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                  const SizedBox(height: 8),
-                 Text('Month: ${c.month}', style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey)),
+                 Text('Month: ${c.month}', style: GoogleFonts.outfit(fontSize: 14, color: theme.textTheme.bodySmall?.color)),
                  const SizedBox(height: 16),
                  const Divider(),
                  const SizedBox(height: 16),
                  
-                 _buildRow('Base Rent', c.baseRent),
-                 if(c.electricAmount > 0) _buildRow('Electricity', c.electricAmount),
-                 if(c.otherCharges > 0) _buildRow('Other Charges', c.otherCharges),
-                 if(c.discount > 0) _buildRow('Discount', c.discount, isNegative: true),
+                 _buildRow('Base Rent', c.baseRent, theme),
+                 if(c.electricAmount > 0) _buildRow('Electricity', c.electricAmount, theme),
+                 if(c.otherCharges > 0) _buildRow('Other Charges', c.otherCharges, theme),
+                 if(c.discount > 0) _buildRow('Discount', c.discount, theme, isNegative: true),
+                 
+                 const SizedBox(height: 16),
+                 Center(
+                   child: OutlinedButton.icon(
+                     onPressed: () => _handleDownloadReceipt(context, ref, c),
+                     icon: const Icon(Icons.download, size: 18),
+                     label: const Text('Download Receipt'),
+                     style: OutlinedButton.styleFrom(
+                       foregroundColor: theme.textTheme.bodyLarge?.color,
+                       side: BorderSide(color: theme.dividerColor),
+                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                     ),
+                   ),
+                 ),
                  
                  const SizedBox(height: 16),
                  const Divider(),
                  const SizedBox(height: 16),
 
-                 _buildRow('Total Due', c.totalDue, isBold: true),
-                 _buildRow('Paid Amount', c.totalPaid, color: Colors.green),
-                 _buildRow('Balance Due', c.totalDue - c.totalPaid, isBold: true, color: (c.totalDue - c.totalPaid) > 0 ? Colors.red : Colors.green),
+                 _buildRow('Total Due', c.totalDue, theme, isBold: true),
+                 _buildRow('Paid Amount', c.totalPaid, theme, color: Colors.green),
+                 _buildRow('Balance Due', c.totalDue - c.totalPaid, theme, isBold: true, color: (c.totalDue - c.totalPaid) > 0 ? Colors.red : Colors.green),
 
                 const SizedBox(height: 24),
                 // Payment History Section
-                Text('Payment History', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Payment History', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                 const SizedBox(height: 12),
                 FutureBuilder<List<Payment>>( 
                   future: ref.read(rentRepositoryProvider).getPaymentsForRentCycle(c.id),
                   builder: (context, snapshot) {
                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                      final payments = snapshot.data!;
-                     if (payments.isEmpty) return Text('No payments recorded.', style: GoogleFonts.outfit(color: Colors.grey));
+                     if (payments.isEmpty) return Text('No payments recorded.', style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color));
 
                      return Column(
                        children: payments.map((p) => Container(
                          margin: const EdgeInsets.only(bottom: 8),
                          padding: const EdgeInsets.all(12),
                          decoration: BoxDecoration(
-                           color: Colors.grey[50],
+                           color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
                            borderRadius: BorderRadius.circular(12),
-                           border: Border.all(color: Colors.grey[200]!)
+                           border: Border.all(color: theme.dividerColor)
                          ),
                          child: Row(
                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -317,8 +361,8 @@ class TenantDashboardScreen extends ConsumerWidget {
                              Column(
                                crossAxisAlignment: CrossAxisAlignment.start,
                                children: [
-                                 Text(DateFormat('dd MMM yyyy').format(p.date), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                                 Text(p.method, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600])),
+                                 Text(DateFormat('dd MMM yyyy').format(p.date), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
+                                 Text(p.method, style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                                ],
                              ),
                              Text('₹${p.amount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.green)),
@@ -334,8 +378,8 @@ class TenantDashboardScreen extends ConsumerWidget {
                    Container(
                      width: double.infinity,
                      padding: const EdgeInsets.all(12),
-                     decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                     child: Text('Notes:\n${c.notes}', style: GoogleFonts.outfit(fontSize: 12)),
+                     decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                     child: Text('Notes:\n${c.notes}', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
                    ),
                 const SizedBox(height: 20),
               ],
@@ -346,34 +390,98 @@ class TenantDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryItem(String label, double amount, Color color) {
+  Widget _buildSummaryItem(String label, double amount, Color color, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+        Text(label, style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color)),
         const SizedBox(height: 4),
         Text('₹${amount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }
 
-  Widget _buildRow(String label, double amount, {bool isBold = false, Color? color, bool isNegative = false}) {
+  Widget _buildRow(String label, double amount, ThemeData theme, {bool isBold = false, Color? color, bool isNegative = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.outfit(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 16)),
+          Text(label, style: GoogleFonts.outfit(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: 16, color: theme.textTheme.bodyLarge?.color)),
           Text(
             '${isNegative ? "- " : ""}₹${amount.toStringAsFixed(0)}', 
             style: GoogleFonts.outfit(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal, 
               fontSize: 16,
-              color: color ?? Colors.black,
+              color: color ?? theme.textTheme.bodyLarge?.color,
             ),
           ),
         ],
       ),
     );
+  }
+
+
+  Future<void> _handleDownloadReceipt(BuildContext context, WidgetRef ref, RentCycle cycle) async {
+    // Show Loading
+    showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator()));
+    
+    try {
+      final houseRepo = ref.read(propertyRepositoryProvider);
+      final rentRepo = ref.read(rentRepositoryProvider);
+      
+      // 1. Fetch House (Tenant Access)
+      final house = await houseRepo.getHouseForTenant(tenant.houseId, tenant.ownerId); 
+      if (house == null) throw Exception('House details not found');
+      
+      // 2. Fetch Unit (Tenant Access)
+      final unit = await houseRepo.getUnitForTenant(tenant.unitId, tenant.ownerId); 
+      if (unit == null) throw Exception('Unit details not found');
+
+      // 3. Fetch Payments (Tenant Access)
+      final payments = await rentRepo.getPaymentsForRentCycleForTenant(cycle.id, tenant.ownerId); 
+      
+      // 4. Fetch Readings (Tenant Access)
+      final allReadings = await rentRepo.getElectricReadingsForTenant(tenant.unitId, tenant.ownerId); 
+      
+      Map<String, dynamic>? currentReading;
+      Map<String, dynamic>? previousReading;
+        
+      if (allReadings.isNotEmpty) {
+         try {
+           // Find reading closest to billGeneratedDate
+           currentReading = allReadings.firstWhere((r) {
+             final rDate = r['date'] as DateTime;
+             return rDate.isBefore(cycle.billGeneratedDate.add(const Duration(days: 1))); 
+           });
+           
+           final currentIndex = allReadings.indexOf(currentReading);
+           if (currentIndex + 1 < allReadings.length) {
+             previousReading = allReadings[currentIndex + 1];
+           }
+         } catch (e) {
+           // Not found
+         }
+      }
+
+      // 5. Generate PDF
+      if (context.mounted) Navigator.pop(context); // Close Loading
+      
+      await ref.read(printServiceProvider).printRentReceipt(
+        rentCycle: cycle,
+        tenant: tenant,
+        house: house,
+        unit: unit,
+        payments: payments,
+        currentReading: currentReading,
+        previousReading: previousReading,
+      );
+
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close Loading
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 }

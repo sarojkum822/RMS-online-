@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../providers/data_providers.dart';
+import '../../../../core/services/user_session_service.dart';
 
 class SecurityScreen extends ConsumerStatefulWidget {
   const SecurityScreen({super.key});
@@ -16,7 +19,14 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   @override
   void initState() {
     super.initState();
-    // Load preference (mock for now, normally from SharedPreferences)
+    _loadBiometricPreference();
+  }
+
+  Future<void> _loadBiometricPreference() async {
+    final enabled = await ref.read(userSessionServiceProvider).isBiometricEnabled();
+    setState(() {
+      _biometricEnabled = enabled;
+    });
   }
 
   @override
@@ -32,11 +42,13 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildItem(
+           _buildItem(
             icon: Icons.lock,
             title: 'Change Password',
             onTap: () {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password Change Flow Mock')));
+               // Implement Change Password Screen or Dialog
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Change Password Feature coming soon')));
+               // context.push('/owner/settings/security/change-password');
             },
           ),
           
@@ -49,8 +61,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             child: SwitchListTile(
               secondary: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.fingerprint, color: Colors.purple),
+                decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.fingerprint, color: Theme.of(context).colorScheme.primary),
               ),
               title: Text('Biometric Auth', style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
               subtitle: Text('Use fingerprint/face ID', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
@@ -69,14 +81,14 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   final authenticated = await biometricService.authenticate();
                   if (authenticated) {
                     setState(() => _biometricEnabled = true);
+                    await ref.read(userSessionServiceProvider).saveBiometricPreference(true);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometric Enabled')));
-                      // Save to SharedPreferences here
                     }
                   }
                 } else {
                   setState(() => _biometricEnabled = false);
-                   // Save to SharedPreferences here
+                  await ref.read(userSessionServiceProvider).saveBiometricPreference(false);
                 }
               },
               activeThumbColor: Colors.black,
@@ -86,9 +98,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
            _buildItem(
             icon: Icons.devices,
             title: 'Active Sessions',
-             onTap: () {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Show Active Sessions Mock')));
-            },
+             onTap: () => context.push('/owner/settings/security/active-sessions'),
           ),
         ],
       ),

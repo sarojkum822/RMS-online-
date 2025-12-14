@@ -3,9 +3,9 @@ import 'package:flutter/services.dart'; // For clipboard
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../providers/data_providers.dart';
-import '../tenant/tenant_controller.dart';
 
 class TenantAccessScreen extends ConsumerStatefulWidget {
   const TenantAccessScreen({super.key});
@@ -46,6 +46,33 @@ Password: $password
 Please download the app and log in.
 ''';
     Share.share(message);
+  }
+
+  void _shareViaWhatsApp(Tenant tenant) async {
+    final email = tenant.email ?? 'Not Set';
+    final password = tenant.password ?? 'Not Set';
+    
+    final message = '''
+Hello ${tenant.name},
+Here are your login credentials for the RentPilot Tenant App:
+
+Email: $email
+Password: $password
+
+Please download the app and log in.
+''';
+
+    final url = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(message)}");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      if(mounted) {
+         // Fallback to standard share if WhatsApp not installed
+         Share.share(message);
+         // Or show snackbar
+         // ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp not installed. Opening standard share.')));
+      }
+    }
   }
 
   @override
@@ -145,6 +172,13 @@ Please download the app and log in.
                   ),
                 ),
                   // EDIT BUTTON REMOVED AS PER SECURITY REQUEST (Read-Only Mode)
+                  // WhatsApp Share
+                  IconButton(
+                    icon: const Icon(Icons.mark_chat_unread_rounded, color: Colors.green), // WhatsApp-like icon
+                    onPressed: () => _shareViaWhatsApp(tenant),
+                    tooltip: 'Share via WhatsApp',
+                  ),
+                  // Standard Share
                   IconButton(
                     icon: const Icon(Icons.share, color: Color(0xFF006B5E)),
                     onPressed: () => _shareCredentials(tenant),

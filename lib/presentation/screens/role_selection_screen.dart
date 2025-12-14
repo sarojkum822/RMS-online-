@@ -22,13 +22,13 @@ class RoleSelectionScreen extends StatelessWidget {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0F2F1), // Teal 50
+                    color: const Color(0xFFDBEAFE), // Blue 100
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.apartment_rounded,
                     size: 48,
-                    color: Color(0xFF00897B), // Teal 600
+                    color: Color(0xFF2563EB), // Blue 600
                   ),
                 ),
               ),
@@ -71,7 +71,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 title: 'Property Owner',
                 subtitle: 'Manage houses, tenants & revenue',
                 icon: Icons.admin_panel_settings_rounded,
-                color: const Color(0xFF00897B), // Teal
+                color: const Color(0xFF2563EB), // Blue
                 onTap: () => context.go('/owner/dashboard'),
               ),
               const SizedBox(height: 16),

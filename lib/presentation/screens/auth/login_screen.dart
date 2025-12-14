@@ -115,6 +115,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             // Save Session
             await ref.read(userSessionServiceProvider).saveSession(role: 'owner');
             
+            // Push Notifications
+            await ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid);
+            
             // Save Creds for Biometrics
             await _storageService.saveCredentials(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
 
@@ -137,6 +140,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             if (tenant != null) {
                  await ref.read(userSessionServiceProvider).saveSession(role: 'tenant');
                  await _storageService.saveCredentials(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
+                 
+                 // Push Notifications
+                 await ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid);
+                 await ref.read(notificationServiceProvider).scheduleMonthlyRentReminder();
+                 
                  if (mounted) context.go('/tenant/dashboard', extra: tenant);
             } else {
                  // ORPHANED ACCOUNT DETECTED
@@ -191,14 +199,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final title = isOwner ? 'Makaan Malik Login' : 'Kirayedar Login';
     final subtitle = isOwner ? 'Manage your properties' : 'View your rent details';
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Define primary color based on role
+    final primaryColor = isOwner 
+        ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)) // Lighter Indigo for dark mode
+        : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)); // Lighter Green for dark mode
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
           onPressed: () => context.go('/'), 
         ),
       ),
@@ -230,19 +245,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   style: GoogleFonts.outfit(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
-                                    color: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669),
+                                    color: primaryColor,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   title,
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
+                                  style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600, color: theme.textTheme.titleLarge?.color),
                                 ),
                                 Text(
                                   subtitle,
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
+                                  style: GoogleFonts.outfit(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
                                 ),
                                 const SizedBox(height: 48),
                                 
@@ -251,13 +266,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     padding: const EdgeInsets.all(12),
                                     margin: const EdgeInsets.only(bottom: 16),
                                     decoration: BoxDecoration(
-                                      color: Colors.red.shade50,
+                                      color: isDark ? Colors.red.withValues(alpha: 0.1) : Colors.red.shade50,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.red.shade200),
+                                      border: Border.all(color: isDark ? Colors.red.withValues(alpha: 0.3) : Colors.red.shade200),
                                     ),
                                     child: Text(
                                       _errorMessage!,
-                                      style: TextStyle(color: Colors.red.shade800),
+                                      style: TextStyle(color: isDark ? Colors.redAccent : Colors.red.shade800),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
@@ -268,6 +283,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     labelText: isOwner ? 'Email' : 'Phone / Email', 
                                     prefixIcon: const Icon(Icons.person_outline),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                    filled: true,
+                                    fillColor: theme.cardColor,
                                   ),
                                   // Fix: Allow alphabets for Tenants too (Email/User ID)
                                   keyboardType: TextInputType.emailAddress,
@@ -280,6 +297,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     labelText: 'Password',
                                     prefixIcon: const Icon(Icons.lock_outlined),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                    filled: true,
+                                    fillColor: theme.cardColor,
                                   ),
                                   obscureText: true,
                                   validator: (v) => v!.length < 6 ? 'Min 6 chars' : null,
@@ -293,7 +312,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     child: OutlinedButton.icon(
                                       style: OutlinedButton.styleFrom(
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        side: BorderSide(color: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669)),
+                                        side: BorderSide(color: primaryColor),
+                                        foregroundColor: primaryColor,
                                       ),
                                       onPressed: _isLoading ? null : () {
                                         HapticFeedback.lightImpact();
@@ -310,8 +330,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   height: 50,
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: isOwner ? const Color(0xFF4F46E5) : const Color(0xFF059669),
+                                      backgroundColor: primaryColor,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      foregroundColor: Colors.white,
                                     ),
                                     onPressed: _isLoading ? null : () {
                                       HapticFeedback.lightImpact();
@@ -331,12 +352,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                  Row(
                                    mainAxisAlignment: MainAxisAlignment.center,
                                    children: [
-                                     Text(_isLogin ? "Don't have an account? " : "Already have an account? "),
+                                     Text(_isLogin ? "Don't have an account? " : "Already have an account? ", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
                                      TextButton(
                                        onPressed: () => setState(() {
                                            _isLogin = !_isLogin;
                                            _errorMessage = null;
                                        }),
+                                       style: TextButton.styleFrom(foregroundColor: primaryColor),
                                        child: Text(_isLogin ? 'Sign Up' : 'Login'),
                                      ),
                                    ],
@@ -347,7 +369,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     child: Text(
                                       'Note: Only your Makaan Malik (Owner) can create your account. Please ask them for your credentials.',
                                       textAlign: TextAlign.center,
-                                      style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 14),
+                                      style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 14),
                                     ),
                                   ),
                               ],

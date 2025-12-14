@@ -8,8 +8,9 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
@@ -29,7 +30,7 @@ class RoleSelectionScreen extends StatelessWidget {
                           style: GoogleFonts.outfit(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: theme.textTheme.headlineMedium?.color,
                             height: 1.2,
                           ),
                           children: [
@@ -37,7 +38,7 @@ class RoleSelectionScreen extends StatelessWidget {
                             TextSpan(
                               text: 'KirayaBook',
                               style: GoogleFonts.outfit(
-                                color: const Color(0xFF2563EB), // Primary Blue
+                                color: theme.colorScheme.primary, // Primary Blue
                               ),
                             ),
                           ],
@@ -48,7 +49,7 @@ class RoleSelectionScreen extends StatelessWidget {
                         'Please select who you are to continue',
                         style: GoogleFonts.outfit(
                           fontSize: 16,
-                          color: Colors.grey[600],
+                          color: theme.textTheme.bodyMedium?.color,
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -81,7 +82,7 @@ class RoleSelectionScreen extends StatelessWidget {
                         child: Text(
                           'Made with ❤️ in India',
                           style: GoogleFonts.outfit(
-                            color: Colors.grey[400],
+                            color: theme.disabledColor,
                             fontSize: 12,
                           ),
                         ),

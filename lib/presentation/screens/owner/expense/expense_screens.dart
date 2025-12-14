@@ -29,6 +29,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Add Expense')),
       body: SingleChildScrollView(
@@ -96,9 +97,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(backgroundColor: theme.colorScheme.primary, foregroundColor: theme.colorScheme.onPrimary),
                   onPressed: _isLoading ? null : _save,
-                  child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Save Expense'),
+                  child: _isLoading ? CircularProgressIndicator(color: theme.colorScheme.onPrimary) : const Text('Save Expense'),
                 ),
               ),
             ],
@@ -148,6 +149,9 @@ class ExpenseListScreen extends ConsumerStatefulWidget {
 class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Expense History')),
       floatingActionButton: FloatingActionButton(
@@ -165,11 +169,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-             return Center(child: Text('Error: ${snapshot.error}'));
+             return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: theme.colorScheme.error)));
           }
           final expenses = snapshot.data ?? [];
           if (expenses.isEmpty) {
-             return const Center(child: Text('No expenses recorded'));
+             return Center(child: Text('No expenses recorded', style: TextStyle(color: theme.textTheme.bodyMedium?.color)));
           }
           
           // Sort by date desc
@@ -183,15 +187,15 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
               final e = expenses[index];
               return Card(
                 elevation: 0,
-                color: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                color: theme.cardColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: isDark ? const BorderSide(color: Colors.white12) : BorderSide(color: Colors.grey.shade200)),
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.red.withValues(alpha: 0.1),
                     child: const Icon(Icons.receipt_long, color: Colors.red, size: 20),
                   ),
-                  title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('${DateFormat('dd MMM').format(e.date)} • ${e.category}'),
+                  title: Text(e.title, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                  subtitle: Text('${DateFormat('dd MMM').format(e.date)} • ${e.category}', style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                   trailing: Text('-₹${e.amount.toStringAsFixed(0)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
                   onLongPress: () async {
                      // Delete option
