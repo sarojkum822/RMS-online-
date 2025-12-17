@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../domain/entities/owner.dart';
-import '../../domain/entities/rent_cycle.dart';
+import '../../features/rent/domain/entities/rent_cycle.dart';
 import '../../domain/entities/tenant.dart';
 
 class PdfService {
@@ -26,8 +26,7 @@ class PdfService {
     double totalDue = 0;
     double totalPaid = 0;
     
-    // Create Table Data
-    final tableData = <List<String>>[];
+      final tableData = <Map<String, dynamic>>[];
     double runningBalance = 0;
 
     for (var cycle in sortedCycles) {
@@ -41,12 +40,19 @@ class PdfService {
 
       final dateStr = DateFormat('MMM yyyy').format(cycle.billPeriodStart ?? cycle.billGeneratedDate);
       
-      tableData.add([
-        dateStr,
-        '${owner.currency} ${currentDue.toStringAsFixed(0)}',
-        '${owner.currency} ${currentPaid.toStringAsFixed(0)}',
-        '${owner.currency} ${runningBalance.toStringAsFixed(0)}',
-      ]);
+      // Determine if this row should be highlighted (Red)
+      // Logic: Highlight if strictly NO payment made (currentPaid == 0)
+      final isUnpaid = currentPaid == 0;
+      
+      tableData.add({
+        'values': [
+          dateStr,
+          '${owner.currency} ${currentDue.toStringAsFixed(0)}',
+          '${owner.currency} ${currentPaid.toStringAsFixed(0)}',
+          '${owner.currency} ${runningBalance.toStringAsFixed(0)}',
+        ],
+        'isUnpaid': isUnpaid,
+      });
     }
     
     final outstanding = totalDue - totalPaid;
@@ -180,19 +186,61 @@ class PdfService {
     );
   }
 
-  pw.Widget _buildTable(List<List<String>> data) {
-    return pw.Table.fromTextArray(
-      headers: ['Month', 'Amount Due', 'Amount Paid', 'Balance'],
-      data: data,
+  pw.Widget _buildTable(List<Map<String, dynamic>> data) {
+    return pw.Table(
       border: null,
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-      headerDecoration: const pw.BoxDecoration(color: PdfColors.blue700),
-      rowDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200))),
-      cellAlignment: pw.Alignment.centerRight,
-      cellAlignments: {
-         0: pw.Alignment.centerLeft,
-      },
-      cellPadding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      children: [
+        // Header Row
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.blue700),
+          children: ['Month', 'Amount Due', 'Amount Paid', 'Balance']
+              .map((text) => pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    alignment: text == 'Month' ? pw.Alignment.centerLeft : pw.Alignment.centerRight,
+                    child: pw.Text(
+                      text,
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                    ),
+                  ))
+              .toList(),
+        ),
+        // Data Rows
+        ...data.map((row) {
+          final isUnpaid = row['isUnpaid'] as bool;
+          final values = row['values'] as List<String>;
+          final textColor = isUnpaid ? PdfColors.red700 : PdfColors.black;
+          
+          return pw.TableRow(
+            decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200))),
+            children: [
+              // Month
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                alignment: pw.Alignment.centerLeft,
+                child: pw.Text(values[0], style: pw.TextStyle(color: textColor)),
+              ),
+              // Due
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text(values[1], style: pw.TextStyle(color: textColor)),
+              ),
+              // Paid
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text(values[2], style: pw.TextStyle(color: textColor, fontWeight: isUnpaid ? pw.FontWeight.bold : null)),
+              ),
+               // Balance
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text(values[3], style: pw.TextStyle(color: textColor, fontWeight: isUnpaid ? pw.FontWeight.bold : null)),
+              ),
+            ],
+          );
+        }),
+      ],
     );
   }
 

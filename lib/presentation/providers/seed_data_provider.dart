@@ -19,7 +19,7 @@ Future<void> seedData(SeedDataRef ref) async {
   ));
 
   // 2. Create Unit
-  final units = await houseRepo.getUnits(houseId);
+  final units = await houseRepo.getUnits(houseId).first;
   int unitId;
   if (units.isNotEmpty) {
      unitId = units.first.id;

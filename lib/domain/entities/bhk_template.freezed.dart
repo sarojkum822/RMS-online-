@@ -25,6 +25,10 @@ mixin _$BhkTemplate {
   String get bhkType => throw _privateConstructorUsedError;
   double get defaultRent => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
+  int get roomCount => throw _privateConstructorUsedError;
+  int get kitchenCount => throw _privateConstructorUsedError;
+  int get hallCount => throw _privateConstructorUsedError;
+  bool get hasBalcony => throw _privateConstructorUsedError;
 
   /// Serializes this BhkTemplate to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -47,7 +51,11 @@ abstract class $BhkTemplateCopyWith<$Res> {
       int houseId,
       String bhkType,
       double defaultRent,
-      String? description});
+      String? description,
+      int roomCount,
+      int kitchenCount,
+      int hallCount,
+      bool hasBalcony});
 }
 
 /// @nodoc
@@ -70,6 +78,10 @@ class _$BhkTemplateCopyWithImpl<$Res, $Val extends BhkTemplate>
     Object? bhkType = null,
     Object? defaultRent = null,
     Object? description = freezed,
+    Object? roomCount = null,
+    Object? kitchenCount = null,
+    Object? hallCount = null,
+    Object? hasBalcony = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -92,6 +104,22 @@ class _$BhkTemplateCopyWithImpl<$Res, $Val extends BhkTemplate>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String?,
+      roomCount: null == roomCount
+          ? _value.roomCount
+          : roomCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      kitchenCount: null == kitchenCount
+          ? _value.kitchenCount
+          : kitchenCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      hallCount: null == hallCount
+          ? _value.hallCount
+          : hallCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      hasBalcony: null == hasBalcony
+          ? _value.hasBalcony
+          : hasBalcony // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -109,7 +137,11 @@ abstract class _$$BhkTemplateImplCopyWith<$Res>
       int houseId,
       String bhkType,
       double defaultRent,
-      String? description});
+      String? description,
+      int roomCount,
+      int kitchenCount,
+      int hallCount,
+      bool hasBalcony});
 }
 
 /// @nodoc
@@ -130,6 +162,10 @@ class __$$BhkTemplateImplCopyWithImpl<$Res>
     Object? bhkType = null,
     Object? defaultRent = null,
     Object? description = freezed,
+    Object? roomCount = null,
+    Object? kitchenCount = null,
+    Object? hallCount = null,
+    Object? hasBalcony = null,
   }) {
     return _then(_$BhkTemplateImpl(
       id: null == id
@@ -152,6 +188,22 @@ class __$$BhkTemplateImplCopyWithImpl<$Res>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String?,
+      roomCount: null == roomCount
+          ? _value.roomCount
+          : roomCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      kitchenCount: null == kitchenCount
+          ? _value.kitchenCount
+          : kitchenCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      hallCount: null == hallCount
+          ? _value.hallCount
+          : hallCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      hasBalcony: null == hasBalcony
+          ? _value.hasBalcony
+          : hasBalcony // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -164,7 +216,11 @@ class _$BhkTemplateImpl implements _BhkTemplate {
       required this.houseId,
       required this.bhkType,
       required this.defaultRent,
-      this.description});
+      this.description,
+      this.roomCount = 1,
+      this.kitchenCount = 1,
+      this.hallCount = 1,
+      this.hasBalcony = false});
 
   factory _$BhkTemplateImpl.fromJson(Map<String, dynamic> json) =>
       _$$BhkTemplateImplFromJson(json);
@@ -179,10 +235,22 @@ class _$BhkTemplateImpl implements _BhkTemplate {
   final double defaultRent;
   @override
   final String? description;
+  @override
+  @JsonKey()
+  final int roomCount;
+  @override
+  @JsonKey()
+  final int kitchenCount;
+  @override
+  @JsonKey()
+  final int hallCount;
+  @override
+  @JsonKey()
+  final bool hasBalcony;
 
   @override
   String toString() {
-    return 'BhkTemplate(id: $id, houseId: $houseId, bhkType: $bhkType, defaultRent: $defaultRent, description: $description)';
+    return 'BhkTemplate(id: $id, houseId: $houseId, bhkType: $bhkType, defaultRent: $defaultRent, description: $description, roomCount: $roomCount, kitchenCount: $kitchenCount, hallCount: $hallCount, hasBalcony: $hasBalcony)';
   }
 
   @override
@@ -196,13 +264,21 @@ class _$BhkTemplateImpl implements _BhkTemplate {
             (identical(other.defaultRent, defaultRent) ||
                 other.defaultRent == defaultRent) &&
             (identical(other.description, description) ||
-                other.description == description));
+                other.description == description) &&
+            (identical(other.roomCount, roomCount) ||
+                other.roomCount == roomCount) &&
+            (identical(other.kitchenCount, kitchenCount) ||
+                other.kitchenCount == kitchenCount) &&
+            (identical(other.hallCount, hallCount) ||
+                other.hallCount == hallCount) &&
+            (identical(other.hasBalcony, hasBalcony) ||
+                other.hasBalcony == hasBalcony));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, houseId, bhkType, defaultRent, description);
+  int get hashCode => Object.hash(runtimeType, id, houseId, bhkType,
+      defaultRent, description, roomCount, kitchenCount, hallCount, hasBalcony);
 
   /// Create a copy of BhkTemplate
   /// with the given fields replaced by the non-null parameter values.
@@ -226,7 +302,11 @@ abstract class _BhkTemplate implements BhkTemplate {
       required final int houseId,
       required final String bhkType,
       required final double defaultRent,
-      final String? description}) = _$BhkTemplateImpl;
+      final String? description,
+      final int roomCount,
+      final int kitchenCount,
+      final int hallCount,
+      final bool hasBalcony}) = _$BhkTemplateImpl;
 
   factory _BhkTemplate.fromJson(Map<String, dynamic> json) =
       _$BhkTemplateImpl.fromJson;
@@ -241,6 +321,14 @@ abstract class _BhkTemplate implements BhkTemplate {
   double get defaultRent;
   @override
   String? get description;
+  @override
+  int get roomCount;
+  @override
+  int get kitchenCount;
+  @override
+  int get hallCount;
+  @override
+  bool get hasBalcony;
 
   /// Create a copy of BhkTemplate
   /// with the given fields replaced by the non-null parameter values.

@@ -357,7 +357,7 @@ class PrintService {
 
     await Printing.sharePdf(
       bytes: await pdf.save(),
-      filename: 'Receipt_${rentCycle.month}_${tenant.name}.pdf',
+      filename: 'Receipt_${rentCycle.month}_${tenant.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}.pdf',
     );
   }
 

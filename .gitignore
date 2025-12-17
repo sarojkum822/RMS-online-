@@ -51,3 +51,9 @@ google-services.json
 key.properties
 local.properties
 .env
+
+# Build Artifacts
+android/build/
+analysis_output*.txt
+analysis_report.txt
+apk-code-size-analysis_01.json

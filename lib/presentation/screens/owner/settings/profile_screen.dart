@@ -37,14 +37,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final ownerAsync = ref.watch(ownerControllerProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Owner Profile', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text('Owner Profile', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: theme.iconTheme,
         actions: [
           IconButton(
             onPressed: () async {
@@ -77,7 +79,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _isEditing = !_isEditing;
               });
             },
-            icon: Icon(_isEditing ? Icons.check : Icons.edit, color: _isEditing ? Colors.green : Colors.black),
+            icon: Icon(_isEditing ? Icons.check : Icons.edit, color: _isEditing ? Colors.green : theme.iconTheme.color),
           )
         ],
       ),
@@ -98,8 +100,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 50,
-                        backgroundColor: Colors.blueGrey[100],
-                        child: Text(owner?.name.substring(0, 1).toUpperCase() ?? 'O', style: GoogleFonts.outfit(fontSize: 40, color: Colors.blueGrey)),
+                        backgroundColor: theme.cardColor,
+                        child: Text(
+                          owner?.name.substring(0, 1).toUpperCase() ?? 'O', 
+                          style: GoogleFonts.outfit(fontSize: 40, color: theme.primaryColor)
+                        ),
                       ),
                       if (_isEditing)
                         Positioned(
@@ -107,7 +112,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           right: 0,
                           child: CircleAvatar(
                             radius: 18,
-                            backgroundColor: Colors.blue,
+                            backgroundColor: theme.primaryColor,
                             child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
                           ),
                         ),
@@ -116,12 +121,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                _buildTextField('Full Name', _nameController, Icons.person),
+                _buildTextField('Full Name', _nameController, Icons.person, theme, isDark),
                 const SizedBox(height: 16),
-                _buildTextField('Email', _emailController, Icons.email),
+                _buildTextField('Email', _emailController, Icons.email, theme, isDark),
                 const SizedBox(height: 16),
                 const SizedBox(height: 16),
-                _buildTextField('Phone', _phoneController, Icons.phone),
+                _buildTextField('Phone', _phoneController, Icons.phone, theme, isDark),
                 
                 const SizedBox(height: 32),
                 SizedBox(
@@ -161,16 +166,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon) {
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, ThemeData theme, bool isDark) {
     return TextFormField(
       controller: controller,
       enabled: _isEditing,
+      style: theme.textTheme.bodyMedium,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: !_isEditing,
-        fillColor: _isEditing ? Colors.white : Colors.grey[100],
+        labelStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+        prefixIcon: Icon(icon, color: theme.iconTheme.color?.withOpacity(0.7)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.dividerColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.dividerColor),
+        ),
+        filled: true,
+        fillColor: _isEditing 
+            ? theme.cardColor 
+            : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100]),
       ),
     );
   }

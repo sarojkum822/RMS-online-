@@ -1,4 +1,4 @@
-import '../entities/rent_cycle.dart';
+import '../../features/rent/domain/entities/rent_cycle.dart';
 import '../entities/expense.dart';
 
 class DashboardStats {
@@ -26,7 +26,7 @@ abstract class IRentRepository {
   Future<RentCycle?> getRentCycle(int id);
   Future<int> createRentCycle(RentCycle rentCycle);
   Future<void> updateRentCycle(RentCycle rentCycle);
-  Future<void> deleteRentCycle(int id);
+  Future<void> deleteRentCycle(RentCycle cycle);
 
   // Payments
   Future<List<Payment>> getAllPayments(); // NEW: Optimized Fetch for Reports

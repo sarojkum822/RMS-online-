@@ -7,7 +7,7 @@ part of 'bhk_template_controller.dart';
 // **************************************************************************
 
 String _$bhkTemplateControllerHash() =>
-    r'33269ce87ee8f8e864835c54a4d4a638443511cc';
+    r'0f885aa3f81bf0c9377f3b78b212c9773e66e91d';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -31,10 +31,10 @@ class _SystemHash {
 }
 
 abstract class _$BhkTemplateController
-    extends BuildlessAutoDisposeAsyncNotifier<List<BhkTemplate>> {
+    extends BuildlessAutoDisposeStreamNotifier<List<BhkTemplate>> {
   late final int houseId;
 
-  FutureOr<List<BhkTemplate>> build(
+  Stream<List<BhkTemplate>> build(
     int houseId,
   );
 }
@@ -84,7 +84,7 @@ class BhkTemplateControllerFamily
 
 /// See also [BhkTemplateController].
 class BhkTemplateControllerProvider
-    extends AutoDisposeAsyncNotifierProviderImpl<BhkTemplateController,
+    extends AutoDisposeStreamNotifierProviderImpl<BhkTemplateController,
         List<BhkTemplate>> {
   /// See also [BhkTemplateController].
   BhkTemplateControllerProvider(
@@ -116,7 +116,7 @@ class BhkTemplateControllerProvider
   final int houseId;
 
   @override
-  FutureOr<List<BhkTemplate>> runNotifierBuild(
+  Stream<List<BhkTemplate>> runNotifierBuild(
     covariant BhkTemplateController notifier,
   ) {
     return notifier.build(
@@ -141,7 +141,7 @@ class BhkTemplateControllerProvider
   }
 
   @override
-  AutoDisposeAsyncNotifierProviderElement<BhkTemplateController,
+  AutoDisposeStreamNotifierProviderElement<BhkTemplateController,
       List<BhkTemplate>> createElement() {
     return _BhkTemplateControllerProviderElement(this);
   }
@@ -163,13 +163,13 @@ class BhkTemplateControllerProvider
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 mixin BhkTemplateControllerRef
-    on AutoDisposeAsyncNotifierProviderRef<List<BhkTemplate>> {
+    on AutoDisposeStreamNotifierProviderRef<List<BhkTemplate>> {
   /// The parameter `houseId` of this provider.
   int get houseId;
 }
 
 class _BhkTemplateControllerProviderElement
-    extends AutoDisposeAsyncNotifierProviderElement<BhkTemplateController,
+    extends AutoDisposeStreamNotifierProviderElement<BhkTemplateController,
         List<BhkTemplate>> with BhkTemplateControllerRef {
   _BhkTemplateControllerProviderElement(super.provider);
 

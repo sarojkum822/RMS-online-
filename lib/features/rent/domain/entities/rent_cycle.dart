@@ -16,6 +16,7 @@ class RentCycle with _$RentCycle {
     required double baseRent,
     @Default(0.0) double electricAmount,
     @Default(0.0) double otherCharges,
+    @Default(0.0) double lateFee, // [NEW] Track late fees explicitly
     @Default(0.0) double discount,
     required double totalDue,
     @Default(0.0) double totalPaid,

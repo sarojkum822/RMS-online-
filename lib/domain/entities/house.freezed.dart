@@ -25,6 +25,8 @@ mixin _$House {
   String get address => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
   String? get imageUrl => throw _privateConstructorUsedError;
+  String? get imageBase64 =>
+      throw _privateConstructorUsedError; // NEW: Base64 storage
   int get unitCount => throw _privateConstructorUsedError;
 
   /// Serializes this House to a JSON map.
@@ -47,6 +49,7 @@ abstract class $HouseCopyWith<$Res> {
       String address,
       String? notes,
       String? imageUrl,
+      String? imageBase64,
       int unitCount});
 }
 
@@ -70,6 +73,7 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
     Object? address = null,
     Object? notes = freezed,
     Object? imageUrl = freezed,
+    Object? imageBase64 = freezed,
     Object? unitCount = null,
   }) {
     return _then(_value.copyWith(
@@ -93,6 +97,10 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
           ? _value.imageUrl
           : imageUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      imageBase64: freezed == imageBase64
+          ? _value.imageBase64
+          : imageBase64 // ignore: cast_nullable_to_non_nullable
+              as String?,
       unitCount: null == unitCount
           ? _value.unitCount
           : unitCount // ignore: cast_nullable_to_non_nullable
@@ -114,6 +122,7 @@ abstract class _$$HouseImplCopyWith<$Res> implements $HouseCopyWith<$Res> {
       String address,
       String? notes,
       String? imageUrl,
+      String? imageBase64,
       int unitCount});
 }
 
@@ -135,6 +144,7 @@ class __$$HouseImplCopyWithImpl<$Res>
     Object? address = null,
     Object? notes = freezed,
     Object? imageUrl = freezed,
+    Object? imageBase64 = freezed,
     Object? unitCount = null,
   }) {
     return _then(_$HouseImpl(
@@ -158,6 +168,10 @@ class __$$HouseImplCopyWithImpl<$Res>
           ? _value.imageUrl
           : imageUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      imageBase64: freezed == imageBase64
+          ? _value.imageBase64
+          : imageBase64 // ignore: cast_nullable_to_non_nullable
+              as String?,
       unitCount: null == unitCount
           ? _value.unitCount
           : unitCount // ignore: cast_nullable_to_non_nullable
@@ -175,6 +189,7 @@ class _$HouseImpl implements _House {
       required this.address,
       this.notes,
       this.imageUrl,
+      this.imageBase64,
       this.unitCount = 0});
 
   factory _$HouseImpl.fromJson(Map<String, dynamic> json) =>
@@ -191,12 +206,15 @@ class _$HouseImpl implements _House {
   @override
   final String? imageUrl;
   @override
+  final String? imageBase64;
+// NEW: Base64 storage
+  @override
   @JsonKey()
   final int unitCount;
 
   @override
   String toString() {
-    return 'House(id: $id, name: $name, address: $address, notes: $notes, imageUrl: $imageUrl, unitCount: $unitCount)';
+    return 'House(id: $id, name: $name, address: $address, notes: $notes, imageUrl: $imageUrl, imageBase64: $imageBase64, unitCount: $unitCount)';
   }
 
   @override
@@ -210,14 +228,16 @@ class _$HouseImpl implements _House {
             (identical(other.notes, notes) || other.notes == notes) &&
             (identical(other.imageUrl, imageUrl) ||
                 other.imageUrl == imageUrl) &&
+            (identical(other.imageBase64, imageBase64) ||
+                other.imageBase64 == imageBase64) &&
             (identical(other.unitCount, unitCount) ||
                 other.unitCount == unitCount));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, address, notes, imageUrl, unitCount);
+  int get hashCode => Object.hash(
+      runtimeType, id, name, address, notes, imageUrl, imageBase64, unitCount);
 
   /// Create a copy of House
   /// with the given fields replaced by the non-null parameter values.
@@ -242,6 +262,7 @@ abstract class _House implements House {
       required final String address,
       final String? notes,
       final String? imageUrl,
+      final String? imageBase64,
       final int unitCount}) = _$HouseImpl;
 
   factory _House.fromJson(Map<String, dynamic> json) = _$HouseImpl.fromJson;
@@ -256,6 +277,8 @@ abstract class _House implements House {
   String? get notes;
   @override
   String? get imageUrl;
+  @override
+  String? get imageBase64; // NEW: Base64 storage
   @override
   int get unitCount;
 
@@ -288,7 +311,10 @@ mixin _$Unit {
   String? get parkingSlot => throw _privateConstructorUsedError;
   String? get meterNumber => throw _privateConstructorUsedError;
   int get defaultDueDay => throw _privateConstructorUsedError;
-  bool get isOccupied => throw _privateConstructorUsedError;
+  bool get isOccupied =>
+      throw _privateConstructorUsedError; // NEW: Image Upload Support (Max 4 images)
+  List<String> get imageUrls => throw _privateConstructorUsedError;
+  List<String> get imagesBase64 => throw _privateConstructorUsedError;
 
   /// Serializes this Unit to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -319,7 +345,9 @@ abstract class $UnitCopyWith<$Res> {
       String? parkingSlot,
       String? meterNumber,
       int defaultDueDay,
-      bool isOccupied});
+      bool isOccupied,
+      List<String> imageUrls,
+      List<String> imagesBase64});
 }
 
 /// @nodoc
@@ -352,6 +380,8 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
     Object? meterNumber = freezed,
     Object? defaultDueDay = null,
     Object? isOccupied = null,
+    Object? imageUrls = null,
+    Object? imagesBase64 = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -414,6 +444,14 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
           ? _value.isOccupied
           : isOccupied // ignore: cast_nullable_to_non_nullable
               as bool,
+      imageUrls: null == imageUrls
+          ? _value.imageUrls
+          : imageUrls // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      imagesBase64: null == imagesBase64
+          ? _value.imagesBase64
+          : imagesBase64 // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 }
@@ -440,7 +478,9 @@ abstract class _$$UnitImplCopyWith<$Res> implements $UnitCopyWith<$Res> {
       String? parkingSlot,
       String? meterNumber,
       int defaultDueDay,
-      bool isOccupied});
+      bool isOccupied,
+      List<String> imageUrls,
+      List<String> imagesBase64});
 }
 
 /// @nodoc
@@ -470,6 +510,8 @@ class __$$UnitImplCopyWithImpl<$Res>
     Object? meterNumber = freezed,
     Object? defaultDueDay = null,
     Object? isOccupied = null,
+    Object? imageUrls = null,
+    Object? imagesBase64 = null,
   }) {
     return _then(_$UnitImpl(
       id: null == id
@@ -532,6 +574,14 @@ class __$$UnitImplCopyWithImpl<$Res>
           ? _value.isOccupied
           : isOccupied // ignore: cast_nullable_to_non_nullable
               as bool,
+      imageUrls: null == imageUrls
+          ? _value._imageUrls
+          : imageUrls // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      imagesBase64: null == imagesBase64
+          ? _value._imagesBase64
+          : imagesBase64 // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -554,7 +604,11 @@ class _$UnitImpl implements _Unit {
       this.parkingSlot,
       this.meterNumber,
       this.defaultDueDay = 1,
-      this.isOccupied = false});
+      this.isOccupied = false,
+      final List<String> imageUrls = const [],
+      final List<String> imagesBase64 = const []})
+      : _imageUrls = imageUrls,
+        _imagesBase64 = imagesBase64;
 
   factory _$UnitImpl.fromJson(Map<String, dynamic> json) =>
       _$$UnitImplFromJson(json);
@@ -593,10 +647,29 @@ class _$UnitImpl implements _Unit {
   @override
   @JsonKey()
   final bool isOccupied;
+// NEW: Image Upload Support (Max 4 images)
+  final List<String> _imageUrls;
+// NEW: Image Upload Support (Max 4 images)
+  @override
+  @JsonKey()
+  List<String> get imageUrls {
+    if (_imageUrls is EqualUnmodifiableListView) return _imageUrls;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_imageUrls);
+  }
+
+  final List<String> _imagesBase64;
+  @override
+  @JsonKey()
+  List<String> get imagesBase64 {
+    if (_imagesBase64 is EqualUnmodifiableListView) return _imagesBase64;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_imagesBase64);
+  }
 
   @override
   String toString() {
-    return 'Unit(id: $id, houseId: $houseId, nameOrNumber: $nameOrNumber, floor: $floor, baseRent: $baseRent, bhkTemplateId: $bhkTemplateId, bhkType: $bhkType, editableRent: $editableRent, tenantId: $tenantId, furnishingStatus: $furnishingStatus, carpetArea: $carpetArea, parkingSlot: $parkingSlot, meterNumber: $meterNumber, defaultDueDay: $defaultDueDay, isOccupied: $isOccupied)';
+    return 'Unit(id: $id, houseId: $houseId, nameOrNumber: $nameOrNumber, floor: $floor, baseRent: $baseRent, bhkTemplateId: $bhkTemplateId, bhkType: $bhkType, editableRent: $editableRent, tenantId: $tenantId, furnishingStatus: $furnishingStatus, carpetArea: $carpetArea, parkingSlot: $parkingSlot, meterNumber: $meterNumber, defaultDueDay: $defaultDueDay, isOccupied: $isOccupied, imageUrls: $imageUrls, imagesBase64: $imagesBase64)';
   }
 
   @override
@@ -629,7 +702,11 @@ class _$UnitImpl implements _Unit {
             (identical(other.defaultDueDay, defaultDueDay) ||
                 other.defaultDueDay == defaultDueDay) &&
             (identical(other.isOccupied, isOccupied) ||
-                other.isOccupied == isOccupied));
+                other.isOccupied == isOccupied) &&
+            const DeepCollectionEquality()
+                .equals(other._imageUrls, _imageUrls) &&
+            const DeepCollectionEquality()
+                .equals(other._imagesBase64, _imagesBase64));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -650,7 +727,9 @@ class _$UnitImpl implements _Unit {
       parkingSlot,
       meterNumber,
       defaultDueDay,
-      isOccupied);
+      isOccupied,
+      const DeepCollectionEquality().hash(_imageUrls),
+      const DeepCollectionEquality().hash(_imagesBase64));
 
   /// Create a copy of Unit
   /// with the given fields replaced by the non-null parameter values.
@@ -684,7 +763,9 @@ abstract class _Unit implements Unit {
       final String? parkingSlot,
       final String? meterNumber,
       final int defaultDueDay,
-      final bool isOccupied}) = _$UnitImpl;
+      final bool isOccupied,
+      final List<String> imageUrls,
+      final List<String> imagesBase64}) = _$UnitImpl;
 
   factory _Unit.fromJson(Map<String, dynamic> json) = _$UnitImpl.fromJson;
 
@@ -717,7 +798,11 @@ abstract class _Unit implements Unit {
   @override
   int get defaultDueDay;
   @override
-  bool get isOccupied;
+  bool get isOccupied; // NEW: Image Upload Support (Max 4 images)
+  @override
+  List<String> get imageUrls;
+  @override
+  List<String> get imagesBase64;
 
   /// Create a copy of Unit
   /// with the given fields replaced by the non-null parameter values.

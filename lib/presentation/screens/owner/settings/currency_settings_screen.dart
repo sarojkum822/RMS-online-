@@ -20,13 +20,14 @@ class _CurrencySettingsScreenState extends State<CurrencySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Currency', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text('Currency', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: theme.iconTheme,
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(20),
@@ -38,9 +39,9 @@ class _CurrencySettingsScreenState extends State<CurrencySettingsScreen> {
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(12),
-              border: isSelected ? Border.all(color: Colors.black, width: 2) : null,
+              border: isSelected ? Border.all(color: theme.colorScheme.primary, width: 2) : Border.all(color: theme.dividerColor),
             ),
             child: ListTile(
               onTap: () {
@@ -49,12 +50,12 @@ class _CurrencySettingsScreenState extends State<CurrencySettingsScreen> {
               },
               leading: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-                child: Text(currency['symbol']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                decoration: BoxDecoration(color: theme.dividerColor.withOpacity(0.1), shape: BoxShape.circle),
+                child: Text(currency['symbol']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.textTheme.bodyLarge?.color)),
               ),
-              title: Text(currency['name']!, style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-              subtitle: Text(currency['code']!, style: GoogleFonts.outfit(color: Colors.grey)),
-              trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.black) : null,
+              title: Text(currency['name']!, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
+              subtitle: Text(currency['code']!, style: GoogleFonts.outfit(color: theme.hintColor)),
+              trailing: isSelected ? Icon(Icons.check_circle, color: theme.colorScheme.primary) : null,
             ),
           );
         },

@@ -1,4 +1,4 @@
- 
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/house.dart' as domain;
@@ -17,18 +17,19 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   // --- Houses ---
 
   @override
-  Future<List<domain.House>> getHouses() async {
-    if (_uid == null) return [];
+  Stream<List<domain.House>> getHouses() {
+    final uid = _uid;
+    if (uid == null) return Stream.value([]);
     
-    final snapshot = await _firestore.collection('houses')
-      .where('ownerId', isEqualTo: _uid)
-      .get();
-      
-    // Filter in Dart to rely only on default ownerId index
-    return snapshot.docs
-        .where((doc) => doc.data()['isDeleted'] != true)
-        .map((doc) => _mapHouse(doc))
-        .toList();
+    return _firestore.collection('houses')
+      .where('ownerId', isEqualTo: uid)
+      .snapshots()
+      .map((snapshot) {
+        return snapshot.docs
+          .where((doc) => doc.data()['isDeleted'] != true)
+          .map((doc) => _mapHouse(doc))
+          .toList();
+      });
   }
 
   @override
@@ -36,11 +37,12 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     if (_uid == null) return null;
 
     final snapshot = await _firestore.collection('houses')
-      .where('ownerId', isEqualTo: _uid) // CRITICAL
-      .where('id', isEqualTo: id)
-      .limit(1)
-      .get();
-      
+        .where('ownerId', isEqualTo: _uid) 
+        .where('id', isEqualTo: id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
     if (snapshot.docs.isEmpty) return null;
     final data = snapshot.docs.first.data();
     if (data['isDeleted'] == true) return null;
@@ -50,11 +52,12 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   @override
   Future<domain.House?> getHouseForTenant(int id, String ownerId) async {
     final snapshot = await _firestore.collection('houses')
-      .where('ownerId', isEqualTo: ownerId)
-      .where('id', isEqualTo: id)
-      .limit(1)
-      .get();
-      
+        .where('ownerId', isEqualTo: ownerId)
+        .where('id', isEqualTo: id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
     if (snapshot.docs.isEmpty) return null;
     final data = snapshot.docs.first.data();
     if (data['isDeleted'] == true) return null;
@@ -74,7 +77,8 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       'name': house.name,
       'address': house.address,
       'notes': house.notes,
-      'imageUrl': house.imageUrl, // Save URL if already exists (e.g. from copy), otherwise null
+      'imageUrl': house.imageUrl, 
+      'imageBase64': house.imageBase64, 
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
       'isDeleted': false,
@@ -87,17 +91,19 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   @override
   Future<void> updateHouse(domain.House house) async {
     final snapshot = await _firestore.collection('houses')
-      .where('ownerId', isEqualTo: _uid)
-      .where('id', isEqualTo: house.id)
-      .limit(1)
-      .get();
-      
+        .where('ownerId', isEqualTo: _uid)
+        .where('id', isEqualTo: house.id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
     if (snapshot.docs.isNotEmpty) {
       await snapshot.docs.first.reference.update({
         'name': house.name,
         'address': house.address,
         'notes': house.notes,
-        'imageUrl': house.imageUrl, // Update URL if changed logic exists elsewhere (purely metadata now)
+        'imageUrl': house.imageUrl, 
+        'imageBase64': house.imageBase64, 
         'lastUpdated': FieldValue.serverTimestamp(),
       });
     }
@@ -109,23 +115,23 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     
     // 1. Get House
     final houseSnapshot = await _firestore.collection('houses')
-      .where('ownerId', isEqualTo: _uid)
-      .where('id', isEqualTo: id)
-      .limit(1)
-      .get();
-      
-    if (houseSnapshot.docs.isEmpty) return; // Nothing to delete
+        .where('ownerId', isEqualTo: _uid)
+        .where('id', isEqualTo: id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
+    if (houseSnapshot.docs.isEmpty) return; 
 
-    // 2. Soft Delete House
     // 2. Delete House (Hard Delete)
     batch.delete(houseSnapshot.docs.first.reference);
       
     // 3. Get Units
     final unitsSnapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: _uid) // Ensure we only touch OUR units
-      .where('houseId', isEqualTo: id)
-      .get();
-      
+        .where('ownerId', isEqualTo: _uid) 
+        .where('houseId', isEqualTo: id)
+        .get();
+        
     // 4. Delete Units (Hard Delete)
     for (final doc in unitsSnapshot.docs) {
       batch.delete(doc.reference);
@@ -135,31 +141,31 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     await batch.commit();
   }
 
-  // --- Units (Unchanged logic, just keeping structure) ---
+  // --- Units ---
 
   @override
-  Future<List<domain.Unit>> getAllUnits() async {
-    if (_uid == null) return [];
+  Stream<List<domain.Unit>> getAllUnits() {
+    final uid = _uid;
+    if (uid == null) return Stream.value([]);
     
-    final snapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: _uid)
-      .where('isDeleted', isEqualTo: false)
-      .get();
-      
-    return snapshot.docs.map((doc) => _mapUnit(doc)).toList();
+    return _firestore.collection('units')
+        .where('ownerId', isEqualTo: uid)
+        .where('isDeleted', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => _mapUnit(doc)).toList());
   }
 
   @override
-  Future<List<domain.Unit>> getUnits(int houseId) async {
-    if (_uid == null) return [];
+  Stream<List<domain.Unit>> getUnits(int houseId) {
+    final uid = _uid;
+    if (uid == null) return Stream.value([]);
 
-    final snapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: _uid) // CRITICAL
-      .where('houseId', isEqualTo: houseId)
-      .where('isDeleted', isEqualTo: false)
-      .get();
-      
-    return snapshot.docs.map((doc) => _mapUnit(doc)).toList();
+    return _firestore.collection('units')
+        .where('ownerId', isEqualTo: uid) 
+        .where('houseId', isEqualTo: houseId)
+        .where('isDeleted', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => _mapUnit(doc)).toList());
   }
 
   @override
@@ -167,11 +173,12 @@ class PropertyRepositoryImpl implements IPropertyRepository {
      if (_uid == null) return null;
 
     final snapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: _uid) // CRITICAL
-      .where('id', isEqualTo: id)
-      .limit(1)
-      .get();
-      
+        .where('ownerId', isEqualTo: _uid) 
+        .where('id', isEqualTo: id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
     if (snapshot.docs.isEmpty) return null;
     final data = snapshot.docs.first.data();
     if (data['isDeleted'] == true) return null;
@@ -181,11 +188,12 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   @override
   Future<domain.Unit?> getUnitForTenant(int id, String ownerId) async {
     final snapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: ownerId)
-      .where('id', isEqualTo: id)
-      .limit(1)
-      .get();
-      
+        .where('ownerId', isEqualTo: ownerId)
+        .where('id', isEqualTo: id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
     if (snapshot.docs.isEmpty) return null;
     final data = snapshot.docs.first.data();
     if (data['isDeleted'] == true) return null;
@@ -220,6 +228,8 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       'carpetArea': unit.carpetArea,
       'parkingSlot': unit.parkingSlot,
       'meterNumber': unit.meterNumber,
+      
+      'imagesBase64': unit.imagesBase64, 
     };
     
     await _firestore.collection('units').add(data);
@@ -229,11 +239,12 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   @override
   Future<void> updateUnit(domain.Unit unit) async {
     final snapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: _uid)
-      .where('id', isEqualTo: unit.id)
-      .limit(1)
-      .get();
-      
+        .where('ownerId', isEqualTo: _uid)
+        .where('id', isEqualTo: unit.id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
     if (snapshot.docs.isNotEmpty) {
       await snapshot.docs.first.reference.update({
         'nameOrNumber': unit.nameOrNumber,
@@ -250,9 +261,11 @@ class PropertyRepositoryImpl implements IPropertyRepository {
         'carpetArea': unit.carpetArea,
         'parkingSlot': unit.parkingSlot,
         'meterNumber': unit.meterNumber,
+        
+        'imagesBase64': unit.imagesBase64, 
 
         'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      }).timeout(const Duration(seconds: 10));
     }
   }
 
@@ -264,10 +277,10 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     final houseId = units.first.houseId;
 
     final snapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: _uid)
-      .where('houseId', isEqualTo: houseId)
-      .get();
-      
+        .where('ownerId', isEqualTo: _uid)
+        .where('houseId', isEqualTo: houseId)
+        .get();
+        
     final Map<int, DocumentReference> idToRefMap = {};
     for (var doc in snapshot.docs) {
       final data = doc.data();
@@ -293,6 +306,8 @@ class PropertyRepositoryImpl implements IPropertyRepository {
           'carpetArea': unit.carpetArea,
           'parkingSlot': unit.parkingSlot,
           'meterNumber': unit.meterNumber,
+          
+          'imagesBase64': unit.imagesBase64, 
 
           'lastUpdated': FieldValue.serverTimestamp(),
         });
@@ -305,11 +320,12 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   @override
   Future<void> deleteUnit(int id) async {
      final snapshot = await _firestore.collection('units')
-      .where('ownerId', isEqualTo: _uid) // Safety
-      .where('id', isEqualTo: id)
-      .limit(1)
-      .get();
-      
+        .where('ownerId', isEqualTo: _uid) 
+        .where('id', isEqualTo: id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
     if (snapshot.docs.isNotEmpty) {
       // Hard Delete
       await snapshot.docs.first.reference.delete();
@@ -332,6 +348,10 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       'bhkType': template.bhkType,
       'defaultRent': template.defaultRent,
       'description': template.description,
+      'roomCount': template.roomCount,
+      'kitchenCount': template.kitchenCount,
+      'hallCount': template.hallCount,
+      'hasBalcony': template.hasBalcony,
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
       'isDeleted': false,
@@ -342,18 +362,43 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
   
   @override
-  Future<List<domain.BhkTemplate>> getBhkTemplates(int houseId) async {
-    if (_uid == null) return [];
-    
+  Future<void> updateBhkTemplate(domain.BhkTemplate template) async {
     final snapshot = await _firestore.collection('bhkTemplates')
-      .where('ownerId', isEqualTo: _uid)
-      .where('houseId', isEqualTo: houseId)
-      .get();
-      
-    return snapshot.docs
-      .where((doc) => doc.data()['isDeleted'] != true)
-      .map((doc) => _mapBhkTemplate(doc))
-      .toList();
+        .where('ownerId', isEqualTo: _uid)
+        .where('id', isEqualTo: template.id)
+        .limit(1)
+        .get()
+        .timeout(const Duration(seconds: 10));
+        
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.update({
+        'bhkType': template.bhkType,
+        'defaultRent': template.defaultRent,
+        'description': template.description,
+        'roomCount': template.roomCount,
+        'kitchenCount': template.kitchenCount,
+        'hallCount': template.hallCount,
+        'hasBalcony': template.hasBalcony,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+  
+  @override
+  Stream<List<domain.BhkTemplate>> getBhkTemplates(int houseId) {
+    final uid = _uid;
+    if (uid == null) return Stream.value([]);
+    
+    return _firestore.collection('bhkTemplates')
+        .where('ownerId', isEqualTo: uid)
+        .where('houseId', isEqualTo: houseId)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+            .where((doc) => doc.data()['isDeleted'] != true)
+            .map((doc) => _mapBhkTemplate(doc))
+            .toList();
+        });
   }
 
   // --- Mappers ---
@@ -366,6 +411,10 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       bhkType: data['bhkType'],
       defaultRent: (data['defaultRent'] as num).toDouble(),
       description: data['description'],
+      roomCount: data['roomCount'] ?? 1,
+      kitchenCount: data['kitchenCount'] ?? 1,
+      hallCount: data['hallCount'] ?? 1,
+      hasBalcony: data['hasBalcony'] ?? false,
     );
   }
 
@@ -377,6 +426,7 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       address: data['address'],
       notes: data['notes'],
       imageUrl: data['imageUrl'], 
+      imageBase64: data['imageBase64'], 
       unitCount: 0, 
     );
   }
@@ -402,6 +452,9 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       
       defaultDueDay: data['defaultDueDay'],
       isOccupied: data['isOccupied'] ?? false,
+      
+      imagesBase64: (data['imagesBase64'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [], 
+      imageUrls: (data['imageUrls'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [], 
     );
   }
 }

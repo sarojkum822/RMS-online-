@@ -38,7 +38,7 @@ class OwnerController extends AsyncNotifier<Owner?> {
       name: name,
       email: email,
       phone: phone,
-      firestoreId: firestoreId ?? currentOwner.firestoreId, // Update if provided
+      firestoreId: firestoreId ?? currentOwner.firestoreId,
     );
 
     state = const AsyncValue.loading();
@@ -47,6 +47,8 @@ class OwnerController extends AsyncNotifier<Owner?> {
       return updatedOwner;
     });
   }
+
+
 }
 
 final ownerControllerProvider = AsyncNotifierProvider<OwnerController, Owner?>(() {

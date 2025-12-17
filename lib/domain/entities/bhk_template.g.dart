@@ -13,6 +13,10 @@ _$BhkTemplateImpl _$$BhkTemplateImplFromJson(Map<String, dynamic> json) =>
       bhkType: json['bhkType'] as String,
       defaultRent: (json['defaultRent'] as num).toDouble(),
       description: json['description'] as String?,
+      roomCount: (json['roomCount'] as num?)?.toInt() ?? 1,
+      kitchenCount: (json['kitchenCount'] as num?)?.toInt() ?? 1,
+      hallCount: (json['hallCount'] as num?)?.toInt() ?? 1,
+      hasBalcony: json['hasBalcony'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$BhkTemplateImplToJson(_$BhkTemplateImpl instance) =>
@@ -22,4 +26,8 @@ Map<String, dynamic> _$$BhkTemplateImplToJson(_$BhkTemplateImpl instance) =>
       'bhkType': instance.bhkType,
       'defaultRent': instance.defaultRent,
       'description': instance.description,
+      'roomCount': instance.roomCount,
+      'kitchenCount': instance.kitchenCount,
+      'hallCount': instance.hallCount,
+      'hasBalcony': instance.hasBalcony,
     };

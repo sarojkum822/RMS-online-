@@ -92,11 +92,37 @@ class DialogUtils {
     try {
       await asyncFunction();
     } finally {
-      // Ensure specific context check isn't needed if we trust the stack, 
-      // but safe to check mounted for robustness in big apps.
-      if (context.mounted) {
+      if (context.mounted && Navigator.of(context, rootNavigator: true).canPop()) {
          hideLoading(context);
       }
     }
+  }
+  static void showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+             ClipRRect(
+               borderRadius: BorderRadius.circular(16),
+               child: Image.network(imageUrl, fit: BoxFit.contain),
+             ),
+             Positioned(
+               top: 0,
+               right: 0,
+               child: Container(
+                 decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                 child: IconButton(
+                   icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                   onPressed: () => Navigator.pop(ctx),
+                 ),
+               ),
+             ),
+          ],
+        ),
+      ),
+    );
   }
 }

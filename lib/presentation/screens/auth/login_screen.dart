@@ -51,6 +51,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() {
         _canCheckBiometrics = available && enabled && creds != null;
         _isBiometricEnabled = enabled; // Track preference
+        
+        // AUTOFILL: Populate fields if credentials exist
+        if (creds != null) {
+          _emailCtrl.text = creds['email']!;
+          _passwordCtrl.text = creds['password']!;
+        }
       });
       
       // Auto-trigger if enabled and available

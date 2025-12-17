@@ -2,7 +2,7 @@ import 'dart:io';
 import '../entities/tenant.dart';
 
 abstract class ITenantRepository {
-  Future<List<Tenant>> getAllTenants();
+  Stream<List<Tenant>> getAllTenants(); 
   Future<Tenant?> getTenant(int id);
   Future<Tenant?> getTenantByCode(String code);
   Future<Tenant?> getTenantByAuthId(String authId);

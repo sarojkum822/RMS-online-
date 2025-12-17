@@ -13,6 +13,7 @@ class Owners extends Table with SyncableTable {
   TextColumn get name => text()();
   TextColumn get phone => text().nullable()();
   TextColumn get email => text().nullable()();
+  TextColumn get subscriptionPlan => text().withDefault(const Constant('free'))();
   TextColumn get currency => text().withDefault(const Constant('INR'))();
   TextColumn get timezone => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -32,6 +33,10 @@ class BhkTemplates extends Table with SyncableTable {
   TextColumn get bhkType => text()(); // "1BHK", "Studio"
   RealColumn get defaultRent => real()();
   TextColumn get description => text().nullable()();
+  IntColumn get roomCount => integer().withDefault(const Constant(1))();
+  IntColumn get kitchenCount => integer().withDefault(const Constant(1))();
+  IntColumn get hallCount => integer().withDefault(const Constant(1))();
+  BoolColumn get hasBalcony => boolean().withDefault(const Constant(false))();
 }
 
 class Units extends Table with SyncableTable {

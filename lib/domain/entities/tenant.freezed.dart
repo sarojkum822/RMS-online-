@@ -33,6 +33,8 @@ mixin _$Tenant {
   double? get agreedRent => throw _privateConstructorUsedError;
   String? get password => throw _privateConstructorUsedError;
   String? get imageUrl => throw _privateConstructorUsedError;
+  String? get imageBase64 =>
+      throw _privateConstructorUsedError; // NEW: Base64 Storage
   String? get authId =>
       throw _privateConstructorUsedError; // Firebase Auth UID for secure login
   String get ownerId => throw _privateConstructorUsedError;
@@ -65,6 +67,7 @@ abstract class $TenantCopyWith<$Res> {
       double? agreedRent,
       String? password,
       String? imageUrl,
+      String? imageBase64,
       String? authId,
       String ownerId});
 }
@@ -97,6 +100,7 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
     Object? agreedRent = freezed,
     Object? password = freezed,
     Object? imageUrl = freezed,
+    Object? imageBase64 = freezed,
     Object? authId = freezed,
     Object? ownerId = null,
   }) {
@@ -153,6 +157,10 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
           ? _value.imageUrl
           : imageUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      imageBase64: freezed == imageBase64
+          ? _value.imageBase64
+          : imageBase64 // ignore: cast_nullable_to_non_nullable
+              as String?,
       authId: freezed == authId
           ? _value.authId
           : authId // ignore: cast_nullable_to_non_nullable
@@ -186,6 +194,7 @@ abstract class _$$TenantImplCopyWith<$Res> implements $TenantCopyWith<$Res> {
       double? agreedRent,
       String? password,
       String? imageUrl,
+      String? imageBase64,
       String? authId,
       String ownerId});
 }
@@ -216,6 +225,7 @@ class __$$TenantImplCopyWithImpl<$Res>
     Object? agreedRent = freezed,
     Object? password = freezed,
     Object? imageUrl = freezed,
+    Object? imageBase64 = freezed,
     Object? authId = freezed,
     Object? ownerId = null,
   }) {
@@ -272,6 +282,10 @@ class __$$TenantImplCopyWithImpl<$Res>
           ? _value.imageUrl
           : imageUrl // ignore: cast_nullable_to_non_nullable
               as String?,
+      imageBase64: freezed == imageBase64
+          ? _value.imageBase64
+          : imageBase64 // ignore: cast_nullable_to_non_nullable
+              as String?,
       authId: freezed == authId
           ? _value.authId
           : authId // ignore: cast_nullable_to_non_nullable
@@ -301,6 +315,7 @@ class _$TenantImpl implements _Tenant {
       this.agreedRent,
       this.password,
       this.imageUrl,
+      this.imageBase64,
       this.authId,
       required this.ownerId});
 
@@ -336,6 +351,9 @@ class _$TenantImpl implements _Tenant {
   @override
   final String? imageUrl;
   @override
+  final String? imageBase64;
+// NEW: Base64 Storage
+  @override
   final String? authId;
 // Firebase Auth UID for secure login
   @override
@@ -343,7 +361,7 @@ class _$TenantImpl implements _Tenant {
 
   @override
   String toString() {
-    return 'Tenant(id: $id, houseId: $houseId, unitId: $unitId, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, startDate: $startDate, status: $status, openingBalance: $openingBalance, agreedRent: $agreedRent, password: $password, imageUrl: $imageUrl, authId: $authId, ownerId: $ownerId)';
+    return 'Tenant(id: $id, houseId: $houseId, unitId: $unitId, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, startDate: $startDate, status: $status, openingBalance: $openingBalance, agreedRent: $agreedRent, password: $password, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId, ownerId: $ownerId)';
   }
 
   @override
@@ -370,6 +388,8 @@ class _$TenantImpl implements _Tenant {
                 other.password == password) &&
             (identical(other.imageUrl, imageUrl) ||
                 other.imageUrl == imageUrl) &&
+            (identical(other.imageBase64, imageBase64) ||
+                other.imageBase64 == imageBase64) &&
             (identical(other.authId, authId) || other.authId == authId) &&
             (identical(other.ownerId, ownerId) || other.ownerId == ownerId));
   }
@@ -391,6 +411,7 @@ class _$TenantImpl implements _Tenant {
       agreedRent,
       password,
       imageUrl,
+      imageBase64,
       authId,
       ownerId);
 
@@ -425,6 +446,7 @@ abstract class _Tenant implements Tenant {
       final double? agreedRent,
       final String? password,
       final String? imageUrl,
+      final String? imageBase64,
       final String? authId,
       required final String ownerId}) = _$TenantImpl;
 
@@ -456,6 +478,8 @@ abstract class _Tenant implements Tenant {
   String? get password;
   @override
   String? get imageUrl;
+  @override
+  String? get imageBase64; // NEW: Base64 Storage
   @override
   String? get authId; // Firebase Auth UID for secure login
   @override

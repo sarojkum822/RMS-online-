@@ -43,56 +43,59 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Notifications', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text('Notifications', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: theme.iconTheme,
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator()) 
         : ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildSectionHeader('Channels'),
-          _buildSwitch('Push Notifications', 'Receive alerts on your device', _pushNotifs, (v) => _updateSettings(v)),
-          _buildSwitch('Email Notifications', 'Receive updates via email', _emailNotifs, (v) => setState(() => _emailNotifs = v)),
+          _buildSectionHeader('Channels', theme),
+          _buildSwitch(context, 'Push Notifications', 'Receive alerts on your device', _pushNotifs, (v) => _updateSettings(v)),
+          _buildSwitch(context, 'Email Notifications', 'Receive updates via email', _emailNotifs, (v) => setState(() => _emailNotifs = v)),
           
-          const Divider(height: 32),
+          Divider(height: 32, color: theme.dividerColor),
           
-          _buildSectionHeader('Alert Types'),
-          _buildSwitch('Rent Due Reminders', 'Notify when rent is due', _rentDueReminders, (v) {
+          _buildSectionHeader('Alert Types', theme),
+          _buildSwitch(context, 'Rent Due Reminders', 'Notify when rent is due', _rentDueReminders, (v) {
              // For now just toggle UI, but realistically if master is off, this shouldn't work
              setState(() => _rentDueReminders = v);
           }),
-          _buildSwitch('Payment Received', 'Notify when a tenant pays', _paymentReceived, (v) => setState(() => _paymentReceived = v)),
+          _buildSwitch(context, 'Payment Received', 'Notify when a tenant pays', _paymentReceived, (v) => setState(() => _paymentReceived = v)),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+      child: Text(title, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: theme.hintColor)),
     );
   }
 
-  Widget _buildSwitch(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitch(BuildContext context, String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: SwitchListTile(
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
-        subtitle: Text(subtitle, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color)),
+        subtitle: Text(subtitle, style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color)),
         value: value,
         onChanged: onChanged,
-        activeThumbColor: Colors.black,
+        activeThumbColor: theme.colorScheme.primary,
       ),
     );
   }

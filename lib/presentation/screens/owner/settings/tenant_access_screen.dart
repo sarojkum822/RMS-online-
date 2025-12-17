@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // For clipboard
+import 'package:flutter/services.dart'; 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,7 +15,6 @@ class TenantAccessScreen extends ConsumerStatefulWidget {
 }
 
 class _TenantAccessScreenState extends ConsumerState<TenantAccessScreen> {
-  // Map to track visibility state of passwords for each tenant ID
   final Map<int, bool> _visiblePasswords = {};
 
   void _toggleVisibility(int id) {
@@ -67,10 +66,7 @@ Please download the app and log in.
       await launchUrl(url);
     } else {
       if(mounted) {
-         // Fallback to standard share if WhatsApp not installed
          Share.share(message);
-         // Or show snackbar
-         // ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp not installed. Opening standard share.')));
       }
     }
   }
@@ -78,18 +74,20 @@ Please download the app and log in.
   @override
   Widget build(BuildContext context) {
     final tenantsAsync = ref.watch(tenantRepositoryProvider).getAllTenants();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50], // AppTheme.background
+      backgroundColor: theme.scaffoldBackgroundColor, 
       appBar: AppBar(
-        title: Text('Tenant Access', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text('Tenant Access', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        foregroundColor: Colors.black,
+        iconTheme: theme.iconTheme,
       ),
-      body: FutureBuilder<List<Tenant>>(
-        future: tenantsAsync,
+      body: StreamBuilder<List<Tenant>>(
+        stream: tenantsAsync,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -104,15 +102,14 @@ Please download the app and log in.
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                   Icon(Icons.people_outline, size: 64, color: theme.disabledColor),
                    const SizedBox(height: 16),
-                   Text('No tenants found', style: GoogleFonts.outfit(fontSize: 18, color: Colors.grey[600])),
+                   Text('No tenants found', style: GoogleFonts.outfit(fontSize: 18, color: theme.textTheme.bodyMedium?.color)),
                 ],
               ),
             );
           }
           
-          // Sort alphabetically
           tenants.sort((a, b) => a.name.compareTo(b.name));
 
           return ListView.builder(
@@ -120,7 +117,7 @@ Please download the app and log in.
             itemCount: tenants.length,
             itemBuilder: (context, index) {
               final tenant = tenants[index];
-              return _buildTenantCard(tenant);
+              return _buildTenantCard(tenant, theme, isDark);
             },
           );
         },
@@ -128,20 +125,20 @@ Please download the app and log in.
     );
   }
 
-  Widget _buildTenantCard(Tenant tenant) {
+  Widget _buildTenantCard(Tenant tenant, ThemeData theme, bool isDark) {
     final isPasswordVisible = _visiblePasswords[tenant.id] ?? false;
     final email = tenant.email ?? 'N/A';
-    // Password is now decrypted by repo, so we see plain text here.
     final password = tenant.password ?? 'N/A';
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: isDark ? Border.all(color: Colors.white10) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -154,10 +151,10 @@ Please download the app and log in.
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: const Color(0xFF006B5E).withValues(alpha: 0.1),
+                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                   child: Text(
                     tenant.name.isNotEmpty ? tenant.name[0].toUpperCase() : '?',
-                    style: const TextStyle(color: Color(0xFF006B5E), fontWeight: FontWeight.bold),
+                    style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -167,31 +164,29 @@ Please download the app and log in.
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
-                  // EDIT BUTTON REMOVED AS PER SECURITY REQUEST (Read-Only Mode)
-                  // WhatsApp Share
                   IconButton(
-                    icon: const Icon(Icons.mark_chat_unread_rounded, color: Colors.green), // WhatsApp-like icon
+                    icon: const Icon(Icons.mark_chat_unread_rounded, color: Colors.green), 
                     onPressed: () => _shareViaWhatsApp(tenant),
                     tooltip: 'Share via WhatsApp',
                   ),
-                  // Standard Share
                   IconButton(
-                    icon: const Icon(Icons.share, color: Color(0xFF006B5E)),
+                    icon: Icon(Icons.share, color: theme.colorScheme.primary),
                     onPressed: () => _shareCredentials(tenant),
                     tooltip: 'Share Credentials',
                   ),
               ],
             ),
-            const Divider(height: 24),
+            Divider(height: 24, color: theme.dividerColor),
             _buildCredentialRow(
               icon: Icons.email_outlined,
               label: 'Email',
               value: email,
               onCopy: () => _copyToClipboard(email, 'Email'),
+              theme: theme,
             ),
             const SizedBox(height: 12),
             _buildCredentialRow(
@@ -202,18 +197,21 @@ Please download the app and log in.
               isVisible: isPasswordVisible,
               onToggleVisibility: () => _toggleVisibility(tenant.id),
               onCopy: () => _copyToClipboard(password, 'Password'),
+              theme: theme,
             ),
             
-            // Helpful Footer
             const SizedBox(height: 16),
             Container(
                width: double.infinity,
                padding: const EdgeInsets.all(8),
-               decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+               decoration: BoxDecoration(
+                 color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100], 
+                 borderRadius: BorderRadius.circular(8)
+               ),
                child: Text(
                  'To change password, delete and re-add tenant.',
                  textAlign: TextAlign.center,
-                 style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[600]),
+                 style: GoogleFonts.outfit(fontSize: 11, color: theme.textTheme.bodySmall?.color),
                ),
             )
           ],
@@ -227,13 +225,14 @@ Please download the app and log in.
     required String label,
     required String value,
     required VoidCallback onCopy,
+    required ThemeData theme,
     bool isPassword = false,
     bool isVisible = false,
     VoidCallback? onToggleVisibility,
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[500]),
+        Icon(icon, size: 20, color: theme.hintColor),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -241,14 +240,14 @@ Please download the app and log in.
             children: [
               Text(
                 label,
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[500]),
+                style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: isPassword && !isVisible 
-                    ? const TextStyle(fontSize: 16, color: Colors.black87)
-                    : GoogleFonts.outfit(fontSize: 16, color: Colors.black87),
+                    ? TextStyle(fontSize: 16, color: theme.textTheme.bodyLarge?.color)
+                    : GoogleFonts.outfit(fontSize: 16, color: theme.textTheme.bodyLarge?.color),
               ),
             ],
           ),
@@ -257,7 +256,7 @@ Please download the app and log in.
           IconButton(
             icon: Icon(
               isVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-              color: Colors.grey[600],
+              color: theme.hintColor,
               size: 20,
             ),
             onPressed: onToggleVisibility,
@@ -270,12 +269,10 @@ Please download the app and log in.
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Icon(Icons.copy, size: 18, color: Colors.grey[600]),
+            child: Icon(Icons.copy, size: 18, color: theme.hintColor),
           ),
         ),
       ],
     );
   }
-
-  // Edit Dialog REMOVED
 }

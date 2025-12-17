@@ -17,21 +17,22 @@ class ActiveSessionsScreen extends ConsumerWidget {
       lastActive: DateTime.now(),
       isCurrent: true,
     );
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Active Sessions', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text('Active Sessions', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: theme.iconTheme,
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
             'Current Session',
-            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: theme.hintColor),
           ),
           const SizedBox(height: 12),
           _buildSessionItem(context, currentSession),
@@ -39,7 +40,7 @@ class ActiveSessionsScreen extends ConsumerWidget {
           const SizedBox(height: 32),
           Text(
             'Other Sessions',
-            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: theme.hintColor),
           ),
           const SizedBox(height: 12),
           // Empty state for other sessions
@@ -47,14 +48,15 @@ class ActiveSessionsScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.dividerColor),
             ),
             child: Column(
               children: [
-                const Icon(Icons.devices_other, size: 48, color: Colors.grey),
+                Icon(Icons.devices_other, size: 48, color: theme.disabledColor),
                 const SizedBox(height: 12),
-                Text('No other active sessions', style: GoogleFonts.outfit(color: Colors.grey)),
+                Text('No other active sessions', style: GoogleFonts.outfit(color: theme.disabledColor)),
               ],
             ),
           ),
@@ -81,24 +83,27 @@ class ActiveSessionsScreen extends ConsumerWidget {
   }
 
   Widget _buildSessionItem(BuildContext context, _SessionInfo session) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: session.isCurrent ? Border.all(color: Colors.green.withValues(alpha: 0.5)) : null,
+        border: session.isCurrent 
+            ? Border.all(color: Colors.green.withValues(alpha: 0.5)) 
+            : Border.all(color: theme.dividerColor),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: session.isCurrent ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+              color: session.isCurrent ? Colors.green.withValues(alpha: 0.1) : theme.dividerColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Platform.isAndroid ? Icons.android : Icons.phone_iphone,
-              color: session.isCurrent ? Colors.green : Colors.grey,
+              color: session.isCurrent ? Colors.green : theme.iconTheme.color,
             ),
           ),
           const SizedBox(width: 16),
@@ -108,7 +113,7 @@ class ActiveSessionsScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Text(session.deviceName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(session.deviceName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.bodyLarge?.color)),
                     if (session.isCurrent) ...[
                       const SizedBox(width: 8),
                       Container(
@@ -123,13 +128,13 @@ class ActiveSessionsScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('${session.location} • ${session.ipAddress}', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+                Text('${session.location} • ${session.ipAddress}', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color)),
                 const SizedBox(height: 4),
                 Text(
                   session.isCurrent ? 'Active now' : 'Last active: ${DateFormat.yMMMd().format(session.lastActive)}',
                   style: GoogleFonts.outfit(
                     fontSize: 12, 
-                    color: session.isCurrent ? Colors.green : Colors.grey,
+                    color: session.isCurrent ? Colors.green : theme.textTheme.bodySmall?.color,
                     fontWeight: session.isCurrent ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),

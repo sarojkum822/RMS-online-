@@ -20,6 +20,7 @@ _$TenantImpl _$$TenantImplFromJson(Map<String, dynamic> json) => _$TenantImpl(
       agreedRent: (json['agreedRent'] as num?)?.toDouble(),
       password: json['password'] as String?,
       imageUrl: json['imageUrl'] as String?,
+      imageBase64: json['imageBase64'] as String?,
       authId: json['authId'] as String?,
       ownerId: json['ownerId'] as String,
     );
@@ -39,6 +40,7 @@ Map<String, dynamic> _$$TenantImplToJson(_$TenantImpl instance) =>
       'agreedRent': instance.agreedRent,
       'password': instance.password,
       'imageUrl': instance.imageUrl,
+      'imageBase64': instance.imageBase64,
       'authId': instance.authId,
       'ownerId': instance.ownerId,
     };

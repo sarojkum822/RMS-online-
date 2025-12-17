@@ -6,7 +6,7 @@ part of 'house_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$houseUnitsHash() => r'2d7c4f6d7ffa0c718b5eed66d32c30d980ad2b77';
+String _$houseUnitsHash() => r'94c48ca11ee1d3ca81033698c7f127c83f4b8da4';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -72,7 +72,7 @@ class HouseUnitsFamily extends Family<AsyncValue<List<Unit>>> {
 }
 
 /// See also [houseUnits].
-class HouseUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
+class HouseUnitsProvider extends AutoDisposeStreamProvider<List<Unit>> {
   /// See also [houseUnits].
   HouseUnitsProvider(
     int houseId,
@@ -107,7 +107,7 @@ class HouseUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
 
   @override
   Override overrideWith(
-    FutureOr<List<Unit>> Function(HouseUnitsRef provider) create,
+    Stream<List<Unit>> Function(HouseUnitsRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
@@ -124,7 +124,7 @@ class HouseUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
   }
 
   @override
-  AutoDisposeFutureProviderElement<List<Unit>> createElement() {
+  AutoDisposeStreamProviderElement<List<Unit>> createElement() {
     return _HouseUnitsProviderElement(this);
   }
 
@@ -144,20 +144,20 @@ class HouseUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin HouseUnitsRef on AutoDisposeFutureProviderRef<List<Unit>> {
+mixin HouseUnitsRef on AutoDisposeStreamProviderRef<List<Unit>> {
   /// The parameter `houseId` of this provider.
   int get houseId;
 }
 
 class _HouseUnitsProviderElement
-    extends AutoDisposeFutureProviderElement<List<Unit>> with HouseUnitsRef {
+    extends AutoDisposeStreamProviderElement<List<Unit>> with HouseUnitsRef {
   _HouseUnitsProviderElement(super.provider);
 
   @override
   int get houseId => (origin as HouseUnitsProvider).houseId;
 }
 
-String _$availableUnitsHash() => r'3f8447b0b57244593198fb2e69784f458f374ba2';
+String _$availableUnitsHash() => r'2c2c7130cc01a5dd7efbe46eff2ab3413b08c860';
 
 /// See also [availableUnits].
 @ProviderFor(availableUnits)
@@ -288,7 +288,7 @@ class _AvailableUnitsProviderElement
   int get houseId => (origin as AvailableUnitsProvider).houseId;
 }
 
-String _$houseStatsHash() => r'0c6d857946a5e31678debcba2ee619cdb61187ac';
+String _$houseStatsHash() => r'b0a353bcea1f57c08db69f9b633e1f07b5be2992';
 
 /// See also [houseStats].
 @ProviderFor(houseStats)
@@ -420,12 +420,12 @@ class _HouseStatsProviderElement
   int get houseId => (origin as HouseStatsProvider).houseId;
 }
 
-String _$houseControllerHash() => r'1e9eacea91d6f3691de74f2b0bf22825b9176cf9';
+String _$houseControllerHash() => r'468485f8230206c1b77bc9c6aa27d9da32f9e914';
 
 /// See also [HouseController].
 @ProviderFor(HouseController)
 final houseControllerProvider =
-    AutoDisposeAsyncNotifierProvider<HouseController, List<House>>.internal(
+    AutoDisposeStreamNotifierProvider<HouseController, List<House>>.internal(
   HouseController.new,
   name: r'houseControllerProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -435,6 +435,6 @@ final houseControllerProvider =
   allTransitiveDependencies: null,
 );
 
-typedef _$HouseController = AutoDisposeAsyncNotifier<List<House>>;
+typedef _$HouseController = AutoDisposeStreamNotifier<List<House>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -21,6 +21,7 @@ class Tenant with _$Tenant {
     double? agreedRent, 
     String? password,
     String? imageUrl,
+    String? imageBase64, // NEW: Base64 Storage
     String? authId, // Firebase Auth UID for secure login
     required String ownerId, // NEW: Needed for fetching payments
   }) = _Tenant;

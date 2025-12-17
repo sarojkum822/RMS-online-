@@ -155,6 +155,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Expense History')),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'add_expense',
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AddExpenseScreen())).then((_) {
              setState(() {}); // Refresh list

@@ -6,12 +6,11 @@ part of 'rent_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dashboardStatsHash() => r'636983351a96e0ff839739413dd09721d9459272';
+String _$dashboardStatsHash() => r'b780f6a09b55bae423a75f60c339361ae9cd82d9';
 
 /// See also [dashboardStats].
 @ProviderFor(dashboardStats)
-final dashboardStatsProvider =
-    AutoDisposeFutureProvider<DashboardStats>.internal(
+final dashboardStatsProvider = FutureProvider<DashboardStats>.internal(
   dashboardStats,
   name: r'dashboardStatsProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -23,13 +22,13 @@ final dashboardStatsProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef DashboardStatsRef = AutoDisposeFutureProviderRef<DashboardStats>;
-String _$rentControllerHash() => r'e3c1b8a70ddd7206f951c1210549ba5e945f87a8';
+typedef DashboardStatsRef = FutureProviderRef<DashboardStats>;
+String _$rentControllerHash() => r'fdb868b7e38817dc702bc287ba8df41612da60ab';
 
 /// See also [RentController].
 @ProviderFor(RentController)
 final rentControllerProvider =
-    AutoDisposeAsyncNotifierProvider<RentController, List<RentCycle>>.internal(
+    AsyncNotifierProvider<RentController, List<RentCycle>>.internal(
   RentController.new,
   name: r'rentControllerProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -39,6 +38,6 @@ final rentControllerProvider =
   allTransitiveDependencies: null,
 );
 
-typedef _$RentController = AutoDisposeAsyncNotifier<List<RentCycle>>;
+typedef _$RentController = AsyncNotifier<List<RentCycle>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

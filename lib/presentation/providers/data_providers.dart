@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // NEW
 import '../../core/services/backup_service.dart';
 import '../../core/services/print_service.dart';
 import '../../core/services/biometric_service.dart';
@@ -11,12 +12,17 @@ import '../../data/datasources/local/database.dart' hide Unit; // Keeping for Ba
 import '../../data/repositories/property_repository_impl.dart';
 import '../../data/repositories/rent_repository_impl.dart';
 import '../../data/repositories/tenant_repository_impl.dart';
+import '../../core/services/storage_service.dart'; // NEW
 import '../../domain/repositories/i_property_repository.dart';
 import '../../domain/repositories/i_rent_repository.dart';
 import '../../domain/repositories/i_tenant_repository.dart';
 import '../../domain/repositories/i_owner_repository.dart';
 import '../../data/repositories/owner_repository_impl.dart';
 import '../../domain/entities/house.dart'; 
+import '../../domain/repositories/i_notice_repository.dart';
+import '../../data/repositories/notice_repository_impl.dart';
+import '../../domain/repositories/i_maintenance_repository.dart';
+import '../../data/repositories/maintenance_repository_impl.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'data_providers.g.dart';
@@ -30,6 +36,23 @@ AppDatabase database(DatabaseRef ref) {
 // Firestore Provider
 final firestoreProvider = Provider<FirebaseFirestore>((ref) {
   return FirebaseFirestore.instance;
+});
+
+// Auth Provider
+final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
+  return FirebaseAuth.instance;
+});
+
+// Notice Repository Provider
+final noticeRepositoryProvider = Provider<INoticeRepository>((ref) {
+  final firestore = ref.watch(firestoreProvider);
+  return NoticeRepositoryImpl(firestore);
+});
+
+// Maintenance Repository Provider
+final maintenanceRepositoryProvider = Provider<IMaintenanceRepository>((ref) {
+  final firestore = ref.watch(firestoreProvider);
+  return MaintenanceRepositoryImpl(firestore);
 });
 
 // Repository Providers
@@ -97,7 +120,11 @@ final pdfServiceProvider = Provider<PdfService>((ref) {
   return PdfService();
 });
 
-final allUnitsProvider = FutureProvider<List<Unit>>((ref) {
+final storageServiceProvider = Provider<StorageService>((ref) {
+  return StorageService();
+});
+
+final allUnitsProvider = StreamProvider<List<Unit>>((ref) {
   final repo = ref.watch(propertyRepositoryProvider);
   return repo.getAllUnits();
 });

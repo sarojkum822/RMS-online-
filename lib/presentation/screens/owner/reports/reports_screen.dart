@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart'; // NEW: For context.push
 import 'reports_controller.dart';
-import '../expense/expense_screens.dart'; // Import Expense Screens
+import '../settings/owner_controller.dart'; 
+import '../expense/expense_screens.dart'; 
 import '../../../widgets/skeleton_loader.dart';
 import '../../../widgets/fade_in_up.dart';
-
+import 'package:easy_localization/easy_localization.dart';
 
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
@@ -24,7 +26,7 @@ class ReportsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Reports & Analytics', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColorPrimary)),
+        title: Text('reports.title'.tr(), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColorPrimary)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         iconTheme: theme.iconTheme,
@@ -35,12 +37,48 @@ class ReportsScreen extends ConsumerWidget {
           )
         ],
       ),
-      body: reportsAsync.when(
-        data: (data) => SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: Builder(
+        builder: (context) {
+          final owner = ref.watch(ownerControllerProvider).value;
+          final plan = owner?.subscriptionPlan ?? 'free';
+
+          if (plan == 'free') {
+            return Center(
+              child: Column(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                 children: [
+                    Icon(Icons.lock_outline, size: 64, color: theme.disabledColor),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Premium Feature',
+                      style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Upgrade to Pro to access detailed reports.',
+                      style: GoogleFonts.outfit(color: theme.hintColor),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12)
+                      ),
+                      onPressed: () => context.push('/owner/settings/subscription'), 
+                      child: const Text('Upgrade Now'),
+                    )
+                 ],
+              ),
+            );
+          }
+
+          return reportsAsync.when(
+            data: (data) => SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                // 1. Financial Overview (Gradient - Keeps White Text)
                FadeInUp(
                  delay: const Duration(milliseconds: 100),
@@ -68,13 +106,13 @@ class ReportsScreen extends ConsumerWidget {
                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                          children: [
                            Text(
-                             'Financial Overview', 
+                             'reports.financial_overview'.tr(), 
                              style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.9), fontSize: 16, fontWeight: FontWeight.w600),
                            ),
                            Container(
                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                              decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
-                             child: Text('This Month', style: GoogleFonts.outfit(color: Colors.white, fontSize: 10)),
+                             child: Text('reports.this_month'.tr(), style: GoogleFonts.outfit(color: Colors.white, fontSize: 10)),
                            )
                          ],
                        ),
@@ -82,11 +120,11 @@ class ReportsScreen extends ConsumerWidget {
                        Row(
                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                          children: [
-                           _buildStat(context, 'Collected', data.totalCollected, const Color(0xFF69F0AE)), 
+                           _buildStat(context, 'reports.collected'.tr(), data.totalCollected, const Color(0xFF69F0AE)), 
                            Container(width: 1, height: 40, color: Colors.white12),
-                           _buildStat(context, 'Pending', data.totalPending, const Color(0xFFFFAB40)), 
+                           _buildStat(context, 'reports.pending'.tr(), data.totalPending, const Color(0xFFFFAB40)), 
                            Container(width: 1, height: 40, color: Colors.white12),
-                           _buildStat(context, 'Total', data.totalExpected, Colors.white),
+                           _buildStat(context, 'reports.total'.tr(), data.totalExpected, Colors.white),
                          ],
                        ),
                      ],
@@ -118,7 +156,7 @@ class ReportsScreen extends ConsumerWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Expenses', style: GoogleFonts.outfit(color: textColorSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    Text('reports.expenses'.tr(), style: GoogleFonts.outfit(color: textColorSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
                                     Icon(Icons.arrow_forward_ios, size: 12, color: textColorSecondary),
                                   ],
                                 ),
@@ -142,7 +180,7 @@ class ReportsScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('NET PROFIT', style: GoogleFonts.outfit(color: textColorSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
+                              Text('reports.net_profit'.tr(), style: GoogleFonts.outfit(color: textColorSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 8),
                               Text('₹${data.netProfit.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF00C853))),
                             ],
@@ -161,7 +199,7 @@ class ReportsScreen extends ConsumerWidget {
                  child: Column(
                    crossAxisAlignment: CrossAxisAlignment.start,
                    children: [
-                     Text('Revenue Trend (6 Months)', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
+                     Text('reports.revenue_trend'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
                      const SizedBox(height: 16),
                       RepaintBoundary(
                         child: Container(
@@ -256,7 +294,7 @@ class ReportsScreen extends ConsumerWidget {
                  child: Column(
                    crossAxisAlignment: CrossAxisAlignment.start,
                    children: [
-                     Text('Occupancy Rate', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
+                     Text('reports.occupancy_rate'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
                      const SizedBox(height: 16),
                       RepaintBoundary(
                         child: Container(
@@ -289,7 +327,7 @@ class ReportsScreen extends ConsumerWidget {
                                      mainAxisSize: MainAxisSize.min,
                                      children: [
                                        Text('${(data.totalUnits > 0 ? (data.occupiedUnits / data.totalUnits * 100) : 0).toStringAsFixed(0)}%', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: isDark ? Colors.blue[300] : const Color(0xFF1E3A8A))),
-                                       Text('Occupancy', style: GoogleFonts.outfit(fontSize: 10, color: textColorSecondary)),
+                                       Text('reports.occupancy_rate'.tr(), style: GoogleFonts.outfit(fontSize: 10, color: textColorSecondary)),
                                      ],
                                    ),
                                  ),
@@ -302,11 +340,11 @@ class ReportsScreen extends ConsumerWidget {
                                crossAxisAlignment: CrossAxisAlignment.start,
                                mainAxisAlignment: MainAxisAlignment.center,
                                children: [
-                                 _buildLegendItem(color: const Color(0xFF2563EB), label: 'Occupied', value: '${data.occupiedUnits} Units', theme: theme),
+                                 _buildLegendItem(color: const Color(0xFF2563EB), label: 'reports.occupied'.tr(), value: '${data.occupiedUnits} Units', theme: theme),
                                  const SizedBox(height: 16),
-                                 _buildLegendItem(color: isDark ? Colors.grey[600]! : Colors.grey[400]!, label: 'Vacant', value: '${data.vacantUnits} Units', theme: theme),
+                                 _buildLegendItem(color: isDark ? Colors.grey[600]! : Colors.grey[400]!, label: 'reports.vacant'.tr(), value: '${data.vacantUnits} Units', theme: theme),
                                  const SizedBox(height: 24),
-                                 Text('Total Units: ${data.totalUnits}', style: GoogleFonts.outfit(color: textColorSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                                 Text('${'reports.total_units'.tr()}: ${data.totalUnits}', style: GoogleFonts.outfit(color: textColorSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
                                ],
                              ),
                            ),
@@ -326,7 +364,7 @@ class ReportsScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Payment Methods (This Month)', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
+                        Text('reports.payment_methods'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
                         const SizedBox(height: 16),
                         Container(
                           height: 200,
@@ -386,7 +424,7 @@ class ReportsScreen extends ConsumerWidget {
                      child: Column(
                        crossAxisAlignment: CrossAxisAlignment.start,
                        children: [
-                         Text('Top Defaulters', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
+                         Text('reports.top_defaulters'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
                          const SizedBox(height: 16),
                          SizedBox(
                            height: 140,
@@ -399,11 +437,11 @@ class ReportsScreen extends ConsumerWidget {
                                return Container(
                                  width: 140,
                                  padding: const EdgeInsets.all(16),
-                                 decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.withValues(alpha: 0.1))),
+                                 decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.withOpacity(0.1))),
                                  child: Column(
                                    crossAxisAlignment: CrossAxisAlignment.start,
                                    children: [
-                                     CircleAvatar(radius: 20, backgroundColor: Colors.red.withValues(alpha: 0.1), child: Text(d.name.isNotEmpty ? d.name[0] : '?', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+                                     CircleAvatar(radius: 20, backgroundColor: Colors.red.withOpacity(0.1), child: Text(d.name.isNotEmpty ? d.name[0] : '?', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
                                      const Spacer(),
                                       Text(d.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColorPrimary)),
                                      Text('Due: ₹${d.amount.toStringAsFixed(0)}', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -427,8 +465,8 @@ class ReportsScreen extends ConsumerWidget {
                      Row(
                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                        children: [
-                         Text('Recent Activity', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
-                         Text('View All', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF2563EB))),
+                         Text('reports.recent_activity'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColorPrimary)),
+                         Text('reports.view_all'.tr(), style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF2563EB))),
                        ],
                      ),
                      const SizedBox(height: 16),
@@ -437,7 +475,7 @@ class ReportsScreen extends ConsumerWidget {
                        Center(
                          child: Padding(
                            padding: const EdgeInsets.symmetric(vertical: 40), 
-                           child: Text('No recent activity', style: GoogleFonts.outfit(color: textColorSecondary)),
+                           child: Text('reports.no_activity'.tr(), style: GoogleFonts.outfit(color: textColorSecondary)),
                          ),
                        ),
                        
@@ -453,20 +491,20 @@ class ReportsScreen extends ConsumerWidget {
                              color: theme.cardColor, 
                              borderRadius: BorderRadius.circular(16),
                              border: isDark ? Border.all(color: Colors.white10) : null,
-                             boxShadow: isDark ? [] : [BoxShadow(color: Colors.grey.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))],
+                             boxShadow: isDark ? [] : [BoxShadow(color: Colors.grey.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 2))],
                            ),
                            child: ListTile(
                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                              leading: Container(
                                padding: const EdgeInsets.all(10),
                                decoration: BoxDecoration(
-                                 color: const Color(0xFF69F0AE).withValues(alpha: 0.15),
+                                 color: const Color(0xFF69F0AE).withOpacity(0.15),
                                  shape: BoxShape.circle,
                                ),
                                child: const Icon(Icons.arrow_downward_rounded, color: Color(0xFF00C853), size: 20),
                              ),
                              title: Text(
-                               'Payment Received', 
+                               'reports.payment_received'.tr(), 
                                style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15, color: textColorPrimary),
                              ),
                              subtitle: Padding(
@@ -493,8 +531,10 @@ class ReportsScreen extends ConsumerWidget {
         ),
         error: (e, _) => Center(child: Text('Error: $e', style: TextStyle(color: theme.colorScheme.error))),
         loading: () => const ReportsSkeleton(),
-      ),
-    );
+        );
+      },
+    ),
+  );
   }
 
   Widget _buildStat(BuildContext context, String label, double value, Color valueColor) {

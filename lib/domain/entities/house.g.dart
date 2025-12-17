@@ -12,6 +12,7 @@ _$HouseImpl _$$HouseImplFromJson(Map<String, dynamic> json) => _$HouseImpl(
       address: json['address'] as String,
       notes: json['notes'] as String?,
       imageUrl: json['imageUrl'] as String?,
+      imageBase64: json['imageBase64'] as String?,
       unitCount: (json['unitCount'] as num?)?.toInt() ?? 0,
     );
 
@@ -22,6 +23,7 @@ Map<String, dynamic> _$$HouseImplToJson(_$HouseImpl instance) =>
       'address': instance.address,
       'notes': instance.notes,
       'imageUrl': instance.imageUrl,
+      'imageBase64': instance.imageBase64,
       'unitCount': instance.unitCount,
     };
 
@@ -41,6 +43,14 @@ _$UnitImpl _$$UnitImplFromJson(Map<String, dynamic> json) => _$UnitImpl(
       meterNumber: json['meterNumber'] as String?,
       defaultDueDay: (json['defaultDueDay'] as num?)?.toInt() ?? 1,
       isOccupied: json['isOccupied'] as bool? ?? false,
+      imageUrls: (json['imageUrls'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      imagesBase64: (json['imagesBase64'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$UnitImplToJson(_$UnitImpl instance) =>
@@ -60,4 +70,6 @@ Map<String, dynamic> _$$UnitImplToJson(_$UnitImpl instance) =>
       'meterNumber': instance.meterNumber,
       'defaultDueDay': instance.defaultDueDay,
       'isOccupied': instance.isOccupied,
+      'imageUrls': instance.imageUrls,
+      'imagesBase64': instance.imagesBase64,
     };

@@ -30,6 +30,8 @@ mixin _$RentCycle {
   double get baseRent => throw _privateConstructorUsedError;
   double get electricAmount => throw _privateConstructorUsedError;
   double get otherCharges => throw _privateConstructorUsedError;
+  double get lateFee =>
+      throw _privateConstructorUsedError; // [NEW] Track late fees explicitly
   double get discount => throw _privateConstructorUsedError;
   double get totalDue => throw _privateConstructorUsedError;
   double get totalPaid => throw _privateConstructorUsedError;
@@ -63,6 +65,7 @@ abstract class $RentCycleCopyWith<$Res> {
       double baseRent,
       double electricAmount,
       double otherCharges,
+      double lateFee,
       double discount,
       double totalDue,
       double totalPaid,
@@ -96,6 +99,7 @@ class _$RentCycleCopyWithImpl<$Res, $Val extends RentCycle>
     Object? baseRent = null,
     Object? electricAmount = null,
     Object? otherCharges = null,
+    Object? lateFee = null,
     Object? discount = null,
     Object? totalDue = null,
     Object? totalPaid = null,
@@ -144,6 +148,10 @@ class _$RentCycleCopyWithImpl<$Res, $Val extends RentCycle>
           ? _value.otherCharges
           : otherCharges // ignore: cast_nullable_to_non_nullable
               as double,
+      lateFee: null == lateFee
+          ? _value.lateFee
+          : lateFee // ignore: cast_nullable_to_non_nullable
+              as double,
       discount: null == discount
           ? _value.discount
           : discount // ignore: cast_nullable_to_non_nullable
@@ -191,6 +199,7 @@ abstract class _$$RentCycleImplCopyWith<$Res>
       double baseRent,
       double electricAmount,
       double otherCharges,
+      double lateFee,
       double discount,
       double totalDue,
       double totalPaid,
@@ -222,6 +231,7 @@ class __$$RentCycleImplCopyWithImpl<$Res>
     Object? baseRent = null,
     Object? electricAmount = null,
     Object? otherCharges = null,
+    Object? lateFee = null,
     Object? discount = null,
     Object? totalDue = null,
     Object? totalPaid = null,
@@ -270,6 +280,10 @@ class __$$RentCycleImplCopyWithImpl<$Res>
           ? _value.otherCharges
           : otherCharges // ignore: cast_nullable_to_non_nullable
               as double,
+      lateFee: null == lateFee
+          ? _value.lateFee
+          : lateFee // ignore: cast_nullable_to_non_nullable
+              as double,
       discount: null == discount
           ? _value.discount
           : discount // ignore: cast_nullable_to_non_nullable
@@ -312,6 +326,7 @@ class _$RentCycleImpl implements _RentCycle {
       required this.baseRent,
       this.electricAmount = 0.0,
       this.otherCharges = 0.0,
+      this.lateFee = 0.0,
       this.discount = 0.0,
       required this.totalDue,
       this.totalPaid = 0.0,
@@ -347,6 +362,10 @@ class _$RentCycleImpl implements _RentCycle {
   final double otherCharges;
   @override
   @JsonKey()
+  final double lateFee;
+// [NEW] Track late fees explicitly
+  @override
+  @JsonKey()
   final double discount;
   @override
   final double totalDue;
@@ -363,7 +382,7 @@ class _$RentCycleImpl implements _RentCycle {
 
   @override
   String toString() {
-    return 'RentCycle(id: $id, tenantId: $tenantId, month: $month, billNumber: $billNumber, billPeriodStart: $billPeriodStart, billPeriodEnd: $billPeriodEnd, billGeneratedDate: $billGeneratedDate, baseRent: $baseRent, electricAmount: $electricAmount, otherCharges: $otherCharges, discount: $discount, totalDue: $totalDue, totalPaid: $totalPaid, status: $status, dueDate: $dueDate, notes: $notes)';
+    return 'RentCycle(id: $id, tenantId: $tenantId, month: $month, billNumber: $billNumber, billPeriodStart: $billPeriodStart, billPeriodEnd: $billPeriodEnd, billGeneratedDate: $billGeneratedDate, baseRent: $baseRent, electricAmount: $electricAmount, otherCharges: $otherCharges, lateFee: $lateFee, discount: $discount, totalDue: $totalDue, totalPaid: $totalPaid, status: $status, dueDate: $dueDate, notes: $notes)';
   }
 
   @override
@@ -389,6 +408,7 @@ class _$RentCycleImpl implements _RentCycle {
                 other.electricAmount == electricAmount) &&
             (identical(other.otherCharges, otherCharges) ||
                 other.otherCharges == otherCharges) &&
+            (identical(other.lateFee, lateFee) || other.lateFee == lateFee) &&
             (identical(other.discount, discount) ||
                 other.discount == discount) &&
             (identical(other.totalDue, totalDue) ||
@@ -414,6 +434,7 @@ class _$RentCycleImpl implements _RentCycle {
       baseRent,
       electricAmount,
       otherCharges,
+      lateFee,
       discount,
       totalDue,
       totalPaid,
@@ -449,6 +470,7 @@ abstract class _RentCycle implements RentCycle {
       required final double baseRent,
       final double electricAmount,
       final double otherCharges,
+      final double lateFee,
       final double discount,
       required final double totalDue,
       final double totalPaid,
@@ -479,6 +501,8 @@ abstract class _RentCycle implements RentCycle {
   double get electricAmount;
   @override
   double get otherCharges;
+  @override
+  double get lateFee; // [NEW] Track late fees explicitly
   @override
   double get discount;
   @override

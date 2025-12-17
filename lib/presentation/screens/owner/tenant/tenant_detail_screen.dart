@@ -1,10 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for Clipboard
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/tenant.dart';
-import '../../../../domain/entities/rent_cycle.dart';
+import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../rent/rent_controller.dart';
 import '../../../providers/data_providers.dart';
 import '../../../widgets/dotted_line_separator.dart';
@@ -13,6 +15,8 @@ import '../../../../core/utils/dialog_utils.dart';
 import 'package:printing/printing.dart'; // NEW
 import '../../../../core/services/pdf_service.dart'; // NEW
 import 'package:rentpilotpro/presentation/screens/owner/settings/owner_controller.dart'; // NEW
+import 'tenant_form_screen.dart'; // NEW
+import 'tenant_controller.dart';
 
 class TenantDetailScreen extends ConsumerStatefulWidget {
   final Tenant tenant;
@@ -30,12 +34,27 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     final headerHeight = (screenHeight * 0.45).clamp(300.0, 420.0);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
+    final tenantsAsync = ref.watch(tenantControllerProvider);
+    final currentTenant = tenantsAsync.valueOrNull?.firstWhere(
+      (t) => t.id == widget.tenant.id,
+      orElse: () => widget.tenant,
+    ) ?? widget.tenant;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true, 
       appBar: AppBar(
-        title: Text(widget.tenant.name, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+        title: Consumer(
+          builder: (context, ref, _) {
+            final houseVal = ref.watch(houseDetailsProvider(currentTenant.houseId));
+            return houseVal.when(
+              data: (house) => Text(house?.name ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+              error: (_,__) => const SizedBox(),
+              loading: () => const SizedBox(),
+            );
+          }
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -45,229 +64,273 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.edit, color: Colors.white),
+            tooltip: 'Edit Tenant',
+            onPressed: () {
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (_) => TenantFormScreen(tenant: currentTenant)),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
             tooltip: 'Download Statement',
-            onPressed: () => _handleDownloadStatement(context, ref),
+            onPressed: () => _handleDownloadStatement(context, ref, currentTenant),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+                if (value == 'move_out') _confirmMoveOut(context, ref, currentTenant);
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'move_out',
+                child: Row(
+                   children: [
+                      Icon(Icons.exit_to_app, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('Move Out / End Tenancy'),
+                   ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Dark Gradient Header with Glass Card
+            // Compact Gradient Header
             Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                // 1. Deep Blue Gradient Background (Keep distinct for brand/header feel)
-                Container(
-                  height: headerHeight, 
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                         Color(0xFF2563EB), // Vibrant Blue
-                         Color(0xFF1E40AF), // Darker Blue
-                      ],
-                    ),
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(40),
-                      bottomRight: Radius.circular(40),
+                  Container(
+                    height: headerHeight * 0.6, 
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                           Color(0xFF2C2C2C), // Matte Black Top
+                           Color(0xFF000000), // Pure Black Bottom
+                        ],
+                      ),
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1), // White border
                     ),
                   ),
-                ),
-                
-                // 2. Glassmorphism Profile Card
-                Positioned(
-                  top: headerHeight * 0.28,
-                  left: 20,
-                  right: 20,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.topCenter,
-                    children: [
-                      // The Card Content
-                      Container(
-                        margin: const EdgeInsets.only(top: 30),
-                        padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1), 
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
+                  
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 80, 20, 0), // Removed bottom padding to fill space better
+                    child: Column(
+                      children: [
+                        // Avatar and Basic Info Row
+                        Row(
                           children: [
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                widget.tenant.name,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
-                                textAlign: TextAlign.center,
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.2),
+                              ),
+                              child: CircleAvatar(
+                                radius: 32, 
+                                backgroundColor: const Color(0xFF333333), 
+                                backgroundImage: currentTenant.imageBase64 != null 
+                                  ? MemoryImage(base64Decode(currentTenant.imageBase64!))
+                                  : ((currentTenant.imageUrl != null && currentTenant.imageUrl!.isNotEmpty)
+                                      ? (currentTenant.imageUrl!.startsWith('http') 
+                                        ? NetworkImage(currentTenant.imageUrl!) 
+                                        : FileImage(File(currentTenant.imageUrl!))) as ImageProvider
+                                      : null),
+                                child: (currentTenant.imageBase64 == null && (currentTenant.imageUrl == null || currentTenant.imageUrl!.isEmpty)) ? Text(
+                                  currentTenant.name[0].toUpperCase(),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ) : null,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            
-                            // Info Row
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Unit
-                                Consumer(
-                                  builder: (context, ref, child) {
-                                    final unitValue = ref.watch(unitDetailsProvider(widget.tenant.unitId));
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                          unitValue.when(
-                                            data: (u) {
-                                              final sb = StringBuffer('Flat ${u?.nameOrNumber ?? 'N/A'}');
-                                              if (u?.bhkType != null) sb.write(' • ${u!.bhkType}');
-                                              final rent = u?.editableRent ?? u?.baseRent;
-                                              if (rent != null) sb.write(' • ₹${rent.toStringAsFixed(0)}');
-                                              return sb.toString();
-                                            },
-                                            error: (e, _) => 'Unit ID: ${widget.tenant.unitId}', 
-                                            loading: () => 'Loading...'
-                                          ),
-                                          style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                const Text('•', style: TextStyle(color: Colors.white30)),
-                                const SizedBox(width: 8),
-                                // Clickable Phone
-                                InkWell(
-                                  onTap: () {
-                                     Clipboard.setData(ClipboardData(text: widget.tenant.phone));
-                                     ScaffoldMessenger.of(context).showSnackBar(
-                                       const SnackBar(content: Text('Phone copied'), duration: Duration(seconds: 1)),
-                                     );
-                                  },
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.phone, size: 14, color: Colors.greenAccent),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        widget.tenant.phone,
-                                        style: GoogleFonts.outfit(fontSize: 14, color: Colors.greenAccent),
-                                      ),
-                                    ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentTenant.name,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            
-                            Consumer(
-                              builder: (context, ref, child) {
-                                final initialReadingValue = ref.watch(initialReadingProvider(widget.tenant.unitId));
-                                return initialReadingValue.when(
-                                  data: (reading) => reading != null 
-                                    ? Padding(
-                                        padding: const EdgeInsets.only(top: 12),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      // Phone with Copy
+                                      InkWell(
+                                        onTap: () {
+                                          Clipboard.setData(ClipboardData(text: currentTenant.phone));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Phone number copied to clipboard'), duration: Duration(seconds: 1)),
+                                          );
+                                        },
+                                        borderRadius: BorderRadius.circular(8),
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Colors.amber.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                                            color: Colors.white.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.white.withOpacity(0.1)),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              const Icon(Icons.flash_on, size: 14, color: Colors.amber),
+                                              const Icon(Icons.phone, size: 12, color: Colors.greenAccent),
                                               const SizedBox(width: 4),
                                               Text(
-                                                'Initial Reading: $reading',
-                                                style: GoogleFonts.outfit(color: Colors.amberAccent, fontSize: 13, fontWeight: FontWeight.w500),
+                                                currentTenant.phone,
+                                                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
                                               ),
+                                              const SizedBox(width: 4),
+                                              const Icon(Icons.copy, size: 10, color: Colors.white54),
                                             ],
                                           ),
                                         ),
-                                      )
-                                    : const SizedBox.shrink(),
-                                  error: (_, __) => const SizedBox.shrink(),
-                                  loading: () => const SizedBox.shrink(),
-                                );
-                              },
-                            ),
-                            
-                            const SizedBox(height: 16),
-                            const Divider(color: Colors.white24, height: 1),
-                            const SizedBox(height: 12),
-                            
-                            // Stats / Extra info placeholders
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Column(
-                                  children: [
-                                    const Icon(Icons.verified, color: Colors.blueAccent, size: 20),
-                                    const SizedBox(height: 4),
-                                    Text('Verified', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
-                                  ],
-                                ),
-                                Column(
-                                  children: [
-                                    const Icon(Icons.history, color: Colors.orangeAccent, size: 20),
-                                    const SizedBox(height: 4),
-                                    Text('Since ${DateFormat('MMM yyyy').format(widget.tenant.startDate)}', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
-                                  ],
-                                ),
-                              ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // ID with Copy
+                                      InkWell(
+                                        onTap: () {
+                                          Clipboard.setData(ClipboardData(text: currentTenant.id.toString()));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('ID copied to clipboard'), duration: Duration(seconds: 1)),
+                                          );
+                                        },
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'ID: ${currentTenant.id}',
+                                                style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                              ),
+                                               const SizedBox(width: 4),
+                                              const Icon(Icons.copy, size: 10, color: Colors.white54),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
                       
-                      // Floating Avatar with Ring
-                      Positioned(
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Colors.greenAccent.withValues(alpha: 0.8), Colors.blueAccent.withValues(alpha: 0.8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                      const SizedBox(height: 20),
+                      
+                      // Unit & Reading Card (Compact)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.cardColor, // Adapts to Dark Mode
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isDark ? Colors.transparent : Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                            boxShadow: [
-                              BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.3), blurRadius: 12, spreadRadius: 2),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 36,
-                            backgroundColor: const Color(0xFF2563EB), 
-                            backgroundImage: widget.tenant.imageUrl != null ? NetworkImage(widget.tenant.imageUrl!) : null,
-                            child: widget.tenant.imageUrl == null ? Text(
-                              widget.tenant.name[0].toUpperCase(),
-                              style: GoogleFonts.outfit(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Unit Info
+                            Expanded(
+                              child: Consumer(
+                                builder: (context, ref, _) {
+                                  final unitValue = ref.watch(unitDetailsProvider(widget.tenant.unitId));
+                                  return Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? Colors.blue.withOpacity(0.1) : Colors.blue.shade50, 
+                                          borderRadius: BorderRadius.circular(8)
+                                        ),
+                                        child: const Icon(Icons.apartment, color: Colors.blue, size: 20),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Unit Details', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                                          Text(
+                                            unitValue.when(
+                                              data: (u) => '${u?.nameOrNumber ?? '-'} • ${u?.editableRent?.toInt() ?? 0}',
+                                              error: (_,__) => 'Error',
+                                              loading: () => '...',
+                                            ),
+                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
-                            ) : null,
-                          ),
+                            ),
+                            Container(width: 1, height: 40, color: Colors.grey.shade200), // Divider
+                            // Initial Reading
+                            Expanded(
+                              child: Consumer(
+                                builder: (context, ref, _) {
+                                  final readingValue = ref.watch(initialReadingProvider(widget.tenant.unitId));
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text('Initial Reading', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
+                                          Text(
+                                            readingValue.when(
+                                              data: (r) => r?.toString() ?? 'N/A',
+                                              error: (_,__) => '-',
+                                              loading: () => '...',
+                                            ),
+                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange.shade800),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 12),
+                                       Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                                        child: const Icon(Icons.flash_on, color: Colors.orange, size: 20),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -276,7 +339,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               ],
             ),
 
-            const SizedBox(height: 60),
+            const SizedBox(height: 20),
 
             // "Bill History" Header
             Padding(
@@ -349,21 +412,23 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                     final date = DateTime.parse('${cycle.month}-01');
 
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
+                      margin: const EdgeInsets.only(bottom: 12), // Reduced margin
                       decoration: BoxDecoration(
                         color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(16), // Smaller radius
                         boxShadow: isDark ? [] : [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04), 
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withOpacity(0.04), 
+                            blurRadius: 8, // Reduced blur
+                            offset: const Offset(0, 2),
                           ),
                         ],
-                        border: isDark ? Border.all(color: Colors.white10) : null,
+                        border: !isPaid 
+                            ? Border.all(color: Colors.red.withOpacity(0.6), width: 1.5)
+                            : (isDark ? Border.all(color: Colors.white10) : null),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(20.0),
+                        padding: const EdgeInsets.all(16.0), // Reduced padding
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -374,18 +439,18 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(10),
+                                      padding: const EdgeInsets.all(8), // Smaller icon box
                                       decoration: BoxDecoration(
                                         color: isDark ? Colors.white12 : Colors.grey[100], 
-                                        borderRadius: BorderRadius.circular(12)
+                                        borderRadius: BorderRadius.circular(8)
                                       ),
-                                      child: Icon(Icons.calendar_today, size: 20, color: theme.iconTheme.color),
+                                      child: Icon(Icons.calendar_today, size: 16, color: theme.iconTheme.color), // Smaller icon
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 10),
                                     Text(
                                       DateFormat('MMMM yyyy').format(date),
                                       style: GoogleFonts.outfit(
-                                        fontSize: 18,
+                                        fontSize: 16, // Smaller font
                                         fontWeight: FontWeight.bold,
                                         color: theme.textTheme.titleMedium?.color,
                                       ),
@@ -396,71 +461,88 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Compact chip
                                       decoration: BoxDecoration(
                                         color: isPaid ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
                                         cycle.status.name.toUpperCase(),
                                         style: GoogleFonts.outfit(
                                           color: isPaid ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00),
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                          fontSize: 10, // Smaller font
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 4),
                                     // Menu for Actions
-                                    PopupMenuButton<String>(
-                                      icon: Icon(Icons.more_vert, color: theme.iconTheme.color?.withOpacity(0.5)),
-                                      color: theme.cardColor,
-                                      onSelected: (value) async {
-                                        if (value == 'delete') {
-                                           _confirmDeleteBill(context, ref, cycle);
-                                        } else if (value == 'print') {
-                                           await _handlePrintReceipt(context, ref, cycle);
-                                        }
-                                      },
-                                      itemBuilder: (context) => [
-                                        const PopupMenuItem(
-                                          value: 'print',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.print, color: Colors.blue, size: 20),
-                                              SizedBox(width: 8),
-                                              Text('Print Receipt', style: TextStyle(color: Colors.blue)),
-                                            ],
+                                    SizedBox(
+                                      width: 30,
+                                      height: 30,
+                                      child: PopupMenuButton<String>(
+                                        padding: EdgeInsets.zero,
+                                        icon: Icon(Icons.more_vert, size: 18, color: theme.iconTheme.color?.withOpacity(0.5)),
+                                        color: theme.cardColor,
+                                        onSelected: (value) async {
+                                          if (value == 'delete') {
+                                             _confirmDeleteBill(context, ref, cycle, currentTenant.id);
+                                          } else if (value == 'print') {
+                                             await _handlePrintReceipt(context, ref, cycle, currentTenant);
+                                          } else if (value == 'edit') {
+                                             _showEditBillDialog(context, ref, cycle);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'print',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.print, color: Colors.blue, size: 16),
+                                                SizedBox(width: 8),
+                                                Text('Print Receipt', style: TextStyle(color: Colors.blue, fontSize: 13)),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        const PopupMenuItem(
-                                          value: 'delete',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.delete, color: Colors.red, size: 20),
-                                              SizedBox(width: 8),
-                                              Text('Delete Bill', style: TextStyle(color: Colors.red)),
-                                            ],
+                                          const PopupMenuItem(
+                                            value: 'edit',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.edit, color: Colors.orange, size: 16),
+                                                SizedBox(width: 8),
+                                                Text('Edit Bill', style: TextStyle(color: Colors.orange, fontSize: 13)),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.delete, color: Colors.red, size: 16),
+                                                SizedBox(width: 8),
+                                                Text('Delete Bill', style: TextStyle(color: Colors.red, fontSize: 13)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
                             
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Padding(
-                              padding: const EdgeInsets.only(left: 54.0),
+                              padding: const EdgeInsets.only(left: 44.0), // Aligned with text start
                               child: Text(
                                 'Bill #: ${cycle.billNumber ?? "N/A"}',
-                                style: GoogleFonts.outfit(fontSize: 13, color: theme.textTheme.bodySmall?.color),
+                                style: GoogleFonts.outfit(fontSize: 11, color: theme.textTheme.bodySmall?.color),
                               ),
                             ),
                             
                             const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                              padding: EdgeInsets.symmetric(vertical: 12.0), // Reduced spacing
                               child: DottedLineSeparator(), 
                             ),
                             
@@ -470,14 +552,14 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Total Due', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
-                                    const SizedBox(height: 4),
+                                    Text('Total Due', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
+                                    const SizedBox(height: 2),
                                     Text(
                                       '₹${cycle.totalDue.toStringAsFixed(0)}',
                                       style: GoogleFonts.outfit(
-                                        fontSize: 22,
+                                        fontSize: 18, 
                                         fontWeight: FontWeight.bold,
-                                        color: theme.textTheme.bodyLarge?.color,
+                                        color: !isPaid ? Colors.red : theme.textTheme.bodyLarge?.color, // Red if pending
                                       ),
                                     ),
                                   ],
@@ -485,17 +567,17 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text('Paid', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 13)),
-                                    const SizedBox(height: 4),
+                                    Text('Paid', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
+                                    const SizedBox(height: 2),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
                                           '₹${cycle.totalPaid.toStringAsFixed(0)}',
                                           style: GoogleFonts.outfit(
-                                            fontSize: 22,
+                                            fontSize: 18, 
                                             fontWeight: FontWeight.bold,
-                                            color: isPaid ? const Color(0xFF2E7D32) : theme.textTheme.bodyLarge?.color,
+                                            color: isPaid ? const Color(0xFF2E7D32) : Colors.red,
                                           ),
                                         ),
                                         if (cycle.totalPaid > 0) ...[
@@ -517,32 +599,47 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                             
                             // Actions if Pending
                             if(!isPaid) ...[
-                               const SizedBox(height: 20),
+                               const SizedBox(height: 12), 
                                Row(
                                  children: [
                                    Expanded(
                                      child: OutlinedButton(
-                                       onPressed: () => _showChargesSheet(context, cycle, ref),
+                                       onPressed: () => _showChargesSheet(context, cycle, ref, currentTenant),
                                        style: OutlinedButton.styleFrom(
                                           foregroundColor: theme.textTheme.bodyLarge?.color,
                                           side: BorderSide(color: theme.dividerColor),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          padding: const EdgeInsets.symmetric(vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          minimumSize: Size.zero, 
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                        ),
-                                       child: Text('+ Charges', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                                       child: Text('+ Charges', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
                                      ),
                                    ),
-                                   const SizedBox(width: 12),
+                                   const SizedBox(width: 8),
                                    Expanded(
-                                     child: ElevatedButton(
-                                       onPressed: () => _showPaymentSheet(context, cycle, ref),
-                                       style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF2563EB),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          padding: const EdgeInsets.symmetric(vertical: 14),
-                                          elevation: 2,
+                                     child: Container(
+                                       decoration: BoxDecoration(
+                                         gradient: const LinearGradient(
+                                           colors: [Color(0xFFFF5252), Color(0xFF2563EB)], // Red to Sky Blue
+                                           begin: Alignment.centerLeft,
+                                           end: Alignment.centerRight,
+                                         ),
+                                         borderRadius: BorderRadius.circular(10),
                                        ),
-                                       child: Text('Record Payment', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+                                       child: ElevatedButton(
+                                         onPressed: () => _showPaymentSheet(context, cycle, ref),
+                                         style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.transparent,
+                                            shadowColor: Colors.transparent,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), // Smaller radius
+                                            padding: const EdgeInsets.symmetric(vertical: 10), // Reduced internal padding
+                                            elevation: 0,
+                                            minimumSize: Size.zero, 
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                         ),
+                                         child: Text('Record Payment', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                       ),
                                      ),
                                    ),
                                  ],
@@ -563,12 +660,116 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
+  void _confirmMoveOut(BuildContext context, WidgetRef ref, Tenant tenant) async {
+    // 1. Calculate Outstanding Balance
+    double totalDue = 0.0;
+    try {
+      final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(tenant.id);
+      for (var c in cycles) {
+         if(c.status != RentStatus.paid) {
+           totalDue += (c.totalDue - c.totalPaid);
+         }
+      }
+    } catch (e) {
+      debugPrint('Error calc balance: $e');
+    }
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context, 
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('End Tenancy & Move Out'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (totalDue > 0)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withOpacity(0.3))
+                ),
+                child: Column(
+                  children: [
+                    const Text('Outstanding Balance', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text('₹${totalDue.toStringAsFixed(0)}', style: const TextStyle(color: Colors.red, fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    const Text('Please settle dues before moving out.', style: TextStyle(fontSize: 12), textAlign: TextAlign.center),
+                  ],
+                ),
+              )
+            else
+               Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3))
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 28),
+                    SizedBox(height: 8),
+                    Text('No Dues Pending', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              
+            const Text('Are you sure you want to move out this tenant?'),
+            const SizedBox(height: 8),
+            const Text('• Tenant status will change to "Inactive".', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Text('• Unit will be marked "Vacant".', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Text('• Payment history will be preserved.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: totalDue > 0 ? Colors.red : Colors.orange, // Red warning if dues
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext); // Close Confirmation Dialog
+              
+              try {
+                // Use the OUTER 'context' here, which is the Screen context
+                await DialogUtils.runWithLoading(context, () async {
+                   await ref.read(tenantControllerProvider.notifier).moveOutTenant(tenant);
+                });
+                
+                // On success, go back
+                if (context.mounted) {
+                   Navigator.pop(context); // Return to Tenant List
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tenant Moved Out Successfully')));
+                }
+              } catch (e) {
+                // If it fails (e.g. timeout), show error
+                if (context.mounted) {
+                   DialogUtils.showErrorDialog(context, title: 'Move Out Error', message: e.toString());
+                }
+              }
+            }, 
+            child: Text(totalDue > 0 ? 'Ignore & Move Out' : 'Confirm Move Out', style: const TextStyle(color: Colors.white)),
+          )
+        ],
+      )
+    );
+  }
+
   void _showAddPastRecordDialog(BuildContext context, WidgetRef ref) {
     // ... no changes to dialog logic itself, but colors will inherit theme or need dialog theme
-    // For now assuming default dialog theme is OK or handled globally
+    // For  void _showAddPastRecordDialog(BuildContext context, WidgetRef ref) {
     final amountController = TextEditingController();
     final paidController = TextEditingController(); 
-    DateTime selectedMonth = DateTime.now().subtract(const Duration(days: 30));
+    DateTime selectedMonth = DateTime.now();
 
     showDialog(
       context: context,
@@ -580,10 +781,15 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
             children: [
               Text('Record a bill from your manual register.', style: GoogleFonts.outfit(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12)),
               const SizedBox(height: 16),
-              // ... rest
               InkWell(
                 onTap: () async {
-                   final d = await showDatePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime.now(), initialDate: selectedMonth);
+                   // Allow selecting future dates to ensure current month can be fully selected
+                   final d = await showDatePicker(
+                     context: context, 
+                     firstDate: DateTime(2020), 
+                     lastDate: DateTime.now().add(const Duration(days: 365)), 
+                     initialDate: selectedMonth
+                   );
                    if(d != null) setState(() => selectedMonth = d);
                 },
                 child: InputDecorator(
@@ -612,17 +818,67 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               onPressed: () async {
                 final amt = double.tryParse(amountController.text) ?? 0;
                 final paid = double.tryParse(paidController.text) ?? 0;
+                final monthStr = DateFormat('yyyy-MM').format(selectedMonth);
+
                 if (amt > 0) {
-                  await DialogUtils.runWithLoading(context, () async {
-                    await ref.read(rentControllerProvider.notifier).addPastRentCycle(
-                      tenantId: widget.tenant.id,
-                      month: DateFormat('yyyy-MM').format(selectedMonth),
-                      totalDue: amt,
-                      totalPaid: paid,
-                      date: DateTime.now(),
-                    );
-                  });
-                  if (context.mounted) Navigator.pop(context);
+                     if (context.mounted) {
+                      Navigator.pop(context); // Close dialog first to avoid multiple overlays
+                      
+                      try {
+                        await DialogUtils.runWithLoading(context, () async {
+                          await ref.read(rentControllerProvider.notifier).addPastRentCycle(
+                            tenantId: widget.tenant.id,
+                            month: monthStr,
+                            totalDue: amt,
+                            totalPaid: paid,
+                            date: DateTime.now(),
+                          );
+                        });
+                        if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record Added Successfully')));
+                        }
+                      } catch (e) {
+                         // Check for specific duplication error string from RentController
+                         if (e.toString().contains('already exists')) {
+                            // Fetch existing cycle to redirect
+                            RentCycle? existingCycle;
+                            try {
+                               final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(widget.tenant.id);
+                               existingCycle = cycles.cast<RentCycle?>().firstWhere((c) => c?.month == monthStr, orElse: () => null);
+                            } catch (_) {}
+
+                            if (context.mounted && existingCycle != null) {
+                                showDialog(
+                                  context: context, 
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Bill Already Exists'),
+                                    content: Text('A bill for ${DateFormat('MMMM yyyy').format(selectedMonth)} already exists.\n\nDo you want to add this payment (₹$paid) to the existing bill?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.pop(ctx);
+                                          // Open Payment Sheet for the found cycle
+                                          _showPaymentSheet(context, existingCycle!, ref);
+                                        },
+                                        child: const Text('Add Payment'),
+                                      )
+                                    ],
+                                  )
+                                );
+                            } else {
+                               // Fallback if we can't find it (shouldn't happen if error said it exists)
+                               if (context.mounted) DialogUtils.showErrorDialog(context, title: 'Error', message: 'Bill exists but could not be loaded.');
+                            }
+                         } else {
+                            if (context.mounted) {
+                              DialogUtils.showErrorDialog(context, title: 'Error', message: e.toString());
+                            }
+                         }
+                      }
+                    }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid amount')));
                 }
               },
               child: const Text('Save Record'),
@@ -635,7 +891,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
 
   // --- Deletion Dialogs ---
 
-  void _confirmDeleteBill(BuildContext context, WidgetRef ref, RentCycle cycle) {
+  void _confirmDeleteBill(BuildContext context, WidgetRef ref, RentCycle cycle, int tenantId) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -691,7 +947,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                   Navigator.pop(context); // Close dialog
                   try {
                      await DialogUtils.runWithLoading(context, () async {
-                        await ref.read(rentControllerProvider.notifier).deleteBill(cycle.id, widget.tenant.id);
+                        await ref.read(rentControllerProvider.notifier).deleteBill(cycle);
                      });
                      if (context.mounted) {
                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill deleted')));
@@ -708,6 +964,53 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           );
         }
       ),
+    );
+  }
+
+  void _showEditBillDialog(BuildContext context, WidgetRef ref, RentCycle cycle) {
+    final amountCtrl = TextEditingController(text: cycle.totalDue.toString());
+    final noteCtrl = TextEditingController(text: cycle.notes ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Bill'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+             TextField(
+               controller: amountCtrl,
+               keyboardType: TextInputType.number,
+               decoration: const InputDecoration(labelText: 'Total Due Amount (₹)', border: OutlineInputBorder()),
+             ),
+             const SizedBox(height: 12),
+             TextField(
+               controller: noteCtrl,
+               decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
+               maxLines: 2,
+             ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+               final newAmount = double.tryParse(amountCtrl.text);
+               if (newAmount == null) return;
+               
+               await DialogUtils.runWithLoading(context, () async {
+                  await ref.read(rentControllerProvider.notifier).updateTotalDue(
+                    rentCycleId: cycle.id,
+                    newTotalDue: newAmount,
+                    notes: noteCtrl.text.trim(),
+                  );
+               });
+               if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Update'),
+          )
+        ],
+      )
     );
   }
 
@@ -804,23 +1107,26 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
   
-  Future<void> _handleDownloadStatement(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleDownloadStatement(BuildContext context, WidgetRef ref, Tenant tenant) async {
     await DialogUtils.runWithLoading(context, () async {
       try {
-        final ownerState = ref.read(ownerControllerProvider);
-        if (ownerState.value == null) throw Exception('Owner profile not found');
-        final owner = ownerState.value!;
-        final cyclesAsync = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(widget.tenant.id);
+        var owner = ref.read(ownerControllerProvider).value;
+        if (owner == null) {
+          // Attempt to fetch if not loaded
+          owner = await ref.read(ownerControllerProvider.future);
+        }
+        if (owner == null) throw Exception('Owner profile not found. Please go to Settings > Profile to set it up.');
+        final cyclesAsync = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(tenant.id);
         
         final pdfData = await ref.read(pdfServiceProvider).generateStatement(
-          tenant: widget.tenant,
+          tenant: tenant,
           cycles: cyclesAsync,
           owner: owner,
         );
 
         await Printing.layoutPdf(
           onLayout: (format) => pdfData,
-          name: 'Statement_${widget.tenant.name.replaceAll(' ', '_')}_${DateFormat('MMM_yyyy').format(DateTime.now())}',
+          name: 'Statement_${tenant.name.replaceAll(RegExp(r'[\\/:*?"<>| ]'), '_')}_${DateFormat('MMM_yyyy').format(DateTime.now())}',
         );
       } catch (e) {
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating PDF: $e')));
@@ -835,6 +1141,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
 
     String selectedMethod = 'Cash';
     DateTime selectedDate = DateTime.now();
+    
+    // Local state for sheet
+    bool isSaving = false;
 
     showModalBottomSheet(
       context: context,
@@ -843,123 +1152,140 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 20, left: 20, right: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Record Payment', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              
-              // Amount
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Amount (₹)',
-                  prefixIcon: const Icon(Icons.currency_rupee),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Date Picker
-              InkWell(
-                onTap: () async {
-                  final d = await showDatePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime(2030), initialDate: selectedDate);
-                  if(d != null) setSheetState(() => selectedDate = d);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Payment Date', style: GoogleFonts.outfit(color: Colors.grey[700])),
-                      Text(DateFormat('dd MMM yyyy').format(selectedDate), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                    ],
+          child: IgnorePointer(
+            ignoring: isSaving, // Block all input while saving
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Record Payment', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                
+                // Amount
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Amount (₹)',
+                    prefixIcon: const Icon(Icons.currency_rupee),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              // Method Dropdown
-              DropdownButtonFormField<String>(
-                initialValue: selectedMethod,
-                decoration: InputDecoration(
-                  labelText: 'Payment Method',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                items: ['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                onChanged: (v) => setSheetState(() => selectedMethod = v!),
-              ),
-              const SizedBox(height: 16),
-              
-              // Reference ID
-              TextField(
-                controller: refController,
-                decoration: InputDecoration(
-                  labelText: 'Reference / Transaction ID',
-                  hintText: 'e.g. UPI Ref, Cheque No',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Notes
-              TextField(
-                controller: notesController,
-                decoration: InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () async {
-                     final amount = double.tryParse(amountController.text) ?? 0.0;
-                     if(amount <= 0) return;
-
-                     await ref.read(rentControllerProvider.notifier).recordPayment(
-                       rentCycleId: cycle.id,
-                       tenantId: cycle.tenantId,
-                       amount: amount,
-                       date: selectedDate,
-                       method: selectedMethod,
-                       referenceId: refController.text.isEmpty ? null : refController.text,
-                       notes: notesController.text.isEmpty ? null : notesController.text,
-                     );
-                     
-                     if (context.mounted) {
-                       Navigator.pop(context);
-                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Recorded')));
-                       
-                       // Prompt for Review if available
-                       final InAppReview inAppReview = InAppReview.instance;
-                       if (await inAppReview.isAvailable()) {
-                         inAppReview.requestReview();
-                       }
-                     }
+                const SizedBox(height: 16),
+                
+                // Date Picker
+                InkWell(
+                  onTap: () async {
+                    final d = await showDatePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime(2030), initialDate: selectedDate);
+                    if(d != null) setSheetState(() => selectedDate = d);
                   },
-                  child: const Text('Save Payment', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Payment Date', style: GoogleFonts.outfit(color: Colors.grey[700])),
+                        Text(DateFormat('dd MMM yyyy').format(selectedDate), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 16),
+  
+                // Method Dropdown
+                DropdownButtonFormField<String>(
+                  initialValue: selectedMethod,
+                  decoration: InputDecoration(
+                    labelText: 'Payment Method',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: ['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                  onChanged: (v) => setSheetState(() => selectedMethod = v!),
+                ),
+                const SizedBox(height: 16),
+                
+                // Reference ID
+                TextField(
+                  controller: refController,
+                  decoration: InputDecoration(
+                    labelText: 'Reference / Transaction ID',
+                    hintText: 'e.g. UPI Ref, Cheque No',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+  
+                // Notes
+                TextField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    labelText: 'Notes',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: isSaving ? null : () async {
+                       final amount = double.tryParse(amountController.text) ?? 0.0;
+                       if(amount <= 0) return;
+  
+                       setSheetState(() => isSaving = true);
+                       try {
+                         await ref.read(rentControllerProvider.notifier).recordPayment(
+                           rentCycleId: cycle.id,
+                           tenantId: cycle.tenantId,
+                           amount: amount,
+                           date: selectedDate,
+                           method: selectedMethod,
+                           referenceId: refController.text.isEmpty ? null : refController.text,
+                           notes: notesController.text.isEmpty ? null : notesController.text,
+                         );
+                         
+                         if (context.mounted) {
+                           Navigator.pop(context);
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Recorded')));
+                           
+                           // Prompt for Review if available
+                           final InAppReview inAppReview = InAppReview.instance;
+                           if (await inAppReview.isAvailable()) {
+                             inAppReview.requestReview();
+                           }
+                         }
+                       } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+                          }
+                       } finally {
+                          if (context.mounted) {
+                             // Only update state if still mounted and not popped
+                             try { setSheetState(() => isSaving = false); } catch(_) {}
+                          }
+                       }
+                    },
+                    child: isSaving 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Save Payment', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showChargesSheet(BuildContext context, RentCycle cycle, WidgetRef ref) async {
+  void _showChargesSheet(BuildContext context, RentCycle cycle, WidgetRef ref, Tenant tenant) async {
     final prevReadingController = TextEditingController();
     final currReadingController = TextEditingController();
     final rateController = TextEditingController(text: '10'); 
@@ -972,18 +1298,12 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     double? lastRate;
     
     try {
-      // Note: RentCycle doesn't have unitId, Tenant has unitId.
-      final tenant = widget.tenant; // Since we are on TenantDetailScreen, we have the tenant.
-      
       final readingData = await ref.read(rentControllerProvider.notifier).getLastElectricReading(tenant.unitId);
       if (readingData != null) {
         lastReading = readingData['currentReading'];
         lastRate = readingData['rate'];
       } else {
         // Fallback: If no "Last" reading (e.g. first month), try "Initial Reading"
-        // This handles cases where only 1 reading exists (the initial one) and maybe the desc-sort query failed or returned nothing?
-        // Actually, logic says Last Reading SHOULD return the initial one if it's the only one.
-        // But let's be explicit to satisfy user request "previous reading should become initial reading".
         final initial = await ref.read(initialReadingProvider(tenant.unitId).future);
         if (initial != null) {
           lastReading = initial;
@@ -993,7 +1313,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
       debugPrint('Error auto-filling readings: $e');
       // If error (e.g. index missing for "Last" query), try "Initial" query as backup
       try {
-         final initial = await ref.read(initialReadingProvider(widget.tenant.unitId).future);
+         final initial = await ref.read(initialReadingProvider(tenant.unitId).future);
          if(initial != null) lastReading = initial;
       } catch (_) {}
     }
@@ -1007,146 +1327,167 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
 
     if (!context.mounted) return;
 
+    // Use boolean flag for loading
+    bool isProcessing = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => DefaultTabController(
-        length: 2,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 20, left: 20, right: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TabBar(
-                labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Theme.of(context).colorScheme.primary,
-                tabs: [
-                  Tab(text: 'Electricity', icon: Icon(Icons.electric_bolt)),
-                  Tab(text: 'Other Charges', icon: Icon(Icons.post_add)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => DefaultTabController(
+          length: 2,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 20, left: 20, right: 20),
+            child: IgnorePointer(
+              ignoring: isProcessing,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   TabBar(
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Theme.of(context).colorScheme.primary,
+                    tabs: const [
+                      Tab(text: 'Electricity', icon: Icon(Icons.electric_bolt)),
+                      Tab(text: 'Other Charges', icon: Icon(Icons.post_add)),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 300,
+                    child: TabBarView(
+                      children: [
+                        // Electricity Tab
+                        Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: prevReadingController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: InputDecoration(
+                                labelText: 'Previous Reading', 
+                                border: const OutlineInputBorder(),
+                                helperText: lastReading != null ? 'Auto-filled from last reading' : null,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: currReadingController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(labelText: 'Current Reading', border: OutlineInputBorder()),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: rateController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(labelText: 'Rate per Unit (₹)', border: OutlineInputBorder()),
+                            ),
+                            const Spacer(),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: isProcessing ? null : () async {
+                                  final prev = double.tryParse(prevReadingController.text) ?? 0;
+                                  final curr = double.tryParse(currReadingController.text) ?? 0;
+                                  final rate = double.tryParse(rateController.text) ?? 0;
+                                  
+                                  if (curr > prev) {
+                                    setSheetState(() => isProcessing = true);
+                                    try {
+                                      await ref.read(rentControllerProvider.notifier).updateRentCycleWithElectric(
+                                        rentCycleId: cycle.id,
+                                        prevReading: prev,
+                                        currentReading: curr,
+                                        ratePerUnit: rate,
+                                      );
+                                      if (context.mounted) Navigator.pop(context);
+                                    } catch (e) {
+                                       if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                                    } finally {
+                                       if (context.mounted) try { setSheetState(() => isProcessing = false); } catch(_) {}
+                                    }
+                                  } else {
+                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Current reading must be greater than Previous')));
+                                  }
+                                },
+                                child: isProcessing ? const CircularProgressIndicator() : const Text('Calculate & Save'),
+                              ),
+                            )
+                          ],
+                        ),
+                        
+                        // Other Charges Tab
+                        Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: chargeAmountController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(labelText: 'Amount (₹)', border: OutlineInputBorder()),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: chargeNoteController,
+                              decoration: const InputDecoration(labelText: 'Charge Description (e.g. Maintenance)', border: OutlineInputBorder()),
+                            ),
+                            const Spacer(),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: isProcessing ? null : () async {
+                                  final amt = double.tryParse(chargeAmountController.text) ?? 0;
+                                  if (amt > 0) {
+                                    setSheetState(() => isProcessing = true);
+                                    try {
+                                      await ref.read(rentControllerProvider.notifier).addOtherCharge(
+                                        rentCycleId: cycle.id,
+                                        amount: amt,
+                                        note: chargeNoteController.text,
+                                      );
+                                      if (context.mounted) Navigator.pop(context);
+                                    } catch (e) {
+                                       if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                                    } finally {
+                                       if (context.mounted) try { setSheetState(() => isProcessing = false); } catch(_) {}
+                                    }
+                                  }
+                                },
+                                child: isProcessing ? const CircularProgressIndicator() : const Text('Add Charge'),
+                              ),
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-              SizedBox(
-                height: 300,
-                child: TabBarView(
-                  children: [
-                    // Electricity Tab
-                    Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: prevReadingController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(
-                            labelText: 'Previous Reading', 
-                            border: const OutlineInputBorder(),
-                            helperText: lastReading != null ? 'Auto-filled from last reading' : null,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                         TextField(
-                          controller: currReadingController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Current Reading', border: OutlineInputBorder()),
-                        ),
-                        const SizedBox(height: 12),
-                         TextField(
-                          controller: rateController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Rate per Unit (₹)', border: OutlineInputBorder()),
-                        ),
-                        const Spacer(),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final prev = double.tryParse(prevReadingController.text) ?? 0;
-                              final curr = double.tryParse(currReadingController.text) ?? 0;
-                              final rate = double.tryParse(rateController.text) ?? 0;
-                              
-                              if (curr > prev) {
-                                await ref.read(rentControllerProvider.notifier).updateRentCycleWithElectric(
-                                  rentCycleId: cycle.id,
-                                  prevReading: prev,
-                                  currentReading: curr,
-                                  ratePerUnit: rate,
-                                );
-                                if (context.mounted) Navigator.pop(context);
-                                setState(() {});
-                              }
-                            },
-                            child: const Text('Calculate & Save'),
-                          ),
-                        )
-                      ],
-                    ),
-                    
-                    // Other Charges Tab
-                    Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: chargeAmountController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Amount (₹)', border: OutlineInputBorder()),
-                        ),
-                         const SizedBox(height: 12),
-                         TextField(
-                          controller: chargeNoteController,
-                          decoration: const InputDecoration(labelText: 'Charge Description (e.g. Maintenance)', border: OutlineInputBorder()),
-                        ),
-                        const Spacer(),
-                         SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final amt = double.tryParse(chargeAmountController.text) ?? 0;
-                              if (amt > 0) {
-                                await ref.read(rentControllerProvider.notifier).addOtherCharge(
-                                  rentCycleId: cycle.id,
-                                  amount: amt,
-                                  note: chargeNoteController.text,
-                                );
-                                if (context.mounted) Navigator.pop(context);
-                                setState(() {});
-                              }
-                            },
-                            child: const Text('Add Charge'),
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Future<void> _handlePrintReceipt(BuildContext context, WidgetRef ref, RentCycle cycle) async {
+  Future<void> _handlePrintReceipt(BuildContext context, WidgetRef ref, RentCycle cycle, Tenant tenant) async {
     await DialogUtils.runWithLoading(context, () async {
       try {
         final houseRepo = ref.read(propertyRepositoryProvider);
         final rentRepo = ref.read(rentRepositoryProvider);
         
         // 1. Fetch House
-        final house = await houseRepo.getHouse(widget.tenant.houseId);
+        final house = await houseRepo.getHouse(tenant.houseId);
         if (house == null) throw Exception('House not found');
         
         // 2. Fetch Unit
-        final unitDetails = await houseRepo.getUnit(widget.tenant.unitId);
+        final unitDetails = await houseRepo.getUnit(tenant.unitId);
         if (unitDetails == null) throw Exception('Unit not found');
         
         // 3. Fetch Payments
         final payments = await rentRepo.getPaymentsForRentCycle(cycle.id);
         
         // 4. Fetch Readings
-        final allReadings = await rentRepo.getElectricReadingsWithDetails(widget.tenant.unitId);
+        final allReadings = await rentRepo.getElectricReadingsWithDetails(tenant.unitId);
         
         Map<String, dynamic>? currentReading;
         Map<String, dynamic>? previousReading;
@@ -1154,14 +1495,16 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         if (allReadings.isNotEmpty) {
            try {
              // Find reading closest to billGeneratedDate
-             currentReading = allReadings.firstWhere((r) {
-               final rDate = r['date'] as DateTime;
+              currentReading = allReadings.cast<Map<String, dynamic>?>().firstWhere((r) {
+               final rDate = r!['date'] as DateTime;
                return rDate.isBefore(cycle.billGeneratedDate.add(const Duration(days: 1))); 
-             });
+             }, orElse: () => null);
              
-             final currentIndex = allReadings.indexOf(currentReading);
-             if (currentIndex + 1 < allReadings.length) {
-               previousReading = allReadings[currentIndex + 1];
+             if (currentReading != null) {
+               final currentIndex = allReadings.indexOf(currentReading!);
+               if (currentIndex + 1 < allReadings.length) {
+                 previousReading = allReadings[currentIndex + 1];
+               }
              }
            } catch (e) {
              // Not found
@@ -1171,7 +1514,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         // 5. Print
         await ref.read(printServiceProvider).printRentReceipt(
           rentCycle: cycle,
-          tenant: widget.tenant,
+          tenant: tenant,
           house: house,
           unit: unitDetails,
           payments: payments,

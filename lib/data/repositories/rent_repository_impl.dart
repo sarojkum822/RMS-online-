@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../domain/entities/rent_cycle.dart' as domain;
+import '../../features/rent/domain/entities/rent_cycle.dart' as domain;
 import '../../domain/repositories/i_rent_repository.dart';
 import '../../domain/entities/expense.dart' as domain;
 import '../../core/services/notification_service.dart';
@@ -208,12 +208,26 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<void> deleteRentCycle(int id) async {
+  Future<void> deleteRentCycle(domain.RentCycle cycle) async {
     if (_uid == null) return;
 
+    // Strategy 1: Try Deterministic Doc ID (Fastest & Most Accurate)
+    final docId = '${cycle.tenantId}_${cycle.month}';
+    final docRef = _firestore.collection('rent_cycles').doc(docId);
+    
+    final docSnapshot = await docRef.get();
+    if (docSnapshot.exists && docSnapshot.data()?['ownerId'] == _uid) {
+       await docRef.update({
+         'isDeleted': true,
+         'lastUpdated': FieldValue.serverTimestamp(),
+       });
+       return;
+    }
+
+    // Strategy 2: Fallback to ID query (Legacy support)
     final snapshot = await _firestore.collection('rent_cycles')
         .where('ownerId', isEqualTo: _uid) // CRITICAL
-        .where('id', isEqualTo: id)
+        .where('id', isEqualTo: cycle.id)
         .limit(1)
         .get();
         

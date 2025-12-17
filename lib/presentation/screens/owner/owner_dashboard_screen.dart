@@ -3,23 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // NEW
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/tenant.dart';
-import '../../../domain/entities/rent_cycle.dart';
+import '../../../features/rent/domain/entities/rent_cycle.dart';
 import 'house/house_list_screen.dart';
 import 'tenant/tenant_list_screen.dart';
 import 'tenant/tenant_list_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'rent/rent_controller.dart';
+import 'package:animated_flip_counter/animated_flip_counter.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'settings/settings_screen.dart'; 
 import 'reports/reports_screen.dart'; 
 import 'tenant/tenant_controller.dart';
 // For DashboardStats
-import 'expense/expense_screens.dart';
+import '../../providers/data_providers.dart';
 import '../../widgets/skeleton_loader.dart';
+import 'package:rentpilotpro/presentation/screens/notice/notice_controller.dart';
+import '../maintenance/maintenance_controller.dart';
+import '../maintenance/maintenance_reports_screen.dart';
+import '../../../../domain/entities/maintenance_request.dart';
+import '../../widgets/ads/banner_ad_widget.dart';
+
+import 'package:easy_localization/easy_localization.dart'; // NEW
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -70,12 +79,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           elevation: 0,
           indicatorColor: Theme.of(context).colorScheme.primaryContainer,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.home_work_outlined), selectedIcon: Icon(Icons.home_work), label: 'Properties'),
-            NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Tenants'),
-            NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Reports'),
-            NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+          destinations: [
+            NavigationDestination(icon: const Icon(Icons.dashboard_outlined), selectedIcon: const Icon(Icons.dashboard), label: 'nav.home'.tr()),
+            NavigationDestination(icon: const Icon(Icons.home_work_outlined), selectedIcon: const Icon(Icons.home_work), label: 'nav.properties'.tr()),
+            NavigationDestination(icon: const Icon(Icons.people_outline), selectedIcon: const Icon(Icons.people), label: 'nav.tenants'.tr()),
+            NavigationDestination(icon: const Icon(Icons.bar_chart_outlined), selectedIcon: const Icon(Icons.bar_chart), label: 'nav.reports'.tr()),
+            NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: 'nav.settings'.tr()),
           ],
         ),
       ),
@@ -91,12 +100,28 @@ class _DashboardTab extends ConsumerStatefulWidget {
 }
 
 class _DashboardTabState extends ConsumerState<_DashboardTab> {
+  bool _hasShownMaintenancePopup = false;
+  bool _showLoadingAnimation = true; // Force animation on start
   
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
+    // Ensure animation runs for at least 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => _showLoadingAnimation = false);
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final session = ref.read(userSessionServiceProvider);
+      final user = session.currentUser;
+      
+       ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
+       
+       if (user != null) {
+          ref.read(noticeControllerProvider.notifier).cleanupOldNotices(user.uid);
+       }
     });
   }
 
@@ -106,11 +131,37 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final statsAsync = ref.watch(dashboardStatsProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
+    // Watch Maintenance Requests for Popup/Badge
+    final user = ref.watch(userSessionServiceProvider).currentUser;
+    final maintenanceAsync = user != null ? ref.watch(ownerMaintenanceProvider(user.uid)) : const AsyncValue<List<MaintenanceRequest>>.loading();
+    final pendingMaintenanceCount = maintenanceAsync.valueOrNull?.where((r) => r.status == MaintenanceStatus.pending).length ?? 0;
+
+    // Show Popup for Pending Maintenance
+    if (pendingMaintenanceCount > 0 && !_hasShownMaintenancePopup) {
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showMaintenancePopup(pendingMaintenanceCount);
+          setState(() => _hasShownMaintenancePopup = true);
+       });
+    }
+
+    // --- Metrics for Dashboard (Moved to build scope) ---
+    final unitsAsync = ref.watch(allUnitsProvider);
+    final tenantsAsync = ref.watch(tenantControllerProvider);
+    
+    final totalProperties = unitsAsync.valueOrNull?.length ?? 0;
+    final occupiedCount = tenantsAsync.valueOrNull?.where((t) => t.status.name == 'active').length ?? 0;
+    
+    final collected = statsAsync.valueOrNull?.thisMonthCollected ?? 0.0;
+    final pending = statsAsync.valueOrNull?.totalPending ?? 0.0;
+    
+    // ----------------------------------------------------
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: null,
+        title: Text('Dashboard', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 24, color: theme.textTheme.bodyLarge?.color)),
+        centerTitle: false,
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         actions: [
@@ -130,167 +181,355 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+           // Reload all dashboard data
+           final user = ref.read(userSessionServiceProvider).currentUser;
+           
+           // Trigger refreshes
+           final r1 = ref.refresh(dashboardStatsProvider.future);
+           final r2 = ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth(); // This refreshes rent
+           final r3 = ref.refresh(allUnitsProvider.future);
+           final r4 = ref.refresh(tenantControllerProvider.future);
+           
+           Future<void>? r5;
+           if (user != null) {
+              r5 = ref.refresh(ownerMaintenanceProvider(user.uid).future);
+           }
+           
+           // Wait for all to complete
+           await Future.wait([
+             r1, 
+             // r2 is void/future depending on implementation, rent controller usually updates state. 
+             // If generateRent returns Future, we wait. If not, we assume it kicks off.
+             // Actually rentControllerProvider is a generic provider? 
+             // Let's just refresh the provider itself to be safe if it's a stream/future.
+             // But it is likely a Notifier. We called generateRentForCurrentMonth() in InitState.
+             // Let's just await a small delay or the futures we have.
+             r3, 
+             r4, 
+             if(r5 != null) r5
+           ]);
+           
+           // Also explicit refresh of rent list if it's a separate provider or derived.
+           // rentControllerProvider is the one providing the list. Refresing it:
+           // ref.invalidate(rentControllerProvider); // This might cause a loading state.
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Ensure scroll even if content is short
+          slivers: [
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Text(
-                    'Welcome back,',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  Text(
-                    'Property Manager',
-                    style: GoogleFonts.outfit(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.headlineLarge?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Stats Cards
-                    statsAsync.when(
-                      data: (stats) => Column(
+                  
+                   // 0. Total Revenue Card (Lifetime)
+                   Container(
+                     width: double.infinity,
+                     padding: const EdgeInsets.all(24),
+                     decoration: BoxDecoration(
+                        color: Colors.black, // Dark card for contrast
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
+                        boxShadow: [
+                           BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 6))
+                        ]
+                     ),
+                     child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Main Blue Card
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              borderRadius: BorderRadius.circular(32),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Monthly Collected',
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white.withValues(alpha: 0.9),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.2),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.trending_up, color: Colors.white, size: 20),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-                                Text(
-                                  '₹${stats.thisMonthCollected.toStringAsFixed(0)}',
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white,
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    '+12% from last month',
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          // Row of Secondary Cards
-                          Row(
+                           Text('Total Revenue', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
+                           const SizedBox(height: 8),
+                           Builder(
+                             builder: (context) {
+                               final total = statsAsync.valueOrNull?.totalCollected ?? 0.0;
+                               
+                               return FittedBox( // Added FittedBox
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(
+                                     children: [
+                                       Text('₹ ', style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                                       AnimatedFlipCounter(
+                                         value: total,
+                                         fractionDigits: 0,
+                                         duration: const Duration(milliseconds: 1500),
+                                         curve: Curves.easeOutExpo,
+                                         textStyle: GoogleFonts.outfit(
+                                           fontSize: 32,
+                                           fontWeight: FontWeight.bold,
+                                           color: Colors.white,
+                                         ),
+                                       ),
+                                     ],
+                                   ),
+                                );
+                             }
+                           ),
+                           const SizedBox(height: 12),
+                           Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                 color: Colors.white.withOpacity(0.15),
+                                 borderRadius: BorderRadius.circular(20)
+                              ),
+                              child: Text('Lifetime Earnings', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
+                           )
+                        ],
+                     ),
+                   ),
+                   const SizedBox(height: 24),
+                  
+                    // New Combined Dashboard Layout
+                    Column(
+                      children: [
+                        // 1. Top Grid (4 Cards)
+                        // 1. Top Grid (4 Cards)
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.6, // Adjust for card shape
+                          padding: const EdgeInsets.only(bottom: 24),
+                          children: [
+                             _buildStatGridCard(theme, Icons.home_outlined, '$totalProperties', 'Total Properties', null),
+                             _buildStatGridCard(theme, Icons.people_outline, '$occupiedCount', 'Occupied', null),
+                             _buildStatGridCard(theme, Icons.currency_rupee, collected >= 1000 ? '${(collected/1000).toStringAsFixed(1)}k' : collected.toStringAsFixed(0), 'Collected This Month', const Color(0xFF22C55E)),
+                             _buildStatGridCard(theme, Icons.error_outline, pending >= 1000 ? '${(pending/1000).toStringAsFixed(1)}k' : pending.toStringAsFixed(0), 'Pending Payments', const Color(0xFFF59E0B)),
+                          ],
+                        ),
+                        
+                        // 2. Action Buttons Row
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
                             children: [
-                              Expanded(child: _buildDetailCard(
-                                context, 
-                                'Total Revenue', 
-                                '₹${stats.totalCollected.toStringAsFixed(0)}', 
-                                Icons.currency_rupee, // Changed from attach_money for Indian context if needed, but user mockup had $ or Rs. I'll use rupee per value.
-                                Colors.blue.shade50,
-                                theme.colorScheme.primary
-                              )),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildDetailCard(
-                                context, 
-                                'Pending', 
-                                '₹${stats.totalPending.toStringAsFixed(0)}', 
-                                Icons.access_time, 
-                                const Color(0xFFFFF7ED), // Orange 50
-                                const Color(0xFFEA580C)  // Orange 600
-                              )),
+                              _buildActionButton(context, 'Add Property', Icons.add, true, () => context.push('/owner/houses/add')),
+                              const SizedBox(width: 8),
+
+                              _buildActionButton(context, 'Send Reminders', null, false, () {}),
+                              const SizedBox(width: 8),
+                              _buildActionButton(context, 'Manage Subscription', null, false, () => context.push('/owner/settings/subscription')),
                             ],
                           ),
-                        ],
-                      ),
-                      loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-                      error: (e, _) => Text('Error: $e'),
-                    ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // 3. Tabs (Visual Only for now as requested by UI)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? theme.scaffoldBackgroundColor : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                            border: isDark ? Border.all(color: Colors.white10) : null,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: theme.cardColor,
+                                    borderRadius: BorderRadius.circular(6),
+                                    boxShadow: [
+                                       BoxShadow(
+                                          color: isDark ? Colors.transparent : Colors.black.withOpacity(0.05),
+                                          blurRadius: 4
+                                       )
+                                    ],
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                     'Overview', 
+                                     style: GoogleFonts.outfit(
+                                        fontWeight: FontWeight.bold, 
+                                        fontSize: 13,
+                                        color: theme.textTheme.bodyLarge?.color
+                                     )
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Center(child: Text('Properties ($totalProperties)', style: GoogleFonts.outfit(color: theme.hintColor, fontSize: 13))), 
+                              ),
+                              Expanded(
+                                child: Center(child: Text('Payments', style: GoogleFonts.outfit(color: theme.hintColor, fontSize: 13))),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
 
-                    const SizedBox(height: 40),
+                        // 4. Monthly Revenue Overview (The card I made before)
+                        statsAsync.when(
+                          data: (stats) {
+                            final totalMonthlyDue = stats.thisMonthCollected + stats.thisMonthPending;
+                            final collectionRate = totalMonthlyDue > 0 ? (stats.thisMonthCollected / totalMonthlyDue) : 0.0;
+                            final pending = stats.thisMonthPending;
+                            final collected = stats.thisMonthCollected;
 
-                    // Quick Actions (Clean Icons)
-                    Text(
-                      'Quick Actions',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildQuickAction(context, Icons.person_add_alt_1_outlined, 'Add Tenant', () => context.push('/owner/tenants/add'))),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildQuickAction(context, Icons.add_home_work_outlined, 'Add Property', () => context.push('/owner/houses/add'))),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildQuickAction(context, Icons.receipt_long_outlined, 'Add Expense', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddExpenseScreen())))),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildQuickAction(context, Icons.analytics_outlined, 'Reports', () => Navigator.push(context, CupertinoPageRoute(builder: (_) => const ReportsScreen())))),
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: theme.cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Monthly Revenue Overview',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.textTheme.bodyLarge?.color,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  
+                                  // Total Monthly Rent
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible( // Added Flexible
+                                        child: Text(
+                                          'Total Monthly Rent',
+                                          style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey.shade600),
+                                          overflow: TextOverflow.ellipsis, // Ellipsis
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      FittedBox( // Added FittedBox
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          '₹${totalMonthlyDue.toStringAsFixed(0)}',
+                                          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  
+                                  // Collected
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          'Collected This Month',
+                                          style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey.shade600),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          '₹${collected.toStringAsFixed(0)}',
+                                          style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF22C55E)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  
+                                  // Pending
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          'Pending Collection',
+                                          style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey.shade600),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          '₹${pending.toStringAsFixed(0)}',
+                                          style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFFF59E0B)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  
+                                  const SizedBox(height: 20),
+                                  const Divider(),
+                                  const SizedBox(height: 12),
+                                  
+                                  // Rate
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          'Collection Rate',
+                                          style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${(collectionRate * 100).toStringAsFixed(0)}%',
+                                        style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
+                          error: (e, _) => Text('Error: $e'),
+                        ),
                       ],
                     ),
+                  ],
+                ),
+                  ),
+                ),
 
-                    const SizedBox(height: 40),
-                    
-                    // Activity Header
+                // Premium Ad Placement (Full Width)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.0),
+                    child: BannerAdWidget(),
+                  ),
+                ),
+
+                // Activity Header Section
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                      const SizedBox(height: 8),
+
+                      // Activity Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Rent Activity',
+                          'dashboard.rent_activity'.tr(),
                           style: GoogleFonts.outfit(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -299,7 +538,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         ),
                         TextButton(
                           onPressed: () {},
-                          child: Text('View All', style: GoogleFonts.outfit(color: theme.colorScheme.primary)),
+                          child: Text('dashboard.view_all'.tr(), style: GoogleFonts.outfit(color: theme.colorScheme.primary)),
                         ),
                       ],
                     ),
@@ -347,7 +586,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                               children: [
                                 Icon(Icons.check_circle_outline, size: 60, color: theme.disabledColor),
                                 const SizedBox(height: 16),
-                                Text('All caught up!', style: GoogleFonts.outfit(color: theme.disabledColor)),
+                                Text('dashboard.all_caught_up'.tr(), style: GoogleFonts.outfit(color: theme.disabledColor)),
                               ],
                             ),
                           ),
@@ -366,10 +605,22 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                             final isPastDue = !isPaid && cycleDate.isBefore(currentMonthStart);
                             final tenant = tenants.firstWhere((t) => t.id == c.tenantId);
                             
-                            // Helper to share via WhatsApp
-                            void _shareRentDetails(Tenant tenant, RentCycle c) async {
-                              final monthStr = DateFormat('MMMM yyyy').format(c.billPeriodStart ?? c.billGeneratedDate);
-                              final message = '''
+                            // Color Logic
+                            final statusColor = isPaid 
+                                ? const Color(0xFF10B981) // Green
+                                : (isPastDue ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)); // Red or Amber
+                            
+                            final bgGradient = isDark 
+                                ? LinearGradient(colors: [theme.cardColor, theme.cardColor.withValues(alpha: 0.8)])
+                                : LinearGradient(colors: [Colors.white, Colors.grey.shade50]);
+
+                            // Initial Avatar
+                            final initials = tenant.name.trim().split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
+
+                            // Helper for WhatsApp (Keep logic same, UI different)
+                             void _shareRentDetails(Tenant tenant, RentCycle c) async {
+                                  final monthStr = DateFormat('MMMM yyyy').format(c.billPeriodStart ?? c.billGeneratedDate);
+                                  final message = '''
 Dear ${tenant.name},
 
 Hope you are having a good day! 🌟
@@ -385,154 +636,172 @@ Please arrange to pay at your earliest convenience.
 
 Thank you!
 ''';
-                              try {
-                                 // Clean phone number: remove non-digits
-                                 String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
-                                 // Assume Indian number if 10 digits
-                                 if (phone.length == 10) {
-                                   phone = '91$phone';
-                                 }
-                                 
-                                 final url = Uri.parse("whatsapp://send?phone=$phone&text=${Uri.encodeComponent(message)}");
-                                 if (await canLaunchUrl(url)) {
-                                   await launchUrl(url, mode: LaunchMode.externalApplication);
-                                 } else {
-                                    // Fallback if generic check fails (common on Android 11+ or Emulators)
-                                    // Launch standard share sheet
-                                    if(context.mounted) {
-                                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp not detected. Opening options...'), duration: Duration(seconds: 2)));
-                                    }
-                                    await Share.share(message);
-                                 }
-                              } catch (e) {
-                                 if(context.mounted) {
-                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch WhatsApp: $e')));
-                                 }
-                              }
-                            }
+                                  try {
+                                     String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
+                                     if (phone.length == 10) phone = '91$phone';
+                                     final url = Uri.parse("whatsapp://send?phone=$phone&text=${Uri.encodeComponent(message)}");
+                                     if (await canLaunchUrl(url)) {
+                                       await launchUrl(url, mode: LaunchMode.externalApplication);
+                                     } else {
+                                        if(context.mounted) {
+                                           ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp not detected. Opening options...'), duration: Duration(seconds: 2)));
+                                        }
+                                        await Share.share(message);
+                                     }
+                                  } catch (e) {
+                                     if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch WhatsApp: $e')));
+                                  }
+                                }
 
                             return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
+                              margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
-                                color: theme.cardColor,
-                                borderRadius: BorderRadius.circular(20),
-                                border: isPastDue 
-                                    ? Border.all(color: theme.colorScheme.error.withValues(alpha: 0.3), width: 1)
-                                    : (isDark ? Border.all(color: Colors.white12) : null),
-                                boxShadow: isDark || isPastDue ? [] : [
+                                gradient: bgGradient,
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 10,
+                                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                                    blurRadius: 16,
                                     offset: const Offset(0, 4),
                                   ),
                                 ],
+                                border: Border.all(
+                                  color: isPastDue ? statusColor.withValues(alpha: 0.3) : (isDark ? Colors.white12 : Colors.transparent),
+                                  width: 1
+                                )
                               ),
-                              child: Row(
-                                children: [
-                                  // Simple Status Dot
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: isPaid ? Colors.green : (isPastDue ? theme.colorScheme.error : Colors.orange),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {}, // Can open detail
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center, // Center vertically
                                       children: [
-                                        Text(
-                                          tenant.name, 
-                                          style: GoogleFonts.outfit(
-                                            fontWeight: FontWeight.w600, 
-                                            fontSize: 16,
-                                            color: theme.textTheme.bodyLarge?.color
+                                        // 1. Avatar
+                                        Container(
+                                          width: 50, height: 50,
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            initials,
+                                            style: GoogleFonts.outfit(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                              color: theme.colorScheme.primary,
+                                            ),
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        // Show Month regardless of status, but color it red if overdue
-                                        Row(
+                                        const SizedBox(width: 16),
+                                        
+                                        // 2. Info Column
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                tenant.name,
+                                                style: GoogleFonts.outfit(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 17,
+                                                  color: theme.textTheme.bodyLarge?.color,
+                                                ),
+                                                maxLines: 1, overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    DateFormat('MMM yyyy').format(cycleDate),
+                                                    style: GoogleFonts.outfit(
+                                                      fontSize: 13,
+                                                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  if (c.electricAmount > 0) ...[
+                                                    Padding(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                                      child: Icon(Icons.circle, size: 4, color: theme.disabledColor),
+                                                    ),
+                                                    Icon(Icons.electric_bolt_rounded, size: 12, color: theme.colorScheme.tertiary),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      '₹${c.electricAmount.toInt()}',
+                                                      style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+                                                    )
+                                                  ]
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // 3. Amount & Status Column
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
                                           children: [
                                             Text(
-                                              DateFormat('MMMM yyyy').format(cycleDate),
+                                              '₹${c.totalDue.toStringAsFixed(0)}',
                                               style: GoogleFonts.outfit(
-                                                fontSize: 12, 
-                                                color: isPastDue ? theme.colorScheme.error : theme.textTheme.bodySmall?.color,
-                                                fontWeight: isPastDue ? FontWeight.bold : FontWeight.normal
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 18,
+                                                color: theme.textTheme.bodyLarge?.color,
+                                                letterSpacing: -0.5
                                               ),
                                             ),
-                                            if (c.electricAmount > 0) ...[
-                                              Container(
-                                                margin: const EdgeInsets.symmetric(horizontal: 6),
-                                                width: 4, height: 4, 
-                                                decoration: BoxDecoration(color: Colors.grey[400], shape: BoxShape.circle)
-                                              ),
-                                              Text(
-                                                'Elec: ₹${c.electricAmount.toStringAsFixed(0)}',
-                                                style: GoogleFonts.outfit(fontSize: 11, color: theme.textTheme.bodySmall?.color),
-                                              )
-                                            ]
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                // Status Badge
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: statusColor.withValues(alpha: 0.1),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: Text(
+                                                    isPaid ? 'dashboard.paid'.tr() : (isPastDue ? 'dashboard.overdue'.tr() : 'dashboard.due'.tr()),
+                                                    style: GoogleFonts.outfit(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: statusColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                                
+                                                // Share Button (Only if not paid)
+                                                if (!isPaid) ...[
+                                                  const SizedBox(width: 8),
+                                                  InkWell(
+                                                    onTap: () => _shareRentDetails(tenant, c),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.all(6),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF25D366).withValues(alpha: 0.1), // WhatsApp Light
+                                                        borderRadius: BorderRadius.circular(10),
+                                                        border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.2)),
+                                                      ),
+                                                      child: const Icon(Icons.share_outlined, size: 14, color: Color(0xFF25D366)), // WhatsApp Color
+                                                    ),
+                                                  )
+                                                ]
+                                              ],
+                                            )
                                           ],
                                         )
                                       ],
                                     ),
                                   ),
-                                  
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '₹${c.totalDue.toStringAsFixed(0)}',
-                                        style: GoogleFonts.outfit(
-                                          fontWeight: FontWeight.bold, 
-                                          fontSize: 16, 
-                                          color: isPastDue ? theme.colorScheme.error : theme.textTheme.bodyLarge?.color
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8), // More space
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            isPaid ? 'Paid' : (isPastDue ? 'Overdue' : 'Due'),
-                                            style: GoogleFonts.outfit(
-                                               fontSize: 12,
-                                               fontWeight: FontWeight.w500,
-                                               color: isPaid ? Colors.green : (isPastDue ? theme.colorScheme.error : Colors.orange)
-                                            ),
-                                          ),
-                                          if (!isPaid) ...[
-                                             const SizedBox(width: 12),
-                                             InkWell(
-                                               onTap: () => _shareRentDetails(tenant, c),
-                                               borderRadius: BorderRadius.circular(20),
-                                               child: Container(
-                                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                 decoration: BoxDecoration(
-                                                   color: const Color(0xFF25D366), // WhatsApp Green
-                                                   borderRadius: BorderRadius.circular(20),
-                                                 ),
-                                                 child: Row(
-                                                   mainAxisSize: MainAxisSize.min,
-                                                   children: [
-                                                     const Icon(Icons.share, size: 14, color: Colors.white),
-                                                     const SizedBox(width: 4),
-                                                     Text('Share', style: GoogleFonts.outfit(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                                                   ],
-                                                 ),
-                                               ),
-                                             )
-                                          ]
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                ),
                               ),
                             );
                           },
@@ -563,9 +832,17 @@ Thank you!
               ),
             ),
             
-             const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+
+            
+             const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
+             
+              // Spacer to avoid FAB overlap
+             const SliverToBoxAdapter(
+               child: SizedBox(height: 80),
+             ),
           ],
         ),
+      ),
     );
   }
 
@@ -573,15 +850,24 @@ Thank you!
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Colors.white, // Glass base
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: const Color(0xFF2563EB).withOpacity(0.05), // Subtle blue tint shadow
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.9),
+            Colors.white.withOpacity(0.6),
+          ],
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,7 +885,7 @@ Thank you!
             title,
             style: GoogleFonts.outfit(
               fontSize: 14,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -617,41 +903,101 @@ Thank you!
     );
   }
 
-  Widget _buildQuickAction(BuildContext context, IconData icon, String label, VoidCallback onTap) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-             padding: const EdgeInsets.all(16),
-             decoration: BoxDecoration(
-               color: theme.cardColor, // Card background
-               shape: BoxShape.circle,
-               border: theme.brightness == Brightness.dark ? Border.all(color: Colors.white10) : null,
-               boxShadow: theme.brightness == Brightness.dark ? [] : [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0,4))
-               ],
-             ),
-             child: Icon(icon, color: theme.colorScheme.primary, size: 24),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: theme.textTheme.bodyMedium?.color,
-              height: 1.2
+  // --- New Helper Widgets ---
+
+  Widget _buildStatGridCard(ThemeData theme, IconData icon, String value, String label, Color? valueColor) {
+     final isDark = theme.brightness == Brightness.dark;
+     return Container(
+       padding: const EdgeInsets.all(16),
+       decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+          boxShadow: [
+             BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 4, offset: const Offset(0, 2))
+          ],
+       ),
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+         children: [
+            Align(
+              alignment: Alignment.topLeft,
+              child: Icon(icon, size: 24, color: theme.hintColor),
             ),
+            Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end, // Push to bottom
+              children: [
+                 Flexible(
+                   child: FittedBox(
+                     fit: BoxFit.scaleDown,
+                     alignment: Alignment.centerLeft,
+                     child: Text(value, style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: valueColor ?? theme.textTheme.bodyLarge?.color)),
+                   ),
+                 ),
+                 Text(label, 
+                    style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                    maxLines: 1, 
+                    overflow: TextOverflow.ellipsis
+                 ),
+              ],
+            ),
+          )
+         ],
+       ),
+     );
+  }
+
+  Widget _buildActionButton(BuildContext context, String label, IconData? icon, bool isPrimary, VoidCallback onTap) {
+      final theme = Theme.of(context);
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isPrimary ? theme.colorScheme.primary : theme.cardColor,
+            borderRadius: BorderRadius.circular(8),
+            border: isPrimary ? null : Border.all(color: theme.dividerColor),
           ),
+          child: Row(
+            children: [
+               if(icon != null) ...[
+                 Icon(icon, size: 16, color: isPrimary ? Colors.white : theme.textTheme.bodyLarge?.color),
+                 const SizedBox(width: 8),
+               ],
+               Text(label, style: GoogleFonts.outfit(
+                 color: isPrimary ? Colors.white : theme.textTheme.bodyLarge?.color,
+                 fontWeight: FontWeight.w500,
+                 fontSize: 13
+               ))
+            ],
+          ),
+        ),
+      );
+  }
+
+  // --- Old Helpers (Keeping if needed or refactoring) ---
+  void _showMaintenancePopup(int count) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Requests'),
+        content: Text('You have $count pending maintenance requests.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          ElevatedButton(
+            onPressed: () {
+               Navigator.pop(ctx);
+               Navigator.push(context, CupertinoPageRoute(builder: (_) => const MaintenanceReportsScreen()));
+            },
+            child: const Text('View All')
+          )
         ],
-      ),
+      )
     );
   }
 }
-
 

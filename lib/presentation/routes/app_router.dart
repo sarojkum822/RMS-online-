@@ -19,13 +19,19 @@ import '../screens/owner/settings/support_screen.dart';
 import '../screens/owner/settings/tenant_access_screen.dart';
 import '../screens/owner/settings/active_sessions_screen.dart';
 import '../screens/owner/settings/backup_restore_screen.dart'; // NEW
+import '../screens/owner/settings/subscription_screen.dart'; // NEW
 import '../screens/owner/settings/terms_privacy_screen.dart';
+import '../screens/splash/splash_screen.dart'; // NEW
 
 GoRouter createRouter({required String initialLocation, Object? initialExtra}) {
   return GoRouter(
     initialLocation: initialLocation,
     initialExtra: initialExtra,
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const RoleSelectionScreen(),
@@ -102,6 +108,10 @@ GoRouter createRouter({required String initialLocation, Object? initialExtra}) {
       GoRoute(
         path: '/owner/settings/backup',
         builder: (context, state) => const BackupRestoreScreen(),
+      ),
+      GoRoute(
+        path: '/owner/settings/subscription',
+        builder: (context, state) => const SubscriptionScreen(),
       ),
       GoRoute(
         path: '/owner/settings/terms',

@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserSessionService {
+  User? get currentUser => FirebaseAuth.instance.currentUser;
   static const String keyRole = 'user_role';
   static const String keyTenantId = 'tenant_id';
   static const String keyBiometricEnabled = 'biometric_enabled';

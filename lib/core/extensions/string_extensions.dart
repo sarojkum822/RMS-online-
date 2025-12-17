@@ -6,4 +6,8 @@ extension StringExtensions on String {
       return word[0].toUpperCase() + word.substring(1).toLowerCase();
     }).join(' ');
   }
+  String capitalize() {
+    if (isEmpty) return this;
+    return this[0].toUpperCase() + substring(1);
+  }
 }

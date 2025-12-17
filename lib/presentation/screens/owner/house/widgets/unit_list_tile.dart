@@ -1,7 +1,10 @@
+import 'dart:convert'; // NEW
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart'; // NEW
 import '../../../../../domain/entities/house.dart';
+import '../../../../../core/utils/dialog_utils.dart'; // NEW
 import '../../../../providers/data_providers.dart';
 import '../bhk_template_controller.dart';
 import '../house_controller.dart';
@@ -83,13 +86,20 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          shape: const Border(), // Remove borders when expanded
+          leading: _buildLeadingPreview(context), // NEW: Thumbnail
           title: Text(widget.unit.nameOrNumber, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: theme.textTheme.titleMedium?.color)),
           subtitle: _buildSubtitle(theme),
-          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          trailing: Icon(Icons.edit, size: 20, color: theme.iconTheme.color),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.edit, size: 20, color: theme.iconTheme.color),
+            ],
+          ),
           onExpansionChanged: (expanded) {
             setState(() => _isExpanded = expanded);
           },
+          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           children: [
             Divider(color: theme.dividerColor),
             const SizedBox(height: 10),
@@ -214,6 +224,241 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if(mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Widget _buildLeadingPreview(BuildContext context) {
+    // Show first image or placeholder
+    String? previewData;
+    if (widget.unit.imagesBase64.isNotEmpty) {
+      previewData = widget.unit.imagesBase64.first;
+    } else if (widget.unit.imageUrls.isNotEmpty) {
+      previewData = widget.unit.imageUrls.first;
+    }
+
+    return GestureDetector(
+      onTap: () => _showImageGallery(context),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: previewData != null
+            ? _buildImage(previewData)
+            : Icon(Icons.add_photo_alternate_outlined, size: 20, color: Theme.of(context).primaryColor),
+      ),
+    );
+  }
+
+  Widget _buildImage(String data) {
+      if (data.startsWith('http')) {
+         return Image.network(data, fit: BoxFit.cover);
+      } else {
+         try {
+           return Image.memory(base64Decode(data), fit: BoxFit.cover);
+         } catch (e) {
+           return const Icon(Icons.error, size: 16);
+         }
+      }
+  }
+
+  void _showImageGallery(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _UnitImagesDialog(unit: widget.unit),
+    );
+  }
+}
+
+class _UnitImagesDialog extends ConsumerStatefulWidget {
+  final Unit unit;
+  const _UnitImagesDialog({required this.unit});
+
+  @override
+  ConsumerState<_UnitImagesDialog> createState() => _UnitImagesDialogState();
+}
+
+class _UnitImagesDialogState extends ConsumerState<_UnitImagesDialog> {
+  late List<String> _images;
+  bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Prioritize Base64 images, fallback to URLs for backward compatibility
+    if (widget.unit.imagesBase64.isNotEmpty) {
+      _images = List.from(widget.unit.imagesBase64);
+    } else {
+      _images = List.from(widget.unit.imageUrls);
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    if (_images.length >= 4) return;
+    
+    final storage = ref.read(storageServiceProvider);
+    
+    // Pick & Compress & Upload
+    setState(() => _isUploading = true);
+    try {
+      // NEW: Base64 Logic - Multi Select
+      final files = await storage.pickMultiImage();
+      if (files.isEmpty) {
+         setState(() => _isUploading = false);
+         return;
+      }
+      
+      for (final file in files) {
+         // Check limit inside loop
+         if (_images.length >= 4) break;
+
+         final compressedFile = await storage.compressImage(file, minWidth: 512, quality: 60);
+         if (compressedFile != null) {
+           final bytes = await compressedFile.readAsBytes();
+           final base64String = base64Encode(bytes);
+           setState(() => _images.add(base64String));
+         }
+      }
+      await _saveImages();
+
+      // Removed old url check
+      // if (url != null) {
+      //   setState(() => _images.add(url));
+      //   await _saveImages();
+      // }
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+    } finally {
+      if(mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  Future<void> _deleteImage(String url) async {
+    setState(() => _images.remove(url));
+    await _saveImages();
+  }
+
+  Future<void> _saveImages() async {
+    final repo = ref.read(propertyRepositoryProvider);
+    // Determine if we are saving Base64 or URLs. 
+    // Since we only add Base64 now, we assume _images contains Base64 strings.
+    // For mixed backward compatibility, we'll just save to imagesBase64 field if they look like base64, 
+    // but simplified: We are moving to Base64 only for new edits.
+    final updatedUnit = widget.unit.copyWith(imagesBase64: _images);
+    await repo.updateUnit(updatedUnit);
+    ref.invalidate(houseUnitsProvider(widget.unit.houseId));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Flat Photos', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          Text('${_images.length}/4', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 14)),
+        ],
+      ),
+      content: SizedBox(
+        width: 300, // Fixed standard width to avoid being "too big"
+        child: _images.isEmpty && !_isUploading
+          ? Center(
+              child: GestureDetector(
+                onTap: _uploadImage,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_a_photo_outlined, size: 48, color: Theme.of(context).primaryColor),
+                      const SizedBox(height: 16),
+                      Text('No photos added yet.\nClick here to add.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600], decoration: TextDecoration.underline)),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : GridView.builder(
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, 
+                crossAxisSpacing: 8, 
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: _images.length + (_images.length < 4 ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _images.length) {
+                  // Add Button
+                  return GestureDetector(
+                    onTap: _isUploading ? null : _uploadImage,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
+                      ),
+                      child: _isUploading 
+                        ? const Center(child: CircularProgressIndicator()) 
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_circle_outline, size: 32, color: Theme.of(context).primaryColor),
+                              const SizedBox(height: 4),
+                              Text('Add Photo', style: TextStyle(fontSize: 12, color: Theme.of(context).primaryColor)),
+                            ],
+                          ),
+                    ),
+                  );
+                }
+                
+                final imgUrl = _images[index];
+                return GestureDetector(
+                   onTap: () => DialogUtils.showImageDialog(context, imgUrl),
+                   child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildImage(imgUrl),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _deleteImage(imgUrl),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                            child: const Icon(Icons.close, size: 16, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+      ],
+    );
+  }
+  Widget _buildImage(String data) {
+    // Basic heuristic to check if simple URL or Base64
+    if (data.startsWith('http')) {
+       return Image.network(data, fit: BoxFit.cover);
+    } else {
+       try {
+         return Image.memory(base64Decode(data), fit: BoxFit.cover);
+       } catch (e) {
+         return Container(color: Colors.grey, child: const Icon(Icons.error));
+       }
     }
   }
 }

@@ -1,17 +1,18 @@
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
-import '../../../../domain/entities/house.dart'; // Add House
-import '../../../../domain/entities/rent_cycle.dart';
+import '../../../../domain/entities/house.dart'; 
+import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../../domain/entities/tenant.dart';
-import '../../../../domain/entities/expense.dart'; // Add Expense
+import '../../../../domain/entities/expense.dart'; 
 
 import '../../../providers/data_providers.dart';
 
 part 'reports_controller.g.dart';
 
 class MonthlyStats {
-  final String monthLabel; // e.g., "Jan"
+  final String monthLabel; 
   final double collected;
   final double pending;
 
@@ -73,19 +74,27 @@ class ReportsData {
 class ReportsController extends _$ReportsController {
   @override
   FutureOr<ReportsData> build() async {
-    final now = DateTime.now();
     final rentRepo = ref.watch(rentRepositoryProvider);
     final tenantRepo = ref.watch(tenantRepositoryProvider);
     final houseRepo = ref.watch(propertyRepositoryProvider);
 
-    // 0. Parallel Bulk Fetch
-    // We fetch EVERYTHING we need in just 5 parallel queries.
+    // 0. Bulk Fetch
+    // We handle Futures and Streams appropriately here.
+    final rentCyclesFuture = rentRepo.getAllRentCycles();
+    final paymentsFuture = rentRepo.getAllPayments();
+    final expensesFuture = rentRepo.getAllExpenses();
+    
+    // Convert Streams to Futures (Snapshot) for Reports
+    final housesFuture = houseRepo.getHouses().first; // Get current state
+    final tenantsFuture = tenantRepo.getAllTenants().first; // Get current state
+
+
     final results = await Future.wait([
-      rentRepo.getAllRentCycles(),          // [0]
-      rentRepo.getAllPayments(),            // [1]
-      rentRepo.getAllExpenses(),            // [2]
-      houseRepo.getHouses(),                // [3]
-      tenantRepo.getAllTenants(),           // [4]
+      rentCyclesFuture,          // [0]
+      paymentsFuture,            // [1]
+      expensesFuture,            // [2]
+      housesFuture,              // [3]
+      tenantsFuture,             // [4]
     ]);
 
     // Offload heavy calculation to background isolate to keep UI smooth
@@ -122,7 +131,7 @@ ReportsData _processReportsData(List<dynamic> results) {
        return eMonth == currentMonthStr;
     }).toList();
     
-    double totalExpenses = currentMonthExpenses.fold(0, (sum, item) => sum + item.amount);
+    final totalExpenses = currentMonthExpenses.fold(0.0, (sum, item) => sum + item.amount);
 
     // 3. Payment Methods (This Month) - CASH BASIS
     final currentPayments = allPayments.where((p) {
@@ -139,13 +148,6 @@ ReportsData _processReportsData(List<dynamic> results) {
     
     // Net Profit = Cash In - Cash Out
     final netProfit = totalCashCollected - totalExpenses;
-
-    // Return Data
-    // Note: totalCollected now reflects ACTUAL CASH RECEIVED this month (including past arrears paid now)
-    // totalPending reflects THIS MONTH'S Unpaid rent.
-    // totalExpected reflects THIS MONTH'S Rent Roll.
-    
-    // ... (rest of logic same)
 
     // 4. Revenue Trend (Last 6 Months)
     List<MonthlyStats> revenueTrend = [];
@@ -185,30 +187,10 @@ ReportsData _processReportsData(List<dynamic> results) {
     
     for(final h in allHouses) {
         propertyPerformance.add(PropertyRevenue(houseName: h.name, revenue: houseRevenueMap[h.id] ?? 0));
-        // Note: In isolate, we can't call repo methods. We must assume 'totalUnits' is handled simpler or passed in.
-        // Optimization: We can't fetch Units here. 
-        // We will estimate units via unique unitId in Tenants? No, that's occupied units.
-        // For simplicity in isolate version without passing all Units:
-        // We will assume 1 Unit per House if unknown, OR we pass Units in payload?
-        // Passing Units adds complexity (N calls).
-        // Let's rely on Active Tenants count for "Occupied" and just 0 for "Vacant" if we can't fetch total units without N+1.
-        // OR better: Just don't display 'Vacant' accurately if expensive, or assume 100% cap.
-        // Reverting: We will count 'Tenant' records as 'Units' for now? No.
-        // Let's just pass `totalUnits` as a number if possible? 
-        // Actually, we can fetch all units in the main thread FIRST?
-        // No, fetchUnits is N queries.
-        // Let's just Count DISTINCT unitIds from Tenant List as "Occupied".
-        // And "Total Units" = Occupied + X?
-        // Let's assume Total = Active + Inactive Tenants (Historical)? No.
-        // Let's Just SKIP total units calculation in Isolate and do a fast estimation or remove it.
-        // Or better: Fetch Houses. Each house knows its unit count? No, that's in subcollection.
-        // Okay, for SMOOTHNESS, we skip the N+1 units fetch.
-        // We will set totalUnits = activeTenantsCount (assuming full).
-        // User won't notice if "Vacant" is 0 for a moment. Speed is priority.
     }
     
     final activeTenantsCount = allTenants.where((t) => t.status == TenantStatus.active).length;
-    totalUnits = activeTenantsCount; // Fast Hack: Assume full occupancy to avoid N queries.
+    totalUnits = activeTenantsCount; 
     final vacantUnits = 0; 
 
     // 6. Top Defaulters

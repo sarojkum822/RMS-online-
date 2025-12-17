@@ -68,6 +68,14 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
   late final GeneratedColumn<String> email = GeneratedColumn<String>(
       'email', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _subscriptionPlanMeta =
+      const VerificationMeta('subscriptionPlan');
+  @override
+  late final GeneratedColumn<String> subscriptionPlan = GeneratedColumn<String>(
+      'subscription_plan', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('free'));
   static const VerificationMeta _currencyMeta =
       const VerificationMeta('currency');
   @override
@@ -100,6 +108,7 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
         name,
         phone,
         email,
+        subscriptionPlan,
         currency,
         timezone,
         createdAt
@@ -151,6 +160,12 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
       context.handle(
           _emailMeta, email.isAcceptableOrUnknown(data['email']!, _emailMeta));
     }
+    if (data.containsKey('subscription_plan')) {
+      context.handle(
+          _subscriptionPlanMeta,
+          subscriptionPlan.isAcceptableOrUnknown(
+              data['subscription_plan']!, _subscriptionPlanMeta));
+    }
     if (data.containsKey('currency')) {
       context.handle(_currencyMeta,
           currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta));
@@ -188,6 +203,8 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
           .read(DriftSqlType.string, data['${effectivePrefix}phone']),
       email: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}email']),
+      subscriptionPlan: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}subscription_plan'])!,
       currency: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}currency'])!,
       timezone: attachedDatabase.typeMapping
@@ -212,6 +229,7 @@ class Owner extends DataClass implements Insertable<Owner> {
   final String name;
   final String? phone;
   final String? email;
+  final String subscriptionPlan;
   final String currency;
   final String? timezone;
   final DateTime createdAt;
@@ -224,6 +242,7 @@ class Owner extends DataClass implements Insertable<Owner> {
       required this.name,
       this.phone,
       this.email,
+      required this.subscriptionPlan,
       required this.currency,
       this.timezone,
       required this.createdAt});
@@ -244,6 +263,7 @@ class Owner extends DataClass implements Insertable<Owner> {
     if (!nullToAbsent || email != null) {
       map['email'] = Variable<String>(email);
     }
+    map['subscription_plan'] = Variable<String>(subscriptionPlan);
     map['currency'] = Variable<String>(currency);
     if (!nullToAbsent || timezone != null) {
       map['timezone'] = Variable<String>(timezone);
@@ -266,6 +286,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           phone == null && nullToAbsent ? const Value.absent() : Value(phone),
       email:
           email == null && nullToAbsent ? const Value.absent() : Value(email),
+      subscriptionPlan: Value(subscriptionPlan),
       currency: Value(currency),
       timezone: timezone == null && nullToAbsent
           ? const Value.absent()
@@ -286,6 +307,7 @@ class Owner extends DataClass implements Insertable<Owner> {
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
       email: serializer.fromJson<String?>(json['email']),
+      subscriptionPlan: serializer.fromJson<String>(json['subscriptionPlan']),
       currency: serializer.fromJson<String>(json['currency']),
       timezone: serializer.fromJson<String?>(json['timezone']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -303,6 +325,7 @@ class Owner extends DataClass implements Insertable<Owner> {
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
       'email': serializer.toJson<String?>(email),
+      'subscriptionPlan': serializer.toJson<String>(subscriptionPlan),
       'currency': serializer.toJson<String>(currency),
       'timezone': serializer.toJson<String?>(timezone),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -318,6 +341,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           String? name,
           Value<String?> phone = const Value.absent(),
           Value<String?> email = const Value.absent(),
+          String? subscriptionPlan,
           String? currency,
           Value<String?> timezone = const Value.absent(),
           DateTime? createdAt}) =>
@@ -330,6 +354,7 @@ class Owner extends DataClass implements Insertable<Owner> {
         name: name ?? this.name,
         phone: phone.present ? phone.value : this.phone,
         email: email.present ? email.value : this.email,
+        subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
         currency: currency ?? this.currency,
         timezone: timezone.present ? timezone.value : this.timezone,
         createdAt: createdAt ?? this.createdAt,
@@ -346,6 +371,9 @@ class Owner extends DataClass implements Insertable<Owner> {
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
       email: data.email.present ? data.email.value : this.email,
+      subscriptionPlan: data.subscriptionPlan.present
+          ? data.subscriptionPlan.value
+          : this.subscriptionPlan,
       currency: data.currency.present ? data.currency.value : this.currency,
       timezone: data.timezone.present ? data.timezone.value : this.timezone,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -363,6 +391,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
+          ..write('subscriptionPlan: $subscriptionPlan, ')
           ..write('currency: $currency, ')
           ..write('timezone: $timezone, ')
           ..write('createdAt: $createdAt')
@@ -372,7 +401,7 @@ class Owner extends DataClass implements Insertable<Owner> {
 
   @override
   int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, name, phone, email, currency, timezone, createdAt);
+      id, name, phone, email, subscriptionPlan, currency, timezone, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -385,6 +414,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           other.name == this.name &&
           other.phone == this.phone &&
           other.email == this.email &&
+          other.subscriptionPlan == this.subscriptionPlan &&
           other.currency == this.currency &&
           other.timezone == this.timezone &&
           other.createdAt == this.createdAt);
@@ -399,6 +429,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
   final Value<String> name;
   final Value<String?> phone;
   final Value<String?> email;
+  final Value<String> subscriptionPlan;
   final Value<String> currency;
   final Value<String?> timezone;
   final Value<DateTime> createdAt;
@@ -411,6 +442,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.email = const Value.absent(),
+    this.subscriptionPlan = const Value.absent(),
     this.currency = const Value.absent(),
     this.timezone = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -424,6 +456,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     required String name,
     this.phone = const Value.absent(),
     this.email = const Value.absent(),
+    this.subscriptionPlan = const Value.absent(),
     this.currency = const Value.absent(),
     this.timezone = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -437,6 +470,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? email,
+    Expression<String>? subscriptionPlan,
     Expression<String>? currency,
     Expression<String>? timezone,
     Expression<DateTime>? createdAt,
@@ -450,6 +484,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
       if (email != null) 'email': email,
+      if (subscriptionPlan != null) 'subscription_plan': subscriptionPlan,
       if (currency != null) 'currency': currency,
       if (timezone != null) 'timezone': timezone,
       if (createdAt != null) 'created_at': createdAt,
@@ -465,6 +500,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       Value<String>? name,
       Value<String?>? phone,
       Value<String?>? email,
+      Value<String>? subscriptionPlan,
       Value<String>? currency,
       Value<String?>? timezone,
       Value<DateTime>? createdAt}) {
@@ -477,6 +513,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
       currency: currency ?? this.currency,
       timezone: timezone ?? this.timezone,
       createdAt: createdAt ?? this.createdAt,
@@ -510,6 +547,9 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     if (email.present) {
       map['email'] = Variable<String>(email.value);
     }
+    if (subscriptionPlan.present) {
+      map['subscription_plan'] = Variable<String>(subscriptionPlan.value);
+    }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
     }
@@ -533,6 +573,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
+          ..write('subscriptionPlan: $subscriptionPlan, ')
           ..write('currency: $currency, ')
           ..write('timezone: $timezone, ')
           ..write('createdAt: $createdAt')
@@ -1086,6 +1127,40 @@ class $BhkTemplatesTable extends BhkTemplates
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
       'description', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _roomCountMeta =
+      const VerificationMeta('roomCount');
+  @override
+  late final GeneratedColumn<int> roomCount = GeneratedColumn<int>(
+      'room_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _kitchenCountMeta =
+      const VerificationMeta('kitchenCount');
+  @override
+  late final GeneratedColumn<int> kitchenCount = GeneratedColumn<int>(
+      'kitchen_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _hallCountMeta =
+      const VerificationMeta('hallCount');
+  @override
+  late final GeneratedColumn<int> hallCount = GeneratedColumn<int>(
+      'hall_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _hasBalconyMeta =
+      const VerificationMeta('hasBalcony');
+  @override
+  late final GeneratedColumn<bool> hasBalcony = GeneratedColumn<bool>(
+      'has_balcony', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("has_balcony" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -1096,7 +1171,11 @@ class $BhkTemplatesTable extends BhkTemplates
         houseId,
         bhkType,
         defaultRent,
-        description
+        description,
+        roomCount,
+        kitchenCount,
+        hallCount,
+        hasBalcony
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1157,6 +1236,26 @@ class $BhkTemplatesTable extends BhkTemplates
           description.isAcceptableOrUnknown(
               data['description']!, _descriptionMeta));
     }
+    if (data.containsKey('room_count')) {
+      context.handle(_roomCountMeta,
+          roomCount.isAcceptableOrUnknown(data['room_count']!, _roomCountMeta));
+    }
+    if (data.containsKey('kitchen_count')) {
+      context.handle(
+          _kitchenCountMeta,
+          kitchenCount.isAcceptableOrUnknown(
+              data['kitchen_count']!, _kitchenCountMeta));
+    }
+    if (data.containsKey('hall_count')) {
+      context.handle(_hallCountMeta,
+          hallCount.isAcceptableOrUnknown(data['hall_count']!, _hallCountMeta));
+    }
+    if (data.containsKey('has_balcony')) {
+      context.handle(
+          _hasBalconyMeta,
+          hasBalcony.isAcceptableOrUnknown(
+              data['has_balcony']!, _hasBalconyMeta));
+    }
     return context;
   }
 
@@ -1184,6 +1283,14 @@ class $BhkTemplatesTable extends BhkTemplates
           .read(DriftSqlType.double, data['${effectivePrefix}default_rent'])!,
       description: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}description']),
+      roomCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}room_count'])!,
+      kitchenCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}kitchen_count'])!,
+      hallCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}hall_count'])!,
+      hasBalcony: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}has_balcony'])!,
     );
   }
 
@@ -1203,6 +1310,10 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
   final String bhkType;
   final double defaultRent;
   final String? description;
+  final int roomCount;
+  final int kitchenCount;
+  final int hallCount;
+  final bool hasBalcony;
   const BhkTemplate(
       {this.firestoreId,
       required this.lastUpdated,
@@ -1212,7 +1323,11 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
       required this.houseId,
       required this.bhkType,
       required this.defaultRent,
-      this.description});
+      this.description,
+      required this.roomCount,
+      required this.kitchenCount,
+      required this.hallCount,
+      required this.hasBalcony});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1229,6 +1344,10 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    map['room_count'] = Variable<int>(roomCount);
+    map['kitchen_count'] = Variable<int>(kitchenCount);
+    map['hall_count'] = Variable<int>(hallCount);
+    map['has_balcony'] = Variable<bool>(hasBalcony);
     return map;
   }
 
@@ -1247,6 +1366,10 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      roomCount: Value(roomCount),
+      kitchenCount: Value(kitchenCount),
+      hallCount: Value(hallCount),
+      hasBalcony: Value(hasBalcony),
     );
   }
 
@@ -1263,6 +1386,10 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
       bhkType: serializer.fromJson<String>(json['bhkType']),
       defaultRent: serializer.fromJson<double>(json['defaultRent']),
       description: serializer.fromJson<String?>(json['description']),
+      roomCount: serializer.fromJson<int>(json['roomCount']),
+      kitchenCount: serializer.fromJson<int>(json['kitchenCount']),
+      hallCount: serializer.fromJson<int>(json['hallCount']),
+      hasBalcony: serializer.fromJson<bool>(json['hasBalcony']),
     );
   }
   @override
@@ -1278,6 +1405,10 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
       'bhkType': serializer.toJson<String>(bhkType),
       'defaultRent': serializer.toJson<double>(defaultRent),
       'description': serializer.toJson<String?>(description),
+      'roomCount': serializer.toJson<int>(roomCount),
+      'kitchenCount': serializer.toJson<int>(kitchenCount),
+      'hallCount': serializer.toJson<int>(hallCount),
+      'hasBalcony': serializer.toJson<bool>(hasBalcony),
     };
   }
 
@@ -1290,7 +1421,11 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
           int? houseId,
           String? bhkType,
           double? defaultRent,
-          Value<String?> description = const Value.absent()}) =>
+          Value<String?> description = const Value.absent(),
+          int? roomCount,
+          int? kitchenCount,
+          int? hallCount,
+          bool? hasBalcony}) =>
       BhkTemplate(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -1301,6 +1436,10 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
         bhkType: bhkType ?? this.bhkType,
         defaultRent: defaultRent ?? this.defaultRent,
         description: description.present ? description.value : this.description,
+        roomCount: roomCount ?? this.roomCount,
+        kitchenCount: kitchenCount ?? this.kitchenCount,
+        hallCount: hallCount ?? this.hallCount,
+        hasBalcony: hasBalcony ?? this.hasBalcony,
       );
   BhkTemplate copyWithCompanion(BhkTemplatesCompanion data) {
     return BhkTemplate(
@@ -1317,6 +1456,13 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
           data.defaultRent.present ? data.defaultRent.value : this.defaultRent,
       description:
           data.description.present ? data.description.value : this.description,
+      roomCount: data.roomCount.present ? data.roomCount.value : this.roomCount,
+      kitchenCount: data.kitchenCount.present
+          ? data.kitchenCount.value
+          : this.kitchenCount,
+      hallCount: data.hallCount.present ? data.hallCount.value : this.hallCount,
+      hasBalcony:
+          data.hasBalcony.present ? data.hasBalcony.value : this.hasBalcony,
     );
   }
 
@@ -1331,14 +1477,30 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
           ..write('houseId: $houseId, ')
           ..write('bhkType: $bhkType, ')
           ..write('defaultRent: $defaultRent, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('roomCount: $roomCount, ')
+          ..write('kitchenCount: $kitchenCount, ')
+          ..write('hallCount: $hallCount, ')
+          ..write('hasBalcony: $hasBalcony')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, houseId, bhkType, defaultRent, description);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      houseId,
+      bhkType,
+      defaultRent,
+      description,
+      roomCount,
+      kitchenCount,
+      hallCount,
+      hasBalcony);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1351,7 +1513,11 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
           other.houseId == this.houseId &&
           other.bhkType == this.bhkType &&
           other.defaultRent == this.defaultRent &&
-          other.description == this.description);
+          other.description == this.description &&
+          other.roomCount == this.roomCount &&
+          other.kitchenCount == this.kitchenCount &&
+          other.hallCount == this.hallCount &&
+          other.hasBalcony == this.hasBalcony);
 }
 
 class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
@@ -1364,6 +1530,10 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
   final Value<String> bhkType;
   final Value<double> defaultRent;
   final Value<String?> description;
+  final Value<int> roomCount;
+  final Value<int> kitchenCount;
+  final Value<int> hallCount;
+  final Value<bool> hasBalcony;
   const BhkTemplatesCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -1374,6 +1544,10 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     this.bhkType = const Value.absent(),
     this.defaultRent = const Value.absent(),
     this.description = const Value.absent(),
+    this.roomCount = const Value.absent(),
+    this.kitchenCount = const Value.absent(),
+    this.hallCount = const Value.absent(),
+    this.hasBalcony = const Value.absent(),
   });
   BhkTemplatesCompanion.insert({
     this.firestoreId = const Value.absent(),
@@ -1385,6 +1559,10 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     required String bhkType,
     required double defaultRent,
     this.description = const Value.absent(),
+    this.roomCount = const Value.absent(),
+    this.kitchenCount = const Value.absent(),
+    this.hallCount = const Value.absent(),
+    this.hasBalcony = const Value.absent(),
   })  : houseId = Value(houseId),
         bhkType = Value(bhkType),
         defaultRent = Value(defaultRent);
@@ -1398,6 +1576,10 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     Expression<String>? bhkType,
     Expression<double>? defaultRent,
     Expression<String>? description,
+    Expression<int>? roomCount,
+    Expression<int>? kitchenCount,
+    Expression<int>? hallCount,
+    Expression<bool>? hasBalcony,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -1409,6 +1591,10 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
       if (bhkType != null) 'bhk_type': bhkType,
       if (defaultRent != null) 'default_rent': defaultRent,
       if (description != null) 'description': description,
+      if (roomCount != null) 'room_count': roomCount,
+      if (kitchenCount != null) 'kitchen_count': kitchenCount,
+      if (hallCount != null) 'hall_count': hallCount,
+      if (hasBalcony != null) 'has_balcony': hasBalcony,
     });
   }
 
@@ -1421,7 +1607,11 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
       Value<int>? houseId,
       Value<String>? bhkType,
       Value<double>? defaultRent,
-      Value<String?>? description}) {
+      Value<String?>? description,
+      Value<int>? roomCount,
+      Value<int>? kitchenCount,
+      Value<int>? hallCount,
+      Value<bool>? hasBalcony}) {
     return BhkTemplatesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -1432,6 +1622,10 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
       bhkType: bhkType ?? this.bhkType,
       defaultRent: defaultRent ?? this.defaultRent,
       description: description ?? this.description,
+      roomCount: roomCount ?? this.roomCount,
+      kitchenCount: kitchenCount ?? this.kitchenCount,
+      hallCount: hallCount ?? this.hallCount,
+      hasBalcony: hasBalcony ?? this.hasBalcony,
     );
   }
 
@@ -1465,6 +1659,18 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (roomCount.present) {
+      map['room_count'] = Variable<int>(roomCount.value);
+    }
+    if (kitchenCount.present) {
+      map['kitchen_count'] = Variable<int>(kitchenCount.value);
+    }
+    if (hallCount.present) {
+      map['hall_count'] = Variable<int>(hallCount.value);
+    }
+    if (hasBalcony.present) {
+      map['has_balcony'] = Variable<bool>(hasBalcony.value);
+    }
     return map;
   }
 
@@ -1479,7 +1685,11 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
           ..write('houseId: $houseId, ')
           ..write('bhkType: $bhkType, ')
           ..write('defaultRent: $defaultRent, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('roomCount: $roomCount, ')
+          ..write('kitchenCount: $kitchenCount, ')
+          ..write('hallCount: $hallCount, ')
+          ..write('hasBalcony: $hasBalcony')
           ..write(')'))
         .toString();
   }
@@ -7009,6 +7219,7 @@ typedef $$OwnersTableCreateCompanionBuilder = OwnersCompanion Function({
   required String name,
   Value<String?> phone,
   Value<String?> email,
+  Value<String> subscriptionPlan,
   Value<String> currency,
   Value<String?> timezone,
   Value<DateTime> createdAt,
@@ -7022,6 +7233,7 @@ typedef $$OwnersTableUpdateCompanionBuilder = OwnersCompanion Function({
   Value<String> name,
   Value<String?> phone,
   Value<String?> email,
+  Value<String> subscriptionPlan,
   Value<String> currency,
   Value<String?> timezone,
   Value<DateTime> createdAt,
@@ -7092,6 +7304,10 @@ class $$OwnersTableFilterComposer
 
   ColumnFilters<String> get email => $composableBuilder(
       column: $table.email, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get subscriptionPlan => $composableBuilder(
+      column: $table.subscriptionPlan,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get currency => $composableBuilder(
       column: $table.currency, builder: (column) => ColumnFilters(column));
@@ -7178,6 +7394,10 @@ class $$OwnersTableOrderingComposer
   ColumnOrderings<String> get email => $composableBuilder(
       column: $table.email, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get subscriptionPlan => $composableBuilder(
+      column: $table.subscriptionPlan,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get currency => $composableBuilder(
       column: $table.currency, builder: (column) => ColumnOrderings(column));
 
@@ -7220,6 +7440,9 @@ class $$OwnersTableAnnotationComposer
 
   GeneratedColumn<String> get email =>
       $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get subscriptionPlan => $composableBuilder(
+      column: $table.subscriptionPlan, builder: (column) => column);
 
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
@@ -7304,6 +7527,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             Value<String> name = const Value.absent(),
             Value<String?> phone = const Value.absent(),
             Value<String?> email = const Value.absent(),
+            Value<String> subscriptionPlan = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String?> timezone = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -7317,6 +7541,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             name: name,
             phone: phone,
             email: email,
+            subscriptionPlan: subscriptionPlan,
             currency: currency,
             timezone: timezone,
             createdAt: createdAt,
@@ -7330,6 +7555,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             required String name,
             Value<String?> phone = const Value.absent(),
             Value<String?> email = const Value.absent(),
+            Value<String> subscriptionPlan = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String?> timezone = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -7343,6 +7569,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             name: name,
             phone: phone,
             email: email,
+            subscriptionPlan: subscriptionPlan,
             currency: currency,
             timezone: timezone,
             createdAt: createdAt,
@@ -7956,6 +8183,10 @@ typedef $$BhkTemplatesTableCreateCompanionBuilder = BhkTemplatesCompanion
   required String bhkType,
   required double defaultRent,
   Value<String?> description,
+  Value<int> roomCount,
+  Value<int> kitchenCount,
+  Value<int> hallCount,
+  Value<bool> hasBalcony,
 });
 typedef $$BhkTemplatesTableUpdateCompanionBuilder = BhkTemplatesCompanion
     Function({
@@ -7968,6 +8199,10 @@ typedef $$BhkTemplatesTableUpdateCompanionBuilder = BhkTemplatesCompanion
   Value<String> bhkType,
   Value<double> defaultRent,
   Value<String?> description,
+  Value<int> roomCount,
+  Value<int> kitchenCount,
+  Value<int> hallCount,
+  Value<bool> hasBalcony,
 });
 
 final class $$BhkTemplatesTableReferences
@@ -8036,6 +8271,18 @@ class $$BhkTemplatesTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get roomCount => $composableBuilder(
+      column: $table.roomCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get kitchenCount => $composableBuilder(
+      column: $table.kitchenCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get hallCount => $composableBuilder(
+      column: $table.hallCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get hasBalcony => $composableBuilder(
+      column: $table.hasBalcony, builder: (column) => ColumnFilters(column));
 
   $$HousesTableFilterComposer get houseId {
     final $$HousesTableFilterComposer composer = $composerBuilder(
@@ -8112,6 +8359,19 @@ class $$BhkTemplatesTableOrderingComposer
   ColumnOrderings<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get roomCount => $composableBuilder(
+      column: $table.roomCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get kitchenCount => $composableBuilder(
+      column: $table.kitchenCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get hallCount => $composableBuilder(
+      column: $table.hallCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get hasBalcony => $composableBuilder(
+      column: $table.hasBalcony, builder: (column) => ColumnOrderings(column));
+
   $$HousesTableOrderingComposer get houseId {
     final $$HousesTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -8165,6 +8425,18 @@ class $$BhkTemplatesTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<int> get roomCount =>
+      $composableBuilder(column: $table.roomCount, builder: (column) => column);
+
+  GeneratedColumn<int> get kitchenCount => $composableBuilder(
+      column: $table.kitchenCount, builder: (column) => column);
+
+  GeneratedColumn<int> get hallCount =>
+      $composableBuilder(column: $table.hallCount, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasBalcony => $composableBuilder(
+      column: $table.hasBalcony, builder: (column) => column);
 
   $$HousesTableAnnotationComposer get houseId {
     final $$HousesTableAnnotationComposer composer = $composerBuilder(
@@ -8240,6 +8512,10 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             Value<String> bhkType = const Value.absent(),
             Value<double> defaultRent = const Value.absent(),
             Value<String?> description = const Value.absent(),
+            Value<int> roomCount = const Value.absent(),
+            Value<int> kitchenCount = const Value.absent(),
+            Value<int> hallCount = const Value.absent(),
+            Value<bool> hasBalcony = const Value.absent(),
           }) =>
               BhkTemplatesCompanion(
             firestoreId: firestoreId,
@@ -8251,6 +8527,10 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             bhkType: bhkType,
             defaultRent: defaultRent,
             description: description,
+            roomCount: roomCount,
+            kitchenCount: kitchenCount,
+            hallCount: hallCount,
+            hasBalcony: hasBalcony,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
@@ -8262,6 +8542,10 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             required String bhkType,
             required double defaultRent,
             Value<String?> description = const Value.absent(),
+            Value<int> roomCount = const Value.absent(),
+            Value<int> kitchenCount = const Value.absent(),
+            Value<int> hallCount = const Value.absent(),
+            Value<bool> hasBalcony = const Value.absent(),
           }) =>
               BhkTemplatesCompanion.insert(
             firestoreId: firestoreId,
@@ -8273,6 +8557,10 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             bhkType: bhkType,
             defaultRent: defaultRent,
             description: description,
+            roomCount: roomCount,
+            kitchenCount: kitchenCount,
+            hallCount: hallCount,
+            hasBalcony: hasBalcony,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (

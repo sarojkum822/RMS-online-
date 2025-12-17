@@ -11,6 +11,7 @@ class Owner with _$Owner {
     String? phone,
     String? email,
     String? firestoreId, // NEW
+    @Default('free') String subscriptionPlan, // 'free', 'pro', 'power'
     @Default('INR') String currency,
     String? timezone,
     DateTime? createdAt,

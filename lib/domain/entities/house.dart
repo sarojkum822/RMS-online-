@@ -11,6 +11,7 @@ class House with _$House {
     required String address,
     String? notes,
     String? imageUrl,
+    String? imageBase64, // NEW: Base64 storage
     @Default(0) int unitCount,
   }) = _House;
 
@@ -40,6 +41,10 @@ class Unit with _$Unit {
 
     @Default(1) int defaultDueDay,
     @Default(false) bool isOccupied,
+    
+    // NEW: Image Upload Support (Max 4 images)
+    @Default([]) List<String> imageUrls,
+    @Default([]) List<String> imagesBase64, // NEW: Base64 Unit Images
   }) = _Unit;
 
   factory Unit.fromJson(Map<String, dynamic> json) => _$UnitFromJson(json);

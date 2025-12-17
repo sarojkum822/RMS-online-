@@ -74,7 +74,7 @@ final rentRepositoryProvider = Provider<IRentRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RentRepositoryRef = ProviderRef<IRentRepository>;
-String _$backupServiceHash() => r'b9e9ee3ceea7fab30840dc8ba1db497d40d8f9af';
+String _$backupServiceHash() => r'49a7f954b1512f04ac25b77717847127dffd1035';
 
 /// See also [backupService].
 @ProviderFor(backupService)

@@ -45,6 +45,7 @@ class OwnerRepositoryImpl implements IOwnerRepository {
       firestoreId: doc.id,
       currency: data['currency'] ?? 'INR',
       timezone: data['timezone'],
+      subscriptionPlan: data['subscriptionPlan'] ?? 'free', // NEW
       createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
     );
   }
@@ -55,6 +56,7 @@ class OwnerRepositoryImpl implements IOwnerRepository {
       'email': owner.email,
       'phone': owner.phone,
       'currency': owner.currency,
+      'subscriptionPlan': owner.subscriptionPlan, // NEW
       'timezone': owner.timezone,
       'createdAt': owner.createdAt != null ? Timestamp.fromDate(owner.createdAt!) : FieldValue.serverTimestamp(),
       'firestoreId': _auth.currentUser?.uid, // Redundant but consistent

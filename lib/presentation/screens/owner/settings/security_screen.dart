@@ -31,18 +31,21 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Security', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text('Security', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: theme.iconTheme,
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
            _buildItem(
+            context: context,
             icon: Icons.lock,
             title: 'Change Password',
             onTap: () {
@@ -55,17 +58,18 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.dividerColor),
             ),
             child: SwitchListTile(
               secondary: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: Icon(Icons.fingerprint, color: Theme.of(context).colorScheme.primary),
+                decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.fingerprint, color: theme.colorScheme.primary),
               ),
-              title: Text('Biometric Auth', style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
-              subtitle: Text('Use fingerprint/face ID', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+              title: Text('Biometric Auth', style: GoogleFonts.outfit(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color)),
+              subtitle: Text('Use fingerprint/face ID', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color)),
               value: _biometricEnabled,
               onChanged: (v) async {
                 final biometricService = ref.read(biometricServiceProvider);
@@ -91,11 +95,12 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   await ref.read(userSessionServiceProvider).saveBiometricPreference(false);
                 }
               },
-              activeThumbColor: Colors.black,
+              activeThumbColor: theme.colorScheme.primary,
             ),
           ),
           
            _buildItem(
+            context: context,
             icon: Icons.devices,
             title: 'Active Sessions',
              onTap: () => context.push('/owner/settings/security/active-sessions'),
@@ -105,12 +110,14 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     );
   }
 
-  Widget _buildItem({required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildItem({required BuildContext context, required IconData icon, required String title, required VoidCallback onTap}) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: ListTile(
         leading: Container(
@@ -118,8 +125,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
           decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, color: Colors.blue),
         ),
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color)),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: theme.hintColor),
         onTap: onTap,
       ),
     );

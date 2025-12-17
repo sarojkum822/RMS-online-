@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,20 +20,29 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
     } else if (savedTheme == 'dark') {
       state = ThemeMode.dark;
     } else {
-      state = ThemeMode.system;
+      state = ThemeMode.light; // Default to Light, ignoring system
     }
   }
 
-  // Set and Save theme
   Future<void> setTheme(ThemeMode mode) async {
     state = mode;
+    
+    // Instant System Bar Update for "Snappy" feel
+    final isDark = mode == ThemeMode.dark;
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: isDark ? const Color(0xFF000000) : const Color(0xFFF8FAFC),
+      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    ));
+
     final prefs = await SharedPreferences.getInstance();
     if (mode == ThemeMode.light) {
       await prefs.setString(_key, 'light');
     } else if (mode == ThemeMode.dark) {
       await prefs.setString(_key, 'dark');
     } else {
-      await prefs.remove(_key); // System default
+      await prefs.remove(_key); 
     }
   }
 }

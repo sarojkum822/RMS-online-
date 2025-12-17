@@ -30,3 +30,8 @@
 -keepattributes *Annotation*
 -keep class com.google.common.reflect.TypeToken { *; }
 -keep class * extends com.google.common.reflect.TypeToken
+
+# Google Mobile Ads
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.ads.** { *; }
+-keep public class com.google.android.gms.ads.AdActivity

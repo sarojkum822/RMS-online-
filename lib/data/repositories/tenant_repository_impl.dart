@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
@@ -20,42 +21,29 @@ class TenantRepositoryImpl implements ITenantRepository {
 
   String? get _uid => _auth.currentUser?.uid;
 
-  // --- Image Upload ---
-  Future<String?> uploadTenantImage(File imageFile, int tenantId) async {
-    final uid = _uid;
-    if (uid == null) return null;
-    
+  // --- Image Processing (Base64) ---
+  Future<String?> _processImageToBase64(File imageFile) async {
     try {
-      // 1. Compress Image
-      final filePath = imageFile.absolute.path;
-      final lastIndex = filePath.lastIndexOf('.');
-      final split = filePath.substring(0, lastIndex);
-      final outPath = '${split}_out.jpg';
-      
       final compressedFile = await FlutterImageCompress.compressAndGetFile(
         imageFile.absolute.path,
-        outPath,
-        quality: 80,
-        minWidth: 1024,
-        minHeight: 1024,
+        '${imageFile.parent.path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        quality: 60, 
+        minWidth: 512, 
+        minHeight: 512,
       );
 
-      final fileToUpload = compressedFile != null ? File(compressedFile.path) : imageFile;
-
-      // 2. Upload
-      final ref = _storage.ref().child('owners/$uid/tenants/$tenantId.jpg');
-      await ref.putFile(fileToUpload);
-      return await ref.getDownloadURL();
+      final fileToRead = compressedFile != null ? File(compressedFile.path) : imageFile;
+      final bytes = await fileToRead.readAsBytes();
+      return base64Encode(bytes);
     } catch (e) {
-      debugPrint('Error uploading tenant image: $e');
+      debugPrint('Error processing image: $e');
       return null;
     }
   }
 
   // --- Encryption Helpers ---
-  // Note: ideally Key should be from Env or SecureStorage, but for this scope hardcoded is acceptable as per request "hashed in database"
-  final _key = encrypt.Key.fromUtf8('RentPilotProSecretKey32CharsLong'); // 32 chars
-  final _iv = encrypt.IV.fromUtf8('RentPilotProIV16'); // 16 chars fixed IV for deterministic encryption
+  final _key = encrypt.Key.fromUtf8('RentPilotProSecretKey32CharsLong'); 
+  final _iv = encrypt.IV.fromUtf8('RentPilotProIV16'); 
 
   String? _encryptPassword(String? password) {
     if (password == null || password.isEmpty) return null;
@@ -64,7 +52,7 @@ class TenantRepositoryImpl implements ITenantRepository {
       return encrypter.encrypt(password, iv: _iv).base64;
     } catch (e) {
       debugPrint('Encryption Error: $e');
-      return password; // Fallback (should ideally handle better)
+      return password; 
     }
   }
 
@@ -74,22 +62,21 @@ class TenantRepositoryImpl implements ITenantRepository {
       final encrypter = encrypt.Encrypter(encrypt.AES(_key));
       return encrypter.decrypt64(encryptedPassword, iv: _iv);
     } catch (e) {
-      // Logic: If decryption fails, it might be an OLD plain-text password. Return as is.
       return encryptedPassword;
     }
   }
 
 
   @override
-  Future<List<domain.Tenant>> getAllTenants() async {
-    if (_uid == null) return [];
+  Stream<List<domain.Tenant>> getAllTenants() {
+    final uid = _uid;
+    if (uid == null) return Stream.value([]);
     
-    final snapshot = await _firestore.collection('tenants')
-        .where('ownerId', isEqualTo: _uid)
+    return _firestore.collection('tenants')
+        .where('ownerId', isEqualTo: uid)
         .where('isDeleted', isEqualTo: false)
-        .get();
-        
-    return snapshot.docs.map((doc) => _mapToDomain(doc)).toList();
+        .snapshots() // Stream!
+        .map((snapshot) => snapshot.docs.map((doc) => _mapToDomain(doc)).toList());
   }
 
   @override
@@ -97,10 +84,11 @@ class TenantRepositoryImpl implements ITenantRepository {
     if (_uid == null) return null;
 
     final snapshot = await _firestore.collection('tenants')
-        .where('ownerId', isEqualTo: _uid) // CRITICAL
+        .where('ownerId', isEqualTo: _uid) 
         .where('id', isEqualTo: id)
         .limit(1)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 10));
         
     if (snapshot.docs.isEmpty) return null;
     final data = snapshot.docs.first.data();
@@ -128,11 +116,13 @@ class TenantRepositoryImpl implements ITenantRepository {
         .where('authId', isEqualTo: authId)
         .where('isDeleted', isEqualTo: false)
         .limit(1)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 10));
         
     if (snapshot.docs.isEmpty) return null;
     return _mapToDomain(snapshot.docs.first);
   }
+
   @override
   Future<int> createTenant(domain.Tenant tenant, {File? imageFile}) async {
     final uid = _uid;
@@ -144,7 +134,8 @@ class TenantRepositoryImpl implements ITenantRepository {
         .where('email', isEqualTo: tenant.email)
         .where('isDeleted', isEqualTo: false)
         .limit(1)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 10));
 
     if (duplicateSnapshot.docs.isNotEmpty) {
       throw Exception('A tenant with this email already exists.');
@@ -152,9 +143,10 @@ class TenantRepositoryImpl implements ITenantRepository {
     
     final id = DateTime.now().millisecondsSinceEpoch;
 
-    String? imageUrl = tenant.imageUrl;
+    String? imageBase64 = tenant.imageBase64;
+    // Process new image if provided
     if (imageFile != null) {
-      imageUrl = await uploadTenantImage(imageFile, id);
+      imageBase64 = await _processImageToBase64(imageFile);
     }
     
     final data = {
@@ -166,19 +158,20 @@ class TenantRepositoryImpl implements ITenantRepository {
       'name': tenant.name,
       'phone': tenant.phone,
       'email': tenant.email,
-      'imageUrl': imageUrl, // Save URL
-      'authId': tenant.authId, // Save Auth ID
+      'imageUrl': tenant.imageUrl, 
+      'imageBase64': imageBase64, 
+      'authId': tenant.authId, 
       'startDate': Timestamp.fromDate(tenant.startDate),
       'isActive': tenant.status == domain.TenantStatus.active,
       'agreedRent': tenant.agreedRent,
-      'password': _encryptPassword(tenant.password), // ENCRYPTED
+      'password': _encryptPassword(tenant.password), 
       'openingBalance': tenant.openingBalance,
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
       'isDeleted': false,
     };
 
-    await _firestore.collection('tenants').add(data);
+    await _firestore.collection('tenants').add(data).timeout(const Duration(seconds: 10));
     return id;
   }
 
@@ -187,28 +180,30 @@ class TenantRepositoryImpl implements ITenantRepository {
     if (_uid == null) return;
 
     final snapshot = await _firestore.collection('tenants')
-        .where('ownerId', isEqualTo: _uid) // CRITICAL
+        .where('ownerId', isEqualTo: _uid) 
         .where('id', isEqualTo: tenant.id)
         .limit(1)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 10));
 
     if (snapshot.docs.isNotEmpty) {
-      String? imageUrl = tenant.imageUrl;
+      String? imageBase64 = tenant.imageBase64;
+      // Process new image if provided
       if (imageFile != null) {
-        imageUrl = await uploadTenantImage(imageFile, tenant.id);
+        imageBase64 = await _processImageToBase64(imageFile);
       }
 
       await snapshot.docs.first.reference.update({
         'name': tenant.name,
         'phone': tenant.phone,
         'email': tenant.email,
-        'imageUrl': imageUrl, // Update URL
-        'authId': tenant.authId, // Update Auth ID if needed
+        'imageBase64': imageBase64, 
+        'authId': tenant.authId, 
         'isActive': tenant.status == domain.TenantStatus.active,
         'agreedRent': tenant.agreedRent,
-        'password': _encryptPassword(tenant.password), // ENCRYPTED
+        'password': _encryptPassword(tenant.password), 
         'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      }).timeout(const Duration(seconds: 10));
     }
   }
 
@@ -217,23 +212,24 @@ class TenantRepositoryImpl implements ITenantRepository {
     if (_uid == null) return;
 
     final snapshot = await _firestore.collection('tenants')
-        .where('ownerId', isEqualTo: _uid) // CRITICAL
+        .where('ownerId', isEqualTo: _uid) 
         .where('id', isEqualTo: id)
         .limit(1)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 10));
 
     if (snapshot.docs.isNotEmpty) {
       // Hard Delete Tenant
       await snapshot.docs.first.reference.delete();
 
       final cyclesSnapshot = await _firestore.collection('rent_cycles')
-          .where('ownerId', isEqualTo: _uid) // Safety
+          .where('ownerId', isEqualTo: _uid) 
           .where('tenantId', isEqualTo: id)
           .get();
 
       final batch = _firestore.batch();
       for (final doc in cyclesSnapshot.docs) {
-          batch.delete(doc.reference); // Hard Delete Bills
+          batch.delete(doc.reference); 
       }
       await batch.commit();
     }
@@ -242,9 +238,6 @@ class TenantRepositoryImpl implements ITenantRepository {
   @override
   Future<domain.Tenant?> authenticateTenant(String email, String password) async {
     try {
-      // 1. Attempt to Sign In with Firebase Auth directly
-      // This validates the credentials against the secure Firebase system.
-      // It also sets the 'currentUser', essentially logging them in.
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email, 
         password: password
@@ -253,9 +246,6 @@ class TenantRepositoryImpl implements ITenantRepository {
       final uid = userCredential.user?.uid;
       if (uid == null) return null;
 
-      // 2. Fetch the Tenant Profile associated with this Auth ID
-      // Now that we are logged in, Firestore Rules should allow reading our own document
-      // (assuming rules allow allow read: if request.auth.uid == resource.data.authId)
       final snapshot = await _firestore.collection('tenants')
           .where('authId', isEqualTo: uid)
           .where('isDeleted', isEqualTo: false)
@@ -263,8 +253,6 @@ class TenantRepositoryImpl implements ITenantRepository {
           .get();
 
       if (snapshot.docs.isEmpty) {
-        // Edge Case: Auth User exists, but Tenant Profile deleted/missing.
-        // Sign out to prevent "ghost" session.
         await FirebaseAuth.instance.signOut();
         return null; 
       }
@@ -303,8 +291,9 @@ class TenantRepositoryImpl implements ITenantRepository {
       agreedRent: (data['agreedRent'] as num?)?.toDouble(),
       password: _decryptPassword(data['password'] as String?), // DECRYPTED
       imageUrl: data['imageUrl'] as String?,
-      authId: data['authId'] as String?, // Map Auth ID
-      ownerId: data['ownerId'] as String? ?? '', // Default to empty if missing (shouldn't be)
+      imageBase64: data['imageBase64'] as String?, // Map Base64
+      authId: data['authId'] as String?, 
+      ownerId: data['ownerId'] as String? ?? '', 
     );
   }
 }

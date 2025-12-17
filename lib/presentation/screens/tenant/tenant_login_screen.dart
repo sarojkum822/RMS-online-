@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../providers/data_providers.dart'; // NEW
+import '../../../core/services/secure_storage_service.dart';
 import '../owner/tenant/tenant_controller.dart'; 
 
 class TenantLoginScreen extends ConsumerStatefulWidget {
@@ -16,7 +17,24 @@ class TenantLoginScreen extends ConsumerStatefulWidget {
 class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController(); // NEW
+  final _storageService = SecureStorageService();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCredentials();
+  }
+
+  Future<void> _loadCredentials() async {
+    final creds = await _storageService.getCredentials();
+    if (creds != null && mounted) {
+      setState(() {
+        _emailController.text = creds['email']!;
+        _passwordController.text = creds['password']!;
+      });
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -108,6 +126,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                         if (tenant != null && context.mounted) {
                            final sessionService = ref.read(userSessionServiceProvider);
                            await sessionService.saveSession(role: 'tenant', tenantId: tenant.id);
+                           await _storageService.saveCredentials(email, password); // SAVE CREDS
                            // Save Token for Notifications
                            await sessionService.saveTenantFcmToken(tenant.id);
                            

@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/datasources/local/database.dart';
 // NEW
+import 'package:flutter/foundation.dart';
 
 class SyncService {
   final AppDatabase _db;
