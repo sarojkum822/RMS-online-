@@ -20,24 +20,19 @@ Tenant _$TenantFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Tenant {
-  int get id => throw _privateConstructorUsedError;
-  int get houseId => throw _privateConstructorUsedError;
-  int get unitId => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
   String get tenantCode => throw _privateConstructorUsedError; // for login
   String get name => throw _privateConstructorUsedError;
   String get phone => throw _privateConstructorUsedError;
   String? get email => throw _privateConstructorUsedError;
-  DateTime get startDate => throw _privateConstructorUsedError;
-  TenantStatus get status => throw _privateConstructorUsedError;
-  double get openingBalance => throw _privateConstructorUsedError;
-  double? get agreedRent => throw _privateConstructorUsedError;
+  String get ownerId =>
+      throw _privateConstructorUsedError; // NEW: Needed for fetching payments
+  bool get isActive => throw _privateConstructorUsedError;
   String? get password => throw _privateConstructorUsedError;
   String? get imageUrl => throw _privateConstructorUsedError;
   String? get imageBase64 =>
       throw _privateConstructorUsedError; // NEW: Base64 Storage
-  String? get authId =>
-      throw _privateConstructorUsedError; // Firebase Auth UID for secure login
-  String get ownerId => throw _privateConstructorUsedError;
+  String? get authId => throw _privateConstructorUsedError;
 
   /// Serializes this Tenant to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -54,22 +49,17 @@ abstract class $TenantCopyWith<$Res> {
       _$TenantCopyWithImpl<$Res, Tenant>;
   @useResult
   $Res call(
-      {int id,
-      int houseId,
-      int unitId,
+      {String id,
       String tenantCode,
       String name,
       String phone,
       String? email,
-      DateTime startDate,
-      TenantStatus status,
-      double openingBalance,
-      double? agreedRent,
+      String ownerId,
+      bool isActive,
       String? password,
       String? imageUrl,
       String? imageBase64,
-      String? authId,
-      String ownerId});
+      String? authId});
 }
 
 /// @nodoc
@@ -88,35 +78,22 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
   @override
   $Res call({
     Object? id = null,
-    Object? houseId = null,
-    Object? unitId = null,
     Object? tenantCode = null,
     Object? name = null,
     Object? phone = null,
     Object? email = freezed,
-    Object? startDate = null,
-    Object? status = null,
-    Object? openingBalance = null,
-    Object? agreedRent = freezed,
+    Object? ownerId = null,
+    Object? isActive = null,
     Object? password = freezed,
     Object? imageUrl = freezed,
     Object? imageBase64 = freezed,
     Object? authId = freezed,
-    Object? ownerId = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
-      houseId: null == houseId
-          ? _value.houseId
-          : houseId // ignore: cast_nullable_to_non_nullable
-              as int,
-      unitId: null == unitId
-          ? _value.unitId
-          : unitId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       tenantCode: null == tenantCode
           ? _value.tenantCode
           : tenantCode // ignore: cast_nullable_to_non_nullable
@@ -133,22 +110,14 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
               as String?,
-      startDate: null == startDate
-          ? _value.startDate
-          : startDate // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as TenantStatus,
-      openingBalance: null == openingBalance
-          ? _value.openingBalance
-          : openingBalance // ignore: cast_nullable_to_non_nullable
-              as double,
-      agreedRent: freezed == agreedRent
-          ? _value.agreedRent
-          : agreedRent // ignore: cast_nullable_to_non_nullable
-              as double?,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
+      isActive: null == isActive
+          ? _value.isActive
+          : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
       password: freezed == password
           ? _value.password
           : password // ignore: cast_nullable_to_non_nullable
@@ -165,10 +134,6 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
           ? _value.authId
           : authId // ignore: cast_nullable_to_non_nullable
               as String?,
-      ownerId: null == ownerId
-          ? _value.ownerId
-          : ownerId // ignore: cast_nullable_to_non_nullable
-              as String,
     ) as $Val);
   }
 }
@@ -181,22 +146,17 @@ abstract class _$$TenantImplCopyWith<$Res> implements $TenantCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id,
-      int houseId,
-      int unitId,
+      {String id,
       String tenantCode,
       String name,
       String phone,
       String? email,
-      DateTime startDate,
-      TenantStatus status,
-      double openingBalance,
-      double? agreedRent,
+      String ownerId,
+      bool isActive,
       String? password,
       String? imageUrl,
       String? imageBase64,
-      String? authId,
-      String ownerId});
+      String? authId});
 }
 
 /// @nodoc
@@ -213,35 +173,22 @@ class __$$TenantImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? houseId = null,
-    Object? unitId = null,
     Object? tenantCode = null,
     Object? name = null,
     Object? phone = null,
     Object? email = freezed,
-    Object? startDate = null,
-    Object? status = null,
-    Object? openingBalance = null,
-    Object? agreedRent = freezed,
+    Object? ownerId = null,
+    Object? isActive = null,
     Object? password = freezed,
     Object? imageUrl = freezed,
     Object? imageBase64 = freezed,
     Object? authId = freezed,
-    Object? ownerId = null,
   }) {
     return _then(_$TenantImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
-      houseId: null == houseId
-          ? _value.houseId
-          : houseId // ignore: cast_nullable_to_non_nullable
-              as int,
-      unitId: null == unitId
-          ? _value.unitId
-          : unitId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       tenantCode: null == tenantCode
           ? _value.tenantCode
           : tenantCode // ignore: cast_nullable_to_non_nullable
@@ -258,22 +205,14 @@ class __$$TenantImplCopyWithImpl<$Res>
           ? _value.email
           : email // ignore: cast_nullable_to_non_nullable
               as String?,
-      startDate: null == startDate
-          ? _value.startDate
-          : startDate // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as TenantStatus,
-      openingBalance: null == openingBalance
-          ? _value.openingBalance
-          : openingBalance // ignore: cast_nullable_to_non_nullable
-              as double,
-      agreedRent: freezed == agreedRent
-          ? _value.agreedRent
-          : agreedRent // ignore: cast_nullable_to_non_nullable
-              as double?,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
+      isActive: null == isActive
+          ? _value.isActive
+          : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
       password: freezed == password
           ? _value.password
           : password // ignore: cast_nullable_to_non_nullable
@@ -290,10 +229,6 @@ class __$$TenantImplCopyWithImpl<$Res>
           ? _value.authId
           : authId // ignore: cast_nullable_to_non_nullable
               as String?,
-      ownerId: null == ownerId
-          ? _value.ownerId
-          : ownerId // ignore: cast_nullable_to_non_nullable
-              as String,
     ));
   }
 }
@@ -303,31 +238,22 @@ class __$$TenantImplCopyWithImpl<$Res>
 class _$TenantImpl implements _Tenant {
   const _$TenantImpl(
       {required this.id,
-      required this.houseId,
-      required this.unitId,
       required this.tenantCode,
       required this.name,
       required this.phone,
       this.email,
-      required this.startDate,
-      required this.status,
-      this.openingBalance = 0.0,
-      this.agreedRent,
+      required this.ownerId,
+      this.isActive = true,
       this.password,
       this.imageUrl,
       this.imageBase64,
-      this.authId,
-      required this.ownerId});
+      this.authId});
 
   factory _$TenantImpl.fromJson(Map<String, dynamic> json) =>
       _$$TenantImplFromJson(json);
 
   @override
-  final int id;
-  @override
-  final int houseId;
-  @override
-  final int unitId;
+  final String id;
   @override
   final String tenantCode;
 // for login
@@ -338,14 +264,11 @@ class _$TenantImpl implements _Tenant {
   @override
   final String? email;
   @override
-  final DateTime startDate;
-  @override
-  final TenantStatus status;
+  final String ownerId;
+// NEW: Needed for fetching payments
   @override
   @JsonKey()
-  final double openingBalance;
-  @override
-  final double? agreedRent;
+  final bool isActive;
   @override
   final String? password;
   @override
@@ -355,13 +278,10 @@ class _$TenantImpl implements _Tenant {
 // NEW: Base64 Storage
   @override
   final String? authId;
-// Firebase Auth UID for secure login
-  @override
-  final String ownerId;
 
   @override
   String toString() {
-    return 'Tenant(id: $id, houseId: $houseId, unitId: $unitId, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, startDate: $startDate, status: $status, openingBalance: $openingBalance, agreedRent: $agreedRent, password: $password, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId, ownerId: $ownerId)';
+    return 'Tenant(id: $id, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, ownerId: $ownerId, isActive: $isActive, password: $password, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId)';
   }
 
   @override
@@ -370,50 +290,27 @@ class _$TenantImpl implements _Tenant {
         (other.runtimeType == runtimeType &&
             other is _$TenantImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.houseId, houseId) || other.houseId == houseId) &&
-            (identical(other.unitId, unitId) || other.unitId == unitId) &&
             (identical(other.tenantCode, tenantCode) ||
                 other.tenantCode == tenantCode) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.phone, phone) || other.phone == phone) &&
             (identical(other.email, email) || other.email == email) &&
-            (identical(other.startDate, startDate) ||
-                other.startDate == startDate) &&
-            (identical(other.status, status) || other.status == status) &&
-            (identical(other.openingBalance, openingBalance) ||
-                other.openingBalance == openingBalance) &&
-            (identical(other.agreedRent, agreedRent) ||
-                other.agreedRent == agreedRent) &&
+            (identical(other.ownerId, ownerId) || other.ownerId == ownerId) &&
+            (identical(other.isActive, isActive) ||
+                other.isActive == isActive) &&
             (identical(other.password, password) ||
                 other.password == password) &&
             (identical(other.imageUrl, imageUrl) ||
                 other.imageUrl == imageUrl) &&
             (identical(other.imageBase64, imageBase64) ||
                 other.imageBase64 == imageBase64) &&
-            (identical(other.authId, authId) || other.authId == authId) &&
-            (identical(other.ownerId, ownerId) || other.ownerId == ownerId));
+            (identical(other.authId, authId) || other.authId == authId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      houseId,
-      unitId,
-      tenantCode,
-      name,
-      phone,
-      email,
-      startDate,
-      status,
-      openingBalance,
-      agreedRent,
-      password,
-      imageUrl,
-      imageBase64,
-      authId,
-      ownerId);
+  int get hashCode => Object.hash(runtimeType, id, tenantCode, name, phone,
+      email, ownerId, isActive, password, imageUrl, imageBase64, authId);
 
   /// Create a copy of Tenant
   /// with the given fields replaced by the non-null parameter values.
@@ -433,31 +330,22 @@ class _$TenantImpl implements _Tenant {
 
 abstract class _Tenant implements Tenant {
   const factory _Tenant(
-      {required final int id,
-      required final int houseId,
-      required final int unitId,
+      {required final String id,
       required final String tenantCode,
       required final String name,
       required final String phone,
       final String? email,
-      required final DateTime startDate,
-      required final TenantStatus status,
-      final double openingBalance,
-      final double? agreedRent,
+      required final String ownerId,
+      final bool isActive,
       final String? password,
       final String? imageUrl,
       final String? imageBase64,
-      final String? authId,
-      required final String ownerId}) = _$TenantImpl;
+      final String? authId}) = _$TenantImpl;
 
   factory _Tenant.fromJson(Map<String, dynamic> json) = _$TenantImpl.fromJson;
 
   @override
-  int get id;
-  @override
-  int get houseId;
-  @override
-  int get unitId;
+  String get id;
   @override
   String get tenantCode; // for login
   @override
@@ -467,13 +355,9 @@ abstract class _Tenant implements Tenant {
   @override
   String? get email;
   @override
-  DateTime get startDate;
+  String get ownerId; // NEW: Needed for fetching payments
   @override
-  TenantStatus get status;
-  @override
-  double get openingBalance;
-  @override
-  double? get agreedRent;
+  bool get isActive;
   @override
   String? get password;
   @override
@@ -481,9 +365,7 @@ abstract class _Tenant implements Tenant {
   @override
   String? get imageBase64; // NEW: Base64 Storage
   @override
-  String? get authId; // Firebase Auth UID for secure login
-  @override
-  String get ownerId;
+  String? get authId;
 
   /// Create a copy of Tenant
   /// with the given fields replaced by the non-null parameter values.

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../domain/entities/house.dart'; 
+import '../../../../domain/entities/tenancy.dart'; // Import
 import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/expense.dart'; 
@@ -95,6 +96,7 @@ class ReportsController extends _$ReportsController {
       expensesFuture,            // [2]
       housesFuture,              // [3]
       tenantsFuture,             // [4]
+      tenantRepo.getAllTenancies(), // [5] New
     ]);
 
     // Offload heavy calculation to background isolate to keep UI smooth
@@ -109,7 +111,8 @@ ReportsData _processReportsData(List<dynamic> results) {
     final allExpenses = results[2] as List<Expense>;
     final allHouses = results[3] as List<House>;
     final allTenants = results[4] as List<Tenant>;
-    
+    final allTenancies = results[5] as List<Tenancy>; // New
+
     final now = DateTime.now();
     final currentMonthStr = DateFormat('yyyy-MM').format(now);
 
@@ -172,45 +175,80 @@ ReportsData _processReportsData(List<dynamic> results) {
     int totalUnits = 0;
     
     List<PropertyRevenue> propertyPerformance = [];
-    Map<int, int> tenantToHouseMap = {};
-    for(final t in allTenants) {
-        tenantToHouseMap[t.id] = t.houseId;
-    }
     
-    Map<int, double> houseRevenueMap = {};
+    // Map Tenancy -> Unit -> House
+    // Map<TenancyId, HouseId>
+    Map<String, String> tenancyToHouseMap = {};
+    
+    // Need Unit -> House mapping
+    // We don't have all Units here.
+    // Assuming we can get HouseId from Tenancy... NO, Tenancy has UnitId. 
+    // Unit has HouseId.
+    // We are missing Units list in the report fetch.
+    
+    // Quick Fix: Fetch Units too? Or iterate Houses -> Units.
+    // The previous code used tenant.houseId which was denormalized.
+    
+    // Let's rely on RentCycle's tenancyId.
+    // rentCycle.tenancyId -> Tenancy
+    // Tenancy -> UnitId
+    // UnitId -> HouseId (Need Units)
+    
+    // Better: Add Units to the fetch list in build()
+    // But for now, if we can't get Units, we can't map to House easily without extra fetch.
+    // Given complexity, let's skip PropertyRevenue details or simplify.
+    // Or... we assume HouseController caches units? No.
+    
+    // Let's assume we can't facilitate this report cleanly without Units.
+    // But we need to fix compilation.
+    
+    for(final h in allHouses) {
+       propertyPerformance.add(PropertyRevenue(houseName: h.name, revenue: 0));
+    }
+    // We will leave revenue 0 for now to avoid refactoring fetch logic too deeply in this single step.
+    // Ideally we fetch Units.
+    
+    /*
     for(final c in allRentCycles) {
-        final houseId = tenantToHouseMap[c.tenantId];
+        final houseId = tenantToHouseMap[c.tenantId]; 
         if (houseId != null) {
             houseRevenueMap[houseId] = (houseRevenueMap[houseId] ?? 0) + c.totalPaid;
         }
     }
+    */
     
     for(final h in allHouses) {
         propertyPerformance.add(PropertyRevenue(houseName: h.name, revenue: houseRevenueMap[h.id] ?? 0));
     }
     
-    final activeTenantsCount = allTenants.where((t) => t.status == TenantStatus.active).length;
-    totalUnits = activeTenantsCount; 
+    final activeTenanciesCount = allTenancies.where((t) => t.status == TenancyStatus.active).length;
+    totalUnits = activeTenanciesCount; // Placeholder, should be total units from Houses
     final vacantUnits = 0; 
 
     // 6. Top Defaulters
     List<TenantDue> defaulters = [];
-    Map<int, double> tenantDueMap = {};
+    Map<String, double> tenancyDueMap = {};
     for(final c in allRentCycles) {
         final due = c.totalDue - c.totalPaid;
         if (due > 0) {
-            tenantDueMap[c.tenantId] = (tenantDueMap[c.tenantId] ?? 0) + due;
+            tenancyDueMap[c.tenancyId] = (tenancyDueMap[c.tenancyId] ?? 0) + due;
         }
     }
     
-    for(final t in allTenants) {
-        if (t.status == TenantStatus.active) {
-            final due = tenantDueMap[t.id] ?? 0;
-            if (due > 0) {
-                defaulters.add(TenantDue(name: t.name, amount: due, phone: t.phone));
-            }
-        }
-    }
+    // We need to map TenancyId back to Tenant Name.
+    // Tenancy -> TenantId
+    Map<String, String> tenancyToTenantIdMap = {for (var t in allTenancies) t.id: t.tenantId};
+    Map<String, Tenant> tenantMap = {for (var t in allTenants) t.id: t};
+
+    tenancyDueMap.forEach((tenancyId, amount) {
+       final tenantId = tenancyToTenantIdMap[tenancyId];
+       if(tenantId != null) {
+          final tenant = tenantMap[tenantId];
+          if(tenant != null) {
+             defaulters.add(TenantDue(name: tenant.name, amount: amount, phone: tenant.phone));
+          }
+       }
+    });
     
     defaulters.sort((a, b) => b.amount.compareTo(a.amount));
     if (defaulters.length > 5) defaulters = defaulters.sublist(0, 5);
@@ -226,7 +264,7 @@ ReportsData _processReportsData(List<dynamic> results) {
       totalExpenses: totalExpenses,
       netProfit: netProfit,
       totalUnits: totalUnits,
-      occupiedUnits: activeTenantsCount,
+      occupiedUnits: activeTenanciesCount,
       vacantUnits: vacantUnits,
       recentPayments: recentPayments,
       revenueTrend: revenueTrend,

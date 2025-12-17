@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../features/rent/domain/entities/rent_cycle.dart' as domain;
@@ -17,13 +18,15 @@ class RentRepositoryImpl implements IRentRepository {
 
   // --- Rent Cycles ---
 
+  // --- Rent Cycles ---
+
   @override
-  Future<List<domain.RentCycle>> getRentCyclesForTenant(int tenantId) async {
+  Future<List<domain.RentCycle>> getRentCyclesForTenancy(String tenancyId) async {
     if (_uid == null) return [];
     
     final snapshot = await _firestore.collection('rent_cycles')
-        .where('ownerId', isEqualTo: _uid) // CRITICAL: Must match Security Rule
-        .where('tenantId', isEqualTo: tenantId)
+        .where('ownerId', isEqualTo: _uid) 
+        .where('tenancyId', isEqualTo: tenancyId) // Changed
         .where('isDeleted', isEqualTo: false)
         .get();
         
@@ -87,24 +90,22 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<List<domain.RentCycle>> getRentCyclesByTenantAccess(int tenantId, String ownerId) async {
-    // Allows fetching bills using known OwnerID (Tenant View)
+  Future<List<domain.RentCycle>> getRentCyclesByTeenancyAccess(String tenancyId, String ownerId) async {
     final snapshot = await _firestore.collection('rent_cycles')
         .where('ownerId', isEqualTo: ownerId)
-        .where('tenantId', isEqualTo: tenantId)
+        .where('tenancyId', isEqualTo: tenancyId)
         .where('isDeleted', isEqualTo: false)
-        //.where('status', isLessThan: 2) // Optional: Show all history or just pending? User asked for "Bill History" so probably all.
-        .orderBy('month', descending: true) // Show latest first
+        .orderBy('month', descending: true) 
         .get();
         
     return snapshot.docs.map((c) => _mapToDomain(c)).toList();
   }
 
   @override
-  Stream<List<domain.RentCycle>> watchRentCyclesByTenantAccess(int tenantId, String ownerId) {
+  Stream<List<domain.RentCycle>> watchRentCyclesByTenancyAccess(String tenancyId, String ownerId) {
     return _firestore.collection('rent_cycles')
         .where('ownerId', isEqualTo: ownerId)
-        .where('tenantId', isEqualTo: tenantId)
+        .where('tenancyId', isEqualTo: tenancyId)
         .where('isDeleted', isEqualTo: false)
         .orderBy('month', descending: true)
         .snapshots()
@@ -112,7 +113,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<domain.RentCycle?> getRentCycle(int id) async {
+  Future<domain.RentCycle?> getRentCycle(String id) async { // String ID
     if (_uid == null) return null;
 
     final snapshot = await _firestore.collection('rent_cycles')
@@ -128,26 +129,26 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<int> createRentCycle(domain.RentCycle rentCycle) async {
+  Future<String> createRentCycle(domain.RentCycle rentCycle) async { // Future<String>
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
     // Deterministic Document ID: prevents valid duplicates at DB level
-    final docId = '${rentCycle.tenantId}_${rentCycle.month}'; 
+    final docId = '${rentCycle.tenancyId}_${rentCycle.month}'; 
     final docRef = _firestore.collection('rent_cycles').doc(docId);
 
     final snapshot = await docRef.get();
     if (snapshot.exists) {
        // already exists
-       return snapshot.data()!['id'] as int;
+       return snapshot.data()!['id'] as String;
     }
 
-    final id = DateTime.now().millisecondsSinceEpoch;
+    final id = const Uuid().v4(); // UUID
 
     final data = {
       'id': id,
-      'ownerId': uid, // Add ownerId for easier dashboard queries
-      'tenantId': rentCycle.tenantId,
+      'ownerId': uid, 
+      'tenancyId': rentCycle.tenancyId, // Changed to tenancyId
       'month': rentCycle.month,
       'billNumber': rentCycle.billNumber,
       'billPeriodStart': rentCycle.billPeriodStart?.toIso8601String(),
@@ -212,7 +213,7 @@ class RentRepositoryImpl implements IRentRepository {
     if (_uid == null) return;
 
     // Strategy 1: Try Deterministic Doc ID (Fastest & Most Accurate)
-    final docId = '${cycle.tenantId}_${cycle.month}';
+    final docId = '${cycle.tenancyId}_${cycle.month}'; // tenancyId
     final docRef = _firestore.collection('rent_cycles').doc(docId);
     
     final docSnapshot = await docRef.get();
@@ -254,7 +255,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<List<domain.Payment>> getPaymentsForRentCycle(int rentCycleId) async {
+  Future<List<domain.Payment>> getPaymentsForRentCycle(String rentCycleId) async { // String
      if (_uid == null) return [];
      
     final snapshot = await _firestore.collection('payments')
@@ -266,7 +267,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<List<domain.Payment>> getPaymentsForRentCycleForTenant(int rentCycleId, String ownerId) async {
+  Future<List<domain.Payment>> getPaymentsForRentCycleForTenant(String rentCycleId, String ownerId) async {
     final snapshot = await _firestore.collection('payments')
         .where('ownerId', isEqualTo: ownerId)
         .where('rentCycleId', isEqualTo: rentCycleId)
@@ -276,33 +277,32 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<List<domain.Payment>> getPaymentsForTenant(int tenantId) async {
+  Future<List<domain.Payment>> getPaymentsForTenancy(String tenancyId) async {
      if (_uid == null) return [];
 
     final snapshot = await _firestore.collection('payments')
         .where('ownerId', isEqualTo: _uid)
-        .where('tenantId', isEqualTo: tenantId)
+        .where('tenancyId', isEqualTo: tenancyId) 
         .where('isDeleted', isEqualTo: false)
         .get();
     return snapshot.docs.map((p) => _mapPaymentToDomain(p)).toList();
   }
 
   @override
-  Future<List<domain.Payment>> getPaymentsByTenantAccess(int tenantId, String ownerId) async {
-    // Allows fetching payments using known OwnerID (Tenant View)
+  Future<List<domain.Payment>> getPaymentsByTenancyAccess(String tenancyId, String ownerId) async {
     final snapshot = await _firestore.collection('payments')
         .where('ownerId', isEqualTo: ownerId)
-        .where('tenantId', isEqualTo: tenantId)
+        .where('tenancyId', isEqualTo: tenancyId)
         .where('isDeleted', isEqualTo: false)
         .get();
     return snapshot.docs.map((p) => _mapPaymentToDomain(p)).toList();
   }
 
   @override
-  Stream<List<domain.Payment>> watchPaymentsByTenantAccess(int tenantId, String ownerId) {
+  Stream<List<domain.Payment>> watchPaymentsByTenancyAccess(String tenancyId, String ownerId) {
     return _firestore.collection('payments')
         .where('ownerId', isEqualTo: ownerId)
-        .where('tenantId', isEqualTo: tenantId)
+        .where('tenancyId', isEqualTo: tenancyId)
         .where('isDeleted', isEqualTo: false)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((p) => _mapPaymentToDomain(p)).toList());
@@ -371,7 +371,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<void> deletePayment(int id) async {
+  Future<void> deletePayment(String id) async { // String
     if (_uid == null) return;
 
     final snapshot = await _firestore.collection('payments')
@@ -389,13 +389,13 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<int> recordPayment(domain.Payment payment) async {
+  Future<String> recordPayment(domain.Payment payment) async { // Future<String>
      final uid = _uid;
      if (uid == null) throw Exception('User not logged in');
 
     // Transaction? Firestore supports it.
     // Simple async sequence for MVP.
-    final id = DateTime.now().millisecondsSinceEpoch;
+    final id = const Uuid().v4();
 
     final data = {
       'id': id,
@@ -414,7 +414,7 @@ class RentRepositoryImpl implements IRentRepository {
       'isDeleted': false,
     };
     
-    await _firestore.collection('payments').add(data);
+    await _firestore.collection('payments').doc(id).set(data); // Use set with ID
 
     // Update Rent Cycle
     final cycle = await getRentCycle(payment.rentCycleId);
@@ -439,7 +439,7 @@ class RentRepositoryImpl implements IRentRepository {
   // --- Electric Readings ---
 
   @override
-  Future<void> addElectricReading(int unitId, DateTime date, double reading, {String? imagePath, double? rate}) async {
+  Future<void> addElectricReading(String unitId, DateTime date, double reading, {String? imagePath, double? rate}) async { // String unitId
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
     
@@ -462,7 +462,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<List<double>> getElectricReadings(int unitId) async {
+  Future<List<double>> getElectricReadings(String unitId) async {
     if (_uid == null) return [];
 
     // Fetch ALL for unit, Sort in Memory to avoid Index requirements
@@ -484,7 +484,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getElectricReadingsWithDetails(int unitId) async {
+  Future<List<Map<String, dynamic>>> getElectricReadingsWithDetails(String unitId) async {
     if (_uid == null) return [];
 
     final snapshot = await _firestore.collection('electric_readings')
@@ -512,7 +512,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getElectricReadingsForTenant(int unitId, String ownerId) async {
+  Future<List<Map<String, dynamic>>> getElectricReadingsForTenant(String unitId, String ownerId) async {
     final snapshot = await _firestore.collection('electric_readings')
         .where('ownerId', isEqualTo: ownerId)
         .where('unitId', isEqualTo: unitId)
@@ -537,8 +537,9 @@ class RentRepositoryImpl implements IRentRepository {
   }
   
   // NEW: Get Last Reading for smart pre-fill
+  // NEW: Get Last Reading for smart pre-fill
   @override
-  Future<Map<String, double>?> getLastElectricReading(int unitId) async {
+  Future<Map<String, double>?> getLastElectricReading(String unitId) async {
     if (_uid == null) return null;
 
     // Fetch ALL for unit, Sort in Memory
@@ -572,9 +573,9 @@ class RentRepositoryImpl implements IRentRepository {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
     
-    final id = DateTime.now().millisecondsSinceEpoch; // or expense.id if passed as 0? typically repository generates ID for create.
+    final id = const Uuid().v4();
     
-    await _firestore.collection('expenses').add({
+    await _firestore.collection('expenses').doc(id).set({
        'id': id,
        'ownerId': uid,
        'title': expense.title,
@@ -628,7 +629,7 @@ class RentRepositoryImpl implements IRentRepository {
   }
 
   @override
-  Future<void> deleteExpense(int id) async {
+  Future<void> deleteExpense(String id) async {
      if (_uid == null) return;
 
      final snapshot = await _firestore.collection('expenses')
@@ -651,7 +652,7 @@ class RentRepositoryImpl implements IRentRepository {
     final data = doc.data()!;
     return domain.RentCycle(
       id: data['id'],
-      tenantId: data['tenantId'],
+      tenancyId: data['tenancyId'], // tenantId -> tenancyId
       month: data['month'],
       billNumber: data['billNumber'],
       billPeriodStart: data['billPeriodStart'] != null ? DateTime.parse(data['billPeriodStart']) : null,

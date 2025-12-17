@@ -1,9 +1,11 @@
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/tenant.dart';
+import '../../../../domain/entities/tenancy.dart'; // Import
 import '../../../../domain/repositories/i_rent_repository.dart';
 import '../../../../domain/repositories/i_property_repository.dart';
 import '../../../../domain/repositories/i_tenant_repository.dart';
 import '../../../../domain/entities/house.dart'; // Import for Unit
+import 'package:uuid/uuid.dart'; // Add uuid import
 import '../rent_rules.dart';
 import '../entities/rent_cycle.dart';
 
@@ -25,49 +27,50 @@ class GenerateRentUseCase {
     final currentMonth = DateFormat('yyyy-MM').format(now);
     
     // 1. Fetch Dependencies (Parallel if necessary, but sequential is safer for DB consistency)
+    // 1. Fetch Active Tenancies
     final existingCycles = await _rentRepository.getRentCyclesForMonth(currentMonth);
     
-    final tenants = await _tenantRepository.getAllTenants().first;
+    // We need ALL active tenancies. The repository should support this or we filter locally.
+    final allTenancies = await _tenantRepository.getAllTenancies();
     
-    // Filter active tenants strictly
-    final activeTenants = tenants.where((t) => t.status == TenantStatus.active).toList();
+    // Filter active
+    final activeTenancies = allTenancies.where((t) => t.status == TenancyStatus.active).toList();
 
     int generatedCount = 0;
 
-    for (final tenant in activeTenants) {
-      if (_alreadyGenerated(existingCycles, tenant.id)) continue;
+    for (final tenancy in activeTenancies) {
+      if (_alreadyGenerated(existingCycles, tenancy.id)) continue;
 
       try {
-        await _generateForTenant(tenant, now, currentMonth);
+        await _generateForTenancy(tenancy, now, currentMonth);
         generatedCount++;
       } catch (e, stack) {
-        // Log error but allow other tenants to process
-        // In a real app, inject a Logger here.
-        print('CRITICAL: Failed to generate rent for tenant ${tenant.id}: $e\n$stack');
+        print('CRITICAL: Failed to generate rent for tenancy ${tenancy.id}: $e\n$stack');
       }
     }
 
     return generatedCount;
   }
 
-  bool _alreadyGenerated(List<RentCycle> existing, int tenantId) {
-    return existing.any((c) => c.tenantId == tenantId);
+  bool _alreadyGenerated(List<RentCycle> existing, String tenancyId) {
+    return existing.any((c) => c.tenancyId == tenancyId);
   }
 
-  Future<void> _generateForTenant(Tenant tenant, DateTime now, String currentMonth) async {
+  Future<void> _generateForTenancy(Tenancy tenancy, DateTime now, String currentMonth) async {
       // 2. Resolve Unit and Rent Amount
-      final units = await _propertyRepository.getUnits(tenant.houseId).first;
-      final unit = units.firstWhere((u) => u.id == tenant.unitId,
-          orElse: () => throw Exception("Unit not found for tenant ${tenant.id}"));
+      final unit = await _propertyRepository.getUnit(tenancy.unitId);
+          if (unit == null) throw Exception("Unit not found for tenancy ${tenancy.id}");
 
-      final rentAmount = _calculateBaseRent(unit, tenant);
+      final rentAmount = _calculateBaseRent(unit, tenancy);
+      final id = const Uuid().v4();
 
       // 3. Construct Deterministic Cycle
       final newCycle = RentCycle(
-        id: 0, // DB Auto-increment
-        tenantId: tenant.id,
+        id: id, 
+        tenancyId: tenancy.id,
+        ownerId: tenancy.ownerId,
         month: currentMonth,
-        billNumber: RentRules.generateBillNumber(tenantId: tenant.id, billDate: now),
+        billNumber: RentRules.generateBillNumber(tenantId: tenancy.tenantId, billDate: now), // Using tenantId for Bill No logic
         billPeriodStart: RentRules.calculateBillPeriodStart(now),
         billPeriodEnd: RentRules.calculateBillPeriodEnd(now),
         billGeneratedDate: now,
@@ -88,13 +91,14 @@ class GenerateRentUseCase {
       await _rentRepository.createRentCycle(newCycle);
   }
 
-  double _calculateBaseRent(Unit unit, Tenant tenant) {
+  double _calculateBaseRent(Unit unit, Tenancy tenancy) {
       // Logic prioritization: 
       // 1. Unit's specific editable rent (if overridden)
-      // 2. Tenant's agreed rent (contractual)
+      // 2. Tenancy's agreed rent (contractual)
       // 3. Unit's base market rent (fallback)
-      if (unit.editableRent != null) return unit.editableRent!;
-      if (tenant.agreedRent != null && tenant.agreedRent! > 0) return tenant.agreedRent!;
-      return unit.baseRent;
+      
+      // Usually Tenancy.agreedRent is the truth. 
+      // Unlike Tenant, Tenancy ALWAYS has rent.
+      return tenancy.agreedRent;
   }
 }

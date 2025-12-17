@@ -41,15 +41,34 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
       orElse: () => widget.tenant,
     ) ?? widget.tenant;
 
+    // Fetch Active Tenancy
+    final tenancyAsync = ref.watch(activeTenancyProvider(widget.tenant.id));
+    final currentTenancy = tenancyAsync.valueOrNull;
+
+    // Resolve details ONLY if Tenancy exists
+    final unitId = currentTenancy?.unitId;
+    final tenancyId = currentTenancy?.id;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true, 
       appBar: AppBar(
         title: Consumer(
           builder: (context, ref, _) {
-            final houseVal = ref.watch(houseDetailsProvider(currentTenant.houseId));
-            return houseVal.when(
-              data: (house) => Text(house?.name ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+            if (unitId == null) return const Text('No Associated Property');
+            final unitVal = ref.watch(unitDetailsProvider(unitId));
+            
+            return unitVal.when(
+              data: (unit) {
+                  if (unit == null) return const Text('Unknown Property');
+                  // Fetch House Name for Unit
+                  final houseVal = ref.watch(houseDetailsProvider(unit.houseId));
+                  return houseVal.when(
+                     data: (h) => Text(h?.name ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+                     error: (_,__) => const SizedBox(),
+                     loading: () => const SizedBox(),
+                  );
+              }, 
               error: (_,__) => const SizedBox(),
               loading: () => const SizedBox(),
             );
@@ -263,9 +282,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                           children: [
                             // Unit Info
                             Expanded(
-                              child: Consumer(
+                                child: Consumer(
                                 builder: (context, ref, _) {
-                                  final unitValue = ref.watch(unitDetailsProvider(widget.tenant.unitId));
+                                  if (unitId == null) return const Text('No Unit Assigned');
+                                  final unitValue = ref.watch(unitDetailsProvider(unitId));
                                   return Row(
                                     children: [
                                       Container(
@@ -301,7 +321,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                             Expanded(
                               child: Consumer(
                                 builder: (context, ref, _) {
-                                  final readingValue = ref.watch(initialReadingProvider(widget.tenant.unitId));
+                                  if (unitId == null) return const Center(child: Text('-'));
+                                  final readingValue = ref.watch(initialReadingProvider(unitId));
                                   return Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
@@ -378,7 +399,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
             const SizedBox(height: 10),
 
             // List
-            ref.watch(rentCyclesForTenantProvider(widget.tenant.id)).when(
+            if (tenancyId != null) 
+            ref.watch(rentCyclesForTenancyProvider(tenancyId)).when(
               loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
               error: (e, s) => Center(child: Text('Error: $e')),
               data: (data) {
@@ -486,7 +508,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                         color: theme.cardColor,
                                         onSelected: (value) async {
                                           if (value == 'delete') {
-                                             _confirmDeleteBill(context, ref, cycle, currentTenant.id);
+                                             _confirmDeleteBill(context, ref, cycle, tenancyId);
                                           } else if (value == 'print') {
                                              await _handlePrintReceipt(context, ref, cycle, currentTenant);
                                           } else if (value == 'edit') {
@@ -661,10 +683,13 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
   }
 
   void _confirmMoveOut(BuildContext context, WidgetRef ref, Tenant tenant) async {
-    // 1. Calculate Outstanding Balance
     double totalDue = 0.0;
     try {
-      final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(tenant.id);
+       // We need tenancyId
+       final tenancy = await ref.read(activeTenancyProvider(tenant.id).future);
+       if (tenancy == null) return; // Already inactive?
+
+      final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenancy(tenancy.id);
       for (var c in cycles) {
          if(c.status != RentStatus.paid) {
            totalDue += (c.totalDue - c.totalPaid);
@@ -742,7 +767,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               try {
                 // Use the OUTER 'context' here, which is the Screen context
                 await DialogUtils.runWithLoading(context, () async {
-                   await ref.read(tenantControllerProvider.notifier).moveOutTenant(tenant);
+                   // This now calls endTenancy
+                   await ref.read(tenantControllerProvider.notifier).endTenancy(tenancy!.id);
                 });
                 
                 // On success, go back
@@ -825,15 +851,19 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                       Navigator.pop(context); // Close dialog first to avoid multiple overlays
                       
                       try {
-                        await DialogUtils.runWithLoading(context, () async {
-                          await ref.read(rentControllerProvider.notifier).addPastRentCycle(
-                            tenantId: widget.tenant.id,
-                            month: monthStr,
-                            totalDue: amt,
-                            totalPaid: paid,
-                            date: DateTime.now(),
-                          );
-                        });
+                          await DialogUtils.runWithLoading(context, () async {
+                            final t = await ref.read(activeTenancyProvider(widget.tenant.id).future);
+                            if (t == null) throw Exception("No Active Tenancy");
+                            
+                            await ref.read(rentControllerProvider.notifier).addPastRentCycle(
+                              tenancyId: t.id,
+                              ownerId: t.ownerId, 
+                              month: monthStr,
+                              totalDue: amt,
+                              totalPaid: paid,
+                              date: DateTime.now(),
+                            );
+                          });
                         if (context.mounted) {
                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record Added Successfully')));
                         }
@@ -842,10 +872,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                          if (e.toString().contains('already exists')) {
                             // Fetch existing cycle to redirect
                             RentCycle? existingCycle;
-                            try {
-                               final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(widget.tenant.id);
-                               existingCycle = cycles.cast<RentCycle?>().firstWhere((c) => c?.month == monthStr, orElse: () => null);
-                            } catch (_) {}
+                             try {
+                                 final t = await ref.read(activeTenancyProvider(widget.tenant.id).future);
+                                final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenancy(t!.id);
+                                existingCycle = cycles.cast<RentCycle?>().firstWhere((c) => c?.month == monthStr, orElse: () => null);
+                             } catch (_) {}
 
                             if (context.mounted && existingCycle != null) {
                                 showDialog(
@@ -889,9 +920,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
-  // --- Deletion Dialogs ---
-
-  void _confirmDeleteBill(BuildContext context, WidgetRef ref, RentCycle cycle, int tenantId) {
+   // --- Deletion Dialogs ---
+   
+   void _confirmDeleteBill(BuildContext context, WidgetRef ref, RentCycle cycle, String tenancyId) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -976,7 +1007,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Edit Bill'),
         content: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.in,
           children: [
              TextField(
                controller: amountCtrl,
@@ -1079,7 +1110,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                             Navigator.pop(ctx); // Close Alert
                                             
                                             await DialogUtils.runWithLoading(context, () async {
-                                               await ref.read(rentControllerProvider.notifier).deletePayment(p.id, cycle.id, widget.tenant.id);
+                                               await ref.read(rentControllerProvider.notifier).deletePayment(p.id, cycle.id, cycle.tenancyId);
                                             });
                                             
                                             // Refresh Sheet
@@ -1116,7 +1147,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           owner = await ref.read(ownerControllerProvider.future);
         }
         if (owner == null) throw Exception('Owner profile not found. Please go to Settings > Profile to set it up.');
-        final cyclesAsync = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(tenant.id);
+        
+        final t = await ref.read(activeTenancyProvider(tenant.id).future);
+        if (t == null) throw Exception('No active tenancy found');
+
+        final cyclesAsync = await ref.read(rentRepositoryProvider).getRentCyclesForTenancy(t.id);
         
         final pdfData = await ref.read(pdfServiceProvider).generateStatement(
           tenant: tenant,
@@ -1242,7 +1277,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                        try {
                          await ref.read(rentControllerProvider.notifier).recordPayment(
                            rentCycleId: cycle.id,
-                           tenantId: cycle.tenantId,
+                           tenancyId: cycle.tenancyId,
                            amount: amount,
                            date: selectedDate,
                            method: selectedMethod,
@@ -1298,24 +1333,33 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     double? lastRate;
     
     try {
-      final readingData = await ref.read(rentControllerProvider.notifier).getLastElectricReading(tenant.unitId);
+      final t = await ref.read(activeTenancyProvider(tenant.id).future);
+      if (t == null) return;
+      
+      final readingData = await ref.read(rentControllerProvider.notifier).getLastElectricReading(t.unitId);
       if (readingData != null) {
         lastReading = readingData['currentReading'];
         lastRate = readingData['rate'];
       } else {
         // Fallback: If no "Last" reading (e.g. first month), try "Initial Reading"
-        final initial = await ref.read(initialReadingProvider(tenant.unitId).future);
-        if (initial != null) {
-          lastReading = initial;
+        final t = await ref.read(activeTenancyProvider(tenant.id).future);
+        if (t != null) {
+          final initial = await ref.read(initialReadingProvider(t.unitId).future);
+          if (initial != null) {
+            lastReading = initial;
+          }
         }
       }
     } catch (e) {
       debugPrint('Error auto-filling readings: $e');
       // If error (e.g. index missing for "Last" query), try "Initial" query as backup
-      try {
-         final initial = await ref.read(initialReadingProvider(tenant.unitId).future);
-         if(initial != null) lastReading = initial;
-      } catch (_) {}
+       try {
+          final t = await ref.read(activeTenancyProvider(tenant.id).future);
+          if (t != null) {
+            final initial = await ref.read(initialReadingProvider(t.unitId).future);
+            if(initial != null) lastReading = initial;
+          }
+       } catch (_) {}
     }
 
     if (lastReading != null) {
@@ -1475,19 +1519,22 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         final houseRepo = ref.read(propertyRepositoryProvider);
         final rentRepo = ref.read(rentRepositoryProvider);
         
-        // 1. Fetch House
-        final house = await houseRepo.getHouse(tenant.houseId);
-        if (house == null) throw Exception('House not found');
-        
-        // 2. Fetch Unit
-        final unitDetails = await houseRepo.getUnit(tenant.unitId);
+        final tenancy = await ref.read(activeTenancyProvider(tenant.id).future);
+        if (tenancy == null) throw Exception('Tenancy not found');
+
+        // 1. Fetch House (via Unit check inside HouseRepo or implicitly known? We need House entity)
+        // We have tenancy.unitId. 
+        final unitDetails = await houseRepo.getUnit(tenancy.unitId);
         if (unitDetails == null) throw Exception('Unit not found');
+        
+        final house = await houseRepo.getHouse(unitDetails.houseId);
+        if (house == null) throw Exception('House not found');
         
         // 3. Fetch Payments
         final payments = await rentRepo.getPaymentsForRentCycle(cycle.id);
         
         // 4. Fetch Readings
-        final allReadings = await rentRepo.getElectricReadingsWithDetails(tenant.unitId);
+        final allReadings = await rentRepo.getElectricReadingsWithDetails(tenancy.unitId);
         
         Map<String, dynamic>? currentReading;
         Map<String, dynamic>? previousReading;

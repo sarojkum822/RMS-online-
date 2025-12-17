@@ -4,10 +4,12 @@ part 'rent_cycle.freezed.dart';
 part 'rent_cycle.g.dart';
 
 @freezed
+@freezed
 class RentCycle with _$RentCycle {
   const factory RentCycle({
-    required int id,
-    required int tenantId,
+    required String id, // UUID
+    required String tenancyId, // Link to Tenancy
+    required String ownerId,
     required String month, // Format: YYYY-MM
     String? billNumber,
     DateTime? billPeriodStart,
@@ -31,9 +33,9 @@ class RentCycle with _$RentCycle {
 @freezed
 class Payment with _$Payment {
   const factory Payment({
-    required int id,
-    required int rentCycleId,
-    required int tenantId,
+    required String id,
+    required String rentCycleId,
+    required String tenantId, // Or tenancyId? Keeping tenantId generic 'String' for now.
     required double amount,
     required DateTime date,
     required String method, // e.g., 'Cash', 'UPI'
@@ -49,8 +51,8 @@ class Payment with _$Payment {
 @freezed
 class OtherCharge with _$OtherCharge {
   const factory OtherCharge({
-    required int id,
-    required int rentCycleId,
+    required String id,
+    required String rentCycleId,
     required double amount,
     required String category,
     String? notes,

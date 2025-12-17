@@ -50,9 +50,11 @@ abstract class RentRules {
   }
 
   static String generateBillNumber({
-    required int tenantId,
+    required String tenantId,
     required DateTime billDate,
   }) {
-    return 'INV-${billDate.year}${billDate.month.toString().padLeft(2, '0')}-$tenantId';
+    // Take first 6 chars of UUID for brevity while maintaining uniqueness in context of month
+    final shortId = tenantId.length > 6 ? tenantId.substring(0, 6) : tenantId;
+    return 'INV-${billDate.year}${billDate.month.toString().padLeft(2, '0')}-$shortId';
   }
 }

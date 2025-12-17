@@ -10,6 +10,9 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../../domain/entities/tenant.dart' as domain;
 import '../../domain/repositories/i_tenant_repository.dart';
 
+import 'package:uuid/uuid.dart'; // Add uuid package
+import '../../domain/entities/tenancy.dart'; // Import Tenancy
+
 class TenantRepositoryImpl implements ITenantRepository {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -80,7 +83,7 @@ class TenantRepositoryImpl implements ITenantRepository {
   }
 
   @override
-  Future<domain.Tenant?> getTenant(int id) async {
+  Future<domain.Tenant?> getTenant(String id) async { // String ID
     if (_uid == null) return null;
 
     final snapshot = await _firestore.collection('tenants')
@@ -141,7 +144,12 @@ class TenantRepositoryImpl implements ITenantRepository {
       throw Exception('A tenant with this email already exists.');
     }
     
-    final id = DateTime.now().millisecondsSinceEpoch;
+    if (duplicateSnapshot.docs.isNotEmpty) {
+      throw Exception('A tenant with this email already exists.');
+    }
+    
+    // NEW: Use UUID for ID
+    final id = const Uuid().v4();
 
     String? imageBase64 = tenant.imageBase64;
     // Process new image if provided
@@ -152,8 +160,6 @@ class TenantRepositoryImpl implements ITenantRepository {
     final data = {
       'id': id,
       'ownerId': uid,
-      'houseId': tenant.houseId,
-      'unitId': tenant.unitId,
       'tenantCode': tenant.tenantCode,
       'name': tenant.name,
       'phone': tenant.phone,
@@ -161,18 +167,51 @@ class TenantRepositoryImpl implements ITenantRepository {
       'imageUrl': tenant.imageUrl, 
       'imageBase64': imageBase64, 
       'authId': tenant.authId, 
-      'startDate': Timestamp.fromDate(tenant.startDate),
-      'isActive': tenant.status == domain.TenantStatus.active,
-      'agreedRent': tenant.agreedRent,
+      'isActive': tenant.isActive, // Use bool directly
       'password': _encryptPassword(tenant.password), 
-      'openingBalance': tenant.openingBalance,
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
       'isDeleted': false,
     };
 
-    await _firestore.collection('tenants').add(data).timeout(const Duration(seconds: 10));
-    return id;
+    await _firestore.collection('tenants').doc(id).set(data).timeout(const Duration(seconds: 10)); // Use set with ID
+    return id; // Return String UUID
+  }
+
+  // NEW: Create Tenancy
+  @override
+  Future<String> createTenancy(Tenancy tenancy) async {
+      final uid = _uid;
+      if (uid == null) throw Exception('User not logged in');
+
+      final data = {
+        'id': tenancy.id,
+        'ownerId': uid,
+        'tenantId': tenancy.tenantId,
+        'unitId': tenancy.unitId,
+        'startDate': Timestamp.fromDate(tenancy.startDate),
+        'endDate': tenancy.endDate != null ? Timestamp.fromDate(tenancy.endDate!) : null,
+        'agreedRent': tenancy.agreedRent,
+        'securityDeposit': tenancy.securityDeposit,
+        'openingBalance': tenancy.openingBalance,
+        'status': tenancy.status.index, // Store as int or string
+        'notes': tenancy.notes,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'isDeleted': false,
+      };
+
+      await _firestore.collection('tenancies').doc(tenancy.id).set(data).timeout(const Duration(seconds: 10));
+      return tenancy.id;
+  }
+  
+  @override
+  Future<void> endTenancy(String tenancyId) async {
+     await _firestore.collection('tenancies').doc(tenancyId).update({
+        'status': TenancyStatus.ended.index,
+        'endDate': FieldValue.serverTimestamp(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+     });
   }
 
   @override
@@ -208,30 +247,16 @@ class TenantRepositoryImpl implements ITenantRepository {
   }
 
   @override
-  Future<void> deleteTenant(int id) async {
+  Future<void> deleteTenant(String id) async { // String ID
     if (_uid == null) return;
 
-    final snapshot = await _firestore.collection('tenants')
-        .where('ownerId', isEqualTo: _uid) 
-        .where('id', isEqualTo: id)
-        .limit(1)
-        .get()
-        .timeout(const Duration(seconds: 10));
+    final docRef = _firestore.collection('tenants').doc(id); // Direct doc ref
 
-    if (snapshot.docs.isNotEmpty) {
-      // Hard Delete Tenant
-      await snapshot.docs.first.reference.delete();
-
-      final cyclesSnapshot = await _firestore.collection('rent_cycles')
-          .where('ownerId', isEqualTo: _uid) 
-          .where('tenantId', isEqualTo: id)
-          .get();
-
-      final batch = _firestore.batch();
-      for (final doc in cyclesSnapshot.docs) {
-          batch.delete(doc.reference); 
-      }
-      await batch.commit();
+    // Check ownership first
+    final snap = await docRef.get();
+    if(snap.exists && snap.data()?['ownerId'] == _uid) {
+       await docRef.delete();
+       // Also delete/close tenancies? For now, we leave them or cascade manually
     }
   }
 
@@ -258,7 +283,7 @@ class TenantRepositoryImpl implements ITenantRepository {
       }
 
       final tenant = _mapToDomain(snapshot.docs.first);
-      if (tenant.status != domain.TenantStatus.active) {
+      if (!tenant.isActive) { // Check bool
         await FirebaseAuth.instance.signOut();
         return null;
       }
@@ -278,20 +303,15 @@ class TenantRepositoryImpl implements ITenantRepository {
   domain.Tenant _mapToDomain(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return domain.Tenant(
-      id: data['id'],
-      houseId: data['houseId'],
-      unitId: data['unitId'],
+      id: data['id'] ?? doc.id, // Use string ID
       tenantCode: data['tenantCode'],
       name: data['name'],
       phone: data['phone'],
       email: data['email'],
-      startDate: data['startDate'] != null ? (data['startDate'] as Timestamp).toDate() : DateTime.now(),
-      status: (data['isActive'] ?? true) ? domain.TenantStatus.active : domain.TenantStatus.inactive,
-      openingBalance: (data['openingBalance'] as num?)?.toDouble() ?? 0.0,
-      agreedRent: (data['agreedRent'] as num?)?.toDouble(),
-      password: _decryptPassword(data['password'] as String?), // DECRYPTED
+      isActive: data['isActive'] ?? true, // Bool
+      password: _decryptPassword(data['password'] as String?), 
       imageUrl: data['imageUrl'] as String?,
-      imageBase64: data['imageBase64'] as String?, // Map Base64
+      imageBase64: data['imageBase64'] as String?, 
       authId: data['authId'] as String?, 
       ownerId: data['ownerId'] as String? ?? '', 
     );

@@ -8,8 +8,9 @@ part of 'rent_cycle.dart';
 
 _$RentCycleImpl _$$RentCycleImplFromJson(Map<String, dynamic> json) =>
     _$RentCycleImpl(
-      id: (json['id'] as num).toInt(),
-      tenantId: (json['tenantId'] as num).toInt(),
+      id: json['id'] as String,
+      tenancyId: json['tenancyId'] as String,
+      ownerId: json['ownerId'] as String,
       month: json['month'] as String,
       billNumber: json['billNumber'] as String?,
       billPeriodStart: json['billPeriodStart'] == null
@@ -37,7 +38,8 @@ _$RentCycleImpl _$$RentCycleImplFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$$RentCycleImplToJson(_$RentCycleImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'tenantId': instance.tenantId,
+      'tenancyId': instance.tenancyId,
+      'ownerId': instance.ownerId,
       'month': instance.month,
       'billNumber': instance.billNumber,
       'billPeriodStart': instance.billPeriodStart?.toIso8601String(),
@@ -64,9 +66,9 @@ const _$RentStatusEnumMap = {
 
 _$PaymentImpl _$$PaymentImplFromJson(Map<String, dynamic> json) =>
     _$PaymentImpl(
-      id: (json['id'] as num).toInt(),
-      rentCycleId: (json['rentCycleId'] as num).toInt(),
-      tenantId: (json['tenantId'] as num).toInt(),
+      id: json['id'] as String,
+      rentCycleId: json['rentCycleId'] as String,
+      tenantId: json['tenantId'] as String,
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),
       method: json['method'] as String,
@@ -92,8 +94,8 @@ Map<String, dynamic> _$$PaymentImplToJson(_$PaymentImpl instance) =>
 
 _$OtherChargeImpl _$$OtherChargeImplFromJson(Map<String, dynamic> json) =>
     _$OtherChargeImpl(
-      id: (json['id'] as num).toInt(),
-      rentCycleId: (json['rentCycleId'] as num).toInt(),
+      id: json['id'] as String,
+      rentCycleId: json['rentCycleId'] as String,
       amount: (json['amount'] as num).toDouble(),
       category: json['category'] as String,
       notes: json['notes'] as String?,

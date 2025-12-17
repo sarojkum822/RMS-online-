@@ -8,7 +8,7 @@ part of 'expense.dart';
 
 _$ExpenseImpl _$$ExpenseImplFromJson(Map<String, dynamic> json) =>
     _$ExpenseImpl(
-      id: (json['id'] as num).toInt(),
+      id: json['id'] as String,
       title: json['title'] as String,
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),

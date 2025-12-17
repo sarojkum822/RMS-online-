@@ -6,7 +6,7 @@ part 'expense.g.dart';
 @freezed
 class Expense with _$Expense {
   const factory Expense({
-    required int id,
+    required String id,
     required String title,
     required double amount,
     required DateTime date,

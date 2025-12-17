@@ -4,12 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/services/user_session_service.dart';
-import '../../../core/theme/app_theme.dart';
-import '../owner/rent/rent_controller.dart';
 import '../../../domain/entities/tenant.dart';
-import '../owner/tenant/tenant_controller.dart';
-import '../maintenance/maintenance_controller.dart';
-import '../../providers/data_providers.dart';
+
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -36,25 +32,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     if (session['role'] == 'owner') {
       initialLocation = '/owner/dashboard';
-      
-      // PRELOAD OWNER DATA PARALLEL
-      final user = ref.read(userSessionServiceProvider).currentUser;
-      final uid = user?.uid;
-      
-      await Future.wait([
-        // Rent Controller (Expenses / Bills)
-        ref.read(rentControllerProvider.future),
-        
-        // Dashboard Stats
-        ref.read(dashboardStatsProvider.future),
-        
-        // Tenant List
-        ref.read(tenantControllerProvider.future),
-        
-        // Maintenance Requests
-        if (uid != null)
-             ref.read(ownerMaintenanceProvider(uid).future),
-      ]);
       
     } else if (session['role'] == 'tenant' && session['tenantId'] != null) {
       try {

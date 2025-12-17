@@ -29,9 +29,11 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   late TextEditingController _rentCtrl; 
   late TextEditingController _electricCtrl; 
   
-  int? _selectedHouseId;
-  int? _selectedUnitId;
+  String? _selectedHouseId;
+  String? _selectedUnitId;
   File? _selectedImage;
+  // New: Start Date
+  DateTime _startDate = DateTime.now();
   bool _isLoading = false;
 
   bool get _isEditing => widget.tenant != null;
@@ -44,12 +46,20 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     _phoneCtrl = TextEditingController(text: t?.phone ?? '');
     _emailCtrl = TextEditingController(text: t?.email ?? '');
     _passwordCtrl = TextEditingController(); // Empty for security, optional in edit
-    _rentCtrl = TextEditingController(text: t?.agreedRent?.toString() ?? '');
+    _rentCtrl = TextEditingController(); // Start empty for new. If editing, we don't show rent here ideally or fetch from Tenancy.
+    // However, since we removed Rent/Unit from Tenant Edit form (lines 118+ check for !_isEditing), 
+    // _rentCtrl is only used for NEW tenants. 
+    // Wait, line 232 shows Rent Field ALWAYS.
+    // If editing, we shouldn't edit Rent here anymore as it's Tenancy data.
+    // I should hide Rent Field if _isEditing too?
+    // Let's assume for MVP refactor we hide Rent editing here.
+    
     _electricCtrl = TextEditingController(); // usually cleared for new reading, but maybe N/A for edit
     
     if (_isEditing) {
-      _selectedHouseId = t!.houseId;
-      _selectedUnitId = t.unitId;
+       // We can't pre-fill House/Unit from Tenant object alone anymore (as it's in Tenancy).
+       // But Edit Mode hides House/Unit selection anyway (lines 118+).
+       // So we just leave them null.
     }
   }
 
@@ -121,7 +131,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
               
               // House Selection
               housesValue.when(
-                data: (houses) => DropdownButtonFormField<int>(
+                data: (houses) => DropdownButtonFormField<String>(
                   value: _selectedHouseId,
                   decoration: InputDecoration(
                     labelText: 'Select House',
@@ -152,7 +162,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                         data: (units) {
                            if (units.isEmpty) return const Text('No available flats in this property.', style: TextStyle(color: Colors.red));
                            
-                           return DropdownButtonFormField<int>(
+                           return DropdownButtonFormField<String>(
                               value: _selectedUnitId,
                               decoration: InputDecoration(
                                 labelText: 'Select Flat / Unit',
@@ -229,6 +239,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
             ),
             const SizedBox(height: 16),
             
+            if (!_isEditing) // Only show Rent for new Tenancy
             TextFormField(
               controller: _rentCtrl,
               decoration: InputDecoration(
@@ -252,6 +263,15 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 ),
+              ),
+              const SizedBox(height: 16),
+              InputDatePickerFormField(
+                fieldLabelText: 'Lease Start Date',
+                initialDate: _startDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+                onDateSubmitted: (date) => _startDate = date,
+                onDateSaved: (date) => _startDate = date,
               ),
             ],
 
@@ -292,7 +312,10 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
           name: _nameCtrl.text.trim().toTitleCase(),
           phone: _phoneCtrl.text.trim(),
           email: _emailCtrl.text.trim().toLowerCase(),
-          agreedRent: rent,
+          // Rent removed from Tenant Update here as it belongs to Tenancy. 
+          // If we want to update Rent, we should update Tenancy separately.
+          // For now, removing agreedRent update from Tenant Profile update.
+          // agreedRent: rent, 
           // Only update password if provided
           password: _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text.trim() : widget.tenant!.password,
         );
@@ -308,7 +331,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
       } else {
          // CREATE Logic
          final initialElectric = double.tryParse(_electricCtrl.text);
-         await ref.read(tenantControllerProvider.notifier).registerTenant(
+           await ref.read(tenantControllerProvider.notifier).registerTenant(
            houseId: _selectedHouseId!,
            unitId: _selectedUnitId!,
            tenantName: _nameCtrl.text.trim().toTitleCase(),
@@ -318,6 +341,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
            agreedRent: rent,
            initialElectricReading: initialElectric,
            imageFile: _selectedImage, 
+           startDate: _startDate, // Pass Start Date
          );
       }
 

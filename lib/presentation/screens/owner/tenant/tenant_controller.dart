@@ -1,8 +1,10 @@
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../domain/entities/tenant.dart';
+import '../../../../domain/entities/tenancy.dart'; // Import
 import '../../../providers/data_providers.dart';
 import 'dart:io';
+import 'package:uuid/uuid.dart'; // import uuid
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -10,6 +12,18 @@ import '../house/house_controller.dart';
 import '../rent/rent_controller.dart'; 
 
 part 'tenant_controller.g.dart';
+
+@riverpod
+Future<Tenancy?> activeTenancy(ActiveTenancyRef ref, String tenantId) async {
+  final repo = ref.watch(tenantRepositoryProvider);
+  final allTenancies = await repo.getAllTenancies();
+  
+  // Return the first active tenancy for this tenant
+  return allTenancies.cast<Tenancy?>().firstWhere(
+    (t) => t?.tenantId == tenantId && t?.status == TenancyStatus.active,
+    orElse: () => null
+  );
+}
 
 @Riverpod(keepAlive: true)
 class TenantController extends _$TenantController {
@@ -19,59 +33,42 @@ class TenantController extends _$TenantController {
     return repo.getAllTenants();
   }
 
-  Future<void> addTenant(Tenant tenant, {double? initialElectricReading, File? imageFile}) async {
+  // Refactored: Simply creates the Tenant profile
+  Future<String> createTenantProfile(Tenant tenant, {File? imageFile}) async {
     final repo = ref.read(tenantRepositoryProvider);
-    final newTenantId = await repo.createTenant(tenant, imageFile: imageFile);
+    return await repo.createTenant(tenant, imageFile: imageFile);
+  }
 
-    // Verify unit update
+  // New: Create Tenancy
+  Future<void> createTenancy(Tenancy tenancy, String houseId) async {
+    final repo = ref.read(tenantRepositoryProvider);
+    await repo.createTenancy(tenancy);
+
+    // Lock Unit
     final propertyRepo = ref.read(propertyRepositoryProvider);
-    final unit = await propertyRepo.getUnit(tenant.unitId);
+    final unit = await propertyRepo.getUnit(tenancy.unitId);
     if (unit != null) {
-      final rentToLock = tenant.agreedRent ?? unit.baseRent;
       await propertyRepo.updateUnit(unit.copyWith(
         isOccupied: true,
-        tenantId: newTenantId,
-        editableRent: rentToLock,
-        baseRent: rentToLock,
+        currentTenancyId: tenancy.id, // Linked
+        editableRent: tenancy.agreedRent,
       ));
-    }
-
-    if (initialElectricReading != null) {
-      await ref.read(rentRepositoryProvider).addElectricReading(
-        tenant.unitId,
-        tenant.startDate,
-        initialElectricReading,
-      );
+      ref.invalidate(houseUnitsProvider(houseId)); 
     }
     
-    // NOTE: We do NOT need manual state update or invalidateSelf(). 
-    // Firestore Stream will automatically emit the new list (optimistically).
-    
-    ref.invalidate(houseUnitsProvider(tenant.houseId)); 
-    ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
+    // Generate First Month Rent (Optional / To be decided by user)
+    // ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
   }
 
   Future<void> updateTenant(Tenant tenant, {File? imageFile}) async {
      final repo = ref.read(tenantRepositoryProvider);
      await repo.updateTenant(tenant, imageFile: imageFile);
-     
-     // Sync Unit Rent if Tenant Rent changed
-     if (tenant.agreedRent != null) {
-        final propertyRepo = ref.read(propertyRepositoryProvider);
-        final unit = await propertyRepo.getUnit(tenant.unitId);
-        if (unit != null) {
-           await propertyRepo.updateUnit(unit.copyWith(
-              baseRent: tenant.agreedRent!,
-              editableRent: tenant.agreedRent!,
-           ));
-           ref.invalidate(houseUnitsProvider(tenant.houseId));
-        }
-     }
+     // Tenancy details are now updated via Tenancy Update methods, not here.
   }
 
   Future<void> registerTenant({
-    required int houseId,
-    required int unitId,
+    required String houseId,
+    required String unitId,
     required String tenantName,
     required String phone,
     String? email,
@@ -79,6 +76,7 @@ class TenantController extends _$TenantController {
     double? agreedRent,
     double? initialElectricReading,
     File? imageFile,
+    required DateTime startDate,
   }) async {
     // 1. Create Tenant Auth (Securely)
     String? authId;
@@ -100,24 +98,47 @@ class TenantController extends _$TenantController {
       }
     }
 
+    final tenantId = const Uuid().v4();
+    final ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    // 2. Create Tenant Profile
     final tenant = Tenant(
-        id: 0,
-        houseId: houseId,
-        unitId: unitId,
+        id: tenantId,
         tenantCode: phone, 
         name: tenantName,
         phone: phone,
         email: email,
         password: password, 
         authId: authId, 
-        startDate: DateTime.now(),
-        status: TenantStatus.active,
-        agreedRent: agreedRent,
-        ownerId: FirebaseAuth.instance.currentUser?.uid ?? '', 
+        isActive: true,
+        ownerId: ownerId, 
     );
 
     try {
-      await addTenant(tenant, initialElectricReading: initialElectricReading, imageFile: imageFile);
+      await createTenantProfile(tenant, imageFile: imageFile);
+
+      // 3. Create Tenancy (The Contract)
+      final tenancy = Tenancy(
+        id: const Uuid().v4(),
+        tenantId: tenantId,
+        unitId: unitId,
+        ownerId: ownerId,
+        startDate: startDate,
+        agreedRent: agreedRent ?? 0.0,
+        status: TenancyStatus.active,
+      );
+      
+      await createTenancy(tenancy, houseId);
+      
+      // 4. Initial Reading
+      if (initialElectricReading != null) {
+          await ref.read(rentRepositoryProvider).addElectricReading(
+            unitId,
+            startDate,
+            initialElectricReading,
+          );
+      }
+
     } catch (e) {
       if (e.toString().contains('UNIQUE constraint failed')) {
          throw Exception('A tenant with this phone number already exists.');
@@ -197,29 +218,38 @@ class TenantController extends _$TenantController {
     return repo.authenticateTenant(email, password);
   }
 
-  Future<void> moveOutTenant(Tenant tenant) async {
+  Future<void> endTenancy(String tenancyId) async {
     final repo = ref.read(tenantRepositoryProvider);
     
-    // 1. Update Tenant Status to Inactive
-    // We do NOT delete the tenant, just mark inactive provided by the enum
-    final updatedTenant = tenant.copyWith(status: TenantStatus.inactive);
-    await repo.updateTenant(updatedTenant);
+    // Fetch tenancy to get Unit ID
+    // We assume we can get it via repo or finding it from list
+    // Since we don't have getTenancy(id) easily exposed on repo interface yet (maybe), 
+    // let's fetch all and find. 
+    // TODO: Optimize Repository to have getTenancy(id)
+    final all = await repo.getAllTenancies();
+    final tenancy = all.cast<Tenancy?>().firstWhere((t) => t?.id == tenancyId, orElse: () => null);
+
+    if (tenancy == null) return;
+    
+    // 1. End Tenancy
+    await repo.endTenancy(tenancyId);
 
     // 2. Vacate Unit
     final propertyRepo = ref.read(propertyRepositoryProvider);
-    final unit = await propertyRepo.getUnit(tenant.unitId);
+    final unit = await propertyRepo.getUnit(tenancy.unitId);
     if (unit != null) {
       // Clear tenantId and isOccupied
       await propertyRepo.updateUnit(unit.copyWith(
         isOccupied: false,
-        tenantId: null, 
+        currentTenancyId: null, 
       ));
       
-      ref.invalidate(houseUnitsProvider(tenant.houseId));
+      // We need houseId to invalidate. Unit has it.
+      ref.invalidate(houseUnitsProvider(unit.houseId));
     }
   }
 
-  Future<void> deleteTenant(int id) async {
+  Future<void> deleteTenant(String id, String? unitId, String? houseId) async {
     final repo = ref.read(tenantRepositoryProvider);
     
     Tenant? tenant;
@@ -233,14 +263,15 @@ class TenantController extends _$TenantController {
     }
 
     await repo.deleteTenant(id);
+    // Note: Tenancies might need separate cleanup or cascade delete at repository level
 
-    if (tenant != null) {
+    if (unitId != null && houseId != null) {
        final propertyRepo = ref.read(propertyRepositoryProvider);
-       final unit = await propertyRepo.getUnit(tenant.unitId);
+       final unit = await propertyRepo.getUnit(unitId);
        if (unit != null) {
-          await propertyRepo.updateUnit(unit.copyWith(isOccupied: false));
+          await propertyRepo.updateUnit(unit.copyWith(isOccupied: false, currentTenancyId: null));
+          ref.invalidate(houseUnitsProvider(houseId));
        }
     }
-    // Stream updates automatically
   }
 }

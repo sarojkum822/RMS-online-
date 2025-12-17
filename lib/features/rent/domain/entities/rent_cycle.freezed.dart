@@ -20,8 +20,9 @@ RentCycle _$RentCycleFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$RentCycle {
-  int get id => throw _privateConstructorUsedError;
-  int get tenantId => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError; // UUID
+  String get tenancyId => throw _privateConstructorUsedError; // Link to Tenancy
+  String get ownerId => throw _privateConstructorUsedError;
   String get month => throw _privateConstructorUsedError; // Format: YYYY-MM
   String? get billNumber => throw _privateConstructorUsedError;
   DateTime? get billPeriodStart => throw _privateConstructorUsedError;
@@ -55,8 +56,9 @@ abstract class $RentCycleCopyWith<$Res> {
       _$RentCycleCopyWithImpl<$Res, RentCycle>;
   @useResult
   $Res call(
-      {int id,
-      int tenantId,
+      {String id,
+      String tenancyId,
+      String ownerId,
       String month,
       String? billNumber,
       DateTime? billPeriodStart,
@@ -90,7 +92,8 @@ class _$RentCycleCopyWithImpl<$Res, $Val extends RentCycle>
   @override
   $Res call({
     Object? id = null,
-    Object? tenantId = null,
+    Object? tenancyId = null,
+    Object? ownerId = null,
     Object? month = null,
     Object? billNumber = freezed,
     Object? billPeriodStart = freezed,
@@ -111,11 +114,15 @@ class _$RentCycleCopyWithImpl<$Res, $Val extends RentCycle>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
-      tenantId: null == tenantId
-          ? _value.tenantId
-          : tenantId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      tenancyId: null == tenancyId
+          ? _value.tenancyId
+          : tenancyId // ignore: cast_nullable_to_non_nullable
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       month: null == month
           ? _value.month
           : month // ignore: cast_nullable_to_non_nullable
@@ -189,8 +196,9 @@ abstract class _$$RentCycleImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {int id,
-      int tenantId,
+      {String id,
+      String tenancyId,
+      String ownerId,
       String month,
       String? billNumber,
       DateTime? billPeriodStart,
@@ -222,7 +230,8 @@ class __$$RentCycleImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? tenantId = null,
+    Object? tenancyId = null,
+    Object? ownerId = null,
     Object? month = null,
     Object? billNumber = freezed,
     Object? billPeriodStart = freezed,
@@ -243,11 +252,15 @@ class __$$RentCycleImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
-      tenantId: null == tenantId
-          ? _value.tenantId
-          : tenantId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      tenancyId: null == tenancyId
+          ? _value.tenancyId
+          : tenancyId // ignore: cast_nullable_to_non_nullable
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       month: null == month
           ? _value.month
           : month // ignore: cast_nullable_to_non_nullable
@@ -317,7 +330,8 @@ class __$$RentCycleImplCopyWithImpl<$Res>
 class _$RentCycleImpl implements _RentCycle {
   const _$RentCycleImpl(
       {required this.id,
-      required this.tenantId,
+      required this.tenancyId,
+      required this.ownerId,
       required this.month,
       this.billNumber,
       this.billPeriodStart,
@@ -338,9 +352,13 @@ class _$RentCycleImpl implements _RentCycle {
       _$$RentCycleImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
+// UUID
   @override
-  final int tenantId;
+  final String tenancyId;
+// Link to Tenancy
+  @override
+  final String ownerId;
   @override
   final String month;
 // Format: YYYY-MM
@@ -382,7 +400,7 @@ class _$RentCycleImpl implements _RentCycle {
 
   @override
   String toString() {
-    return 'RentCycle(id: $id, tenantId: $tenantId, month: $month, billNumber: $billNumber, billPeriodStart: $billPeriodStart, billPeriodEnd: $billPeriodEnd, billGeneratedDate: $billGeneratedDate, baseRent: $baseRent, electricAmount: $electricAmount, otherCharges: $otherCharges, lateFee: $lateFee, discount: $discount, totalDue: $totalDue, totalPaid: $totalPaid, status: $status, dueDate: $dueDate, notes: $notes)';
+    return 'RentCycle(id: $id, tenancyId: $tenancyId, ownerId: $ownerId, month: $month, billNumber: $billNumber, billPeriodStart: $billPeriodStart, billPeriodEnd: $billPeriodEnd, billGeneratedDate: $billGeneratedDate, baseRent: $baseRent, electricAmount: $electricAmount, otherCharges: $otherCharges, lateFee: $lateFee, discount: $discount, totalDue: $totalDue, totalPaid: $totalPaid, status: $status, dueDate: $dueDate, notes: $notes)';
   }
 
   @override
@@ -391,8 +409,9 @@ class _$RentCycleImpl implements _RentCycle {
         (other.runtimeType == runtimeType &&
             other is _$RentCycleImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.tenantId, tenantId) ||
-                other.tenantId == tenantId) &&
+            (identical(other.tenancyId, tenancyId) ||
+                other.tenancyId == tenancyId) &&
+            (identical(other.ownerId, ownerId) || other.ownerId == ownerId) &&
             (identical(other.month, month) || other.month == month) &&
             (identical(other.billNumber, billNumber) ||
                 other.billNumber == billNumber) &&
@@ -425,7 +444,8 @@ class _$RentCycleImpl implements _RentCycle {
   int get hashCode => Object.hash(
       runtimeType,
       id,
-      tenantId,
+      tenancyId,
+      ownerId,
       month,
       billNumber,
       billPeriodStart,
@@ -460,8 +480,9 @@ class _$RentCycleImpl implements _RentCycle {
 
 abstract class _RentCycle implements RentCycle {
   const factory _RentCycle(
-      {required final int id,
-      required final int tenantId,
+      {required final String id,
+      required final String tenancyId,
+      required final String ownerId,
       required final String month,
       final String? billNumber,
       final DateTime? billPeriodStart,
@@ -482,9 +503,11 @@ abstract class _RentCycle implements RentCycle {
       _$RentCycleImpl.fromJson;
 
   @override
-  int get id;
+  String get id; // UUID
   @override
-  int get tenantId;
+  String get tenancyId; // Link to Tenancy
+  @override
+  String get ownerId;
   @override
   String get month; // Format: YYYY-MM
   @override
@@ -530,9 +553,10 @@ Payment _$PaymentFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Payment {
-  int get id => throw _privateConstructorUsedError;
-  int get rentCycleId => throw _privateConstructorUsedError;
-  int get tenantId => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
+  String get rentCycleId => throw _privateConstructorUsedError;
+  String get tenantId =>
+      throw _privateConstructorUsedError; // Or tenancyId? Keeping tenantId generic 'String' for now.
   double get amount => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
   String get method =>
@@ -557,9 +581,9 @@ abstract class $PaymentCopyWith<$Res> {
       _$PaymentCopyWithImpl<$Res, Payment>;
   @useResult
   $Res call(
-      {int id,
-      int rentCycleId,
-      int tenantId,
+      {String id,
+      String rentCycleId,
+      String tenantId,
       double amount,
       DateTime date,
       String method,
@@ -599,15 +623,15 @@ class _$PaymentCopyWithImpl<$Res, $Val extends Payment>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       rentCycleId: null == rentCycleId
           ? _value.rentCycleId
           : rentCycleId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       tenantId: null == tenantId
           ? _value.tenantId
           : tenantId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       amount: null == amount
           ? _value.amount
           : amount // ignore: cast_nullable_to_non_nullable
@@ -648,9 +672,9 @@ abstract class _$$PaymentImplCopyWith<$Res> implements $PaymentCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id,
-      int rentCycleId,
-      int tenantId,
+      {String id,
+      String rentCycleId,
+      String tenantId,
       double amount,
       DateTime date,
       String method,
@@ -688,15 +712,15 @@ class __$$PaymentImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       rentCycleId: null == rentCycleId
           ? _value.rentCycleId
           : rentCycleId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       tenantId: null == tenantId
           ? _value.tenantId
           : tenantId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       amount: null == amount
           ? _value.amount
           : amount // ignore: cast_nullable_to_non_nullable
@@ -748,11 +772,12 @@ class _$PaymentImpl implements _Payment {
       _$$PaymentImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
   @override
-  final int rentCycleId;
+  final String rentCycleId;
   @override
-  final int tenantId;
+  final String tenantId;
+// Or tenancyId? Keeping tenantId generic 'String' for now.
   @override
   final double amount;
   @override
@@ -819,9 +844,9 @@ class _$PaymentImpl implements _Payment {
 
 abstract class _Payment implements Payment {
   const factory _Payment(
-      {required final int id,
-      required final int rentCycleId,
-      required final int tenantId,
+      {required final String id,
+      required final String rentCycleId,
+      required final String tenantId,
       required final double amount,
       required final DateTime date,
       required final String method,
@@ -833,11 +858,12 @@ abstract class _Payment implements Payment {
   factory _Payment.fromJson(Map<String, dynamic> json) = _$PaymentImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
   @override
-  int get rentCycleId;
+  String get rentCycleId;
   @override
-  int get tenantId;
+  String
+      get tenantId; // Or tenancyId? Keeping tenantId generic 'String' for now.
   @override
   double get amount;
   @override
@@ -867,8 +893,8 @@ OtherCharge _$OtherChargeFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$OtherCharge {
-  int get id => throw _privateConstructorUsedError;
-  int get rentCycleId => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
+  String get rentCycleId => throw _privateConstructorUsedError;
   double get amount => throw _privateConstructorUsedError;
   String get category => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
@@ -890,7 +916,11 @@ abstract class $OtherChargeCopyWith<$Res> {
       _$OtherChargeCopyWithImpl<$Res, OtherCharge>;
   @useResult
   $Res call(
-      {int id, int rentCycleId, double amount, String category, String? notes});
+      {String id,
+      String rentCycleId,
+      double amount,
+      String category,
+      String? notes});
 }
 
 /// @nodoc
@@ -918,11 +948,11 @@ class _$OtherChargeCopyWithImpl<$Res, $Val extends OtherCharge>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       rentCycleId: null == rentCycleId
           ? _value.rentCycleId
           : rentCycleId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       amount: null == amount
           ? _value.amount
           : amount // ignore: cast_nullable_to_non_nullable
@@ -948,7 +978,11 @@ abstract class _$$OtherChargeImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {int id, int rentCycleId, double amount, String category, String? notes});
+      {String id,
+      String rentCycleId,
+      double amount,
+      String category,
+      String? notes});
 }
 
 /// @nodoc
@@ -974,11 +1008,11 @@ class __$$OtherChargeImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       rentCycleId: null == rentCycleId
           ? _value.rentCycleId
           : rentCycleId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       amount: null == amount
           ? _value.amount
           : amount // ignore: cast_nullable_to_non_nullable
@@ -1009,9 +1043,9 @@ class _$OtherChargeImpl implements _OtherCharge {
       _$$OtherChargeImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
   @override
-  final int rentCycleId;
+  final String rentCycleId;
   @override
   final double amount;
   @override
@@ -1061,8 +1095,8 @@ class _$OtherChargeImpl implements _OtherCharge {
 
 abstract class _OtherCharge implements OtherCharge {
   const factory _OtherCharge(
-      {required final int id,
-      required final int rentCycleId,
+      {required final String id,
+      required final String rentCycleId,
       required final double amount,
       required final String category,
       final String? notes}) = _$OtherChargeImpl;
@@ -1071,9 +1105,9 @@ abstract class _OtherCharge implements OtherCharge {
       _$OtherChargeImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
   @override
-  int get rentCycleId;
+  String get rentCycleId;
   @override
   double get amount;
   @override

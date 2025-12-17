@@ -7,7 +7,8 @@ part of 'house.dart';
 // **************************************************************************
 
 _$HouseImpl _$$HouseImplFromJson(Map<String, dynamic> json) => _$HouseImpl(
-      id: (json['id'] as num).toInt(),
+      id: json['id'] as String,
+      ownerId: json['ownerId'] as String,
       name: json['name'] as String,
       address: json['address'] as String,
       notes: json['notes'] as String?,
@@ -19,6 +20,7 @@ _$HouseImpl _$$HouseImplFromJson(Map<String, dynamic> json) => _$HouseImpl(
 Map<String, dynamic> _$$HouseImplToJson(_$HouseImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'ownerId': instance.ownerId,
       'name': instance.name,
       'address': instance.address,
       'notes': instance.notes,
@@ -28,15 +30,16 @@ Map<String, dynamic> _$$HouseImplToJson(_$HouseImpl instance) =>
     };
 
 _$UnitImpl _$$UnitImplFromJson(Map<String, dynamic> json) => _$UnitImpl(
-      id: (json['id'] as num).toInt(),
-      houseId: (json['houseId'] as num).toInt(),
+      id: json['id'] as String,
+      houseId: json['houseId'] as String,
+      ownerId: json['ownerId'] as String,
       nameOrNumber: json['nameOrNumber'] as String,
       floor: (json['floor'] as num?)?.toInt(),
       baseRent: (json['baseRent'] as num).toDouble(),
-      bhkTemplateId: (json['bhkTemplateId'] as num?)?.toInt(),
+      bhkTemplateId: json['bhkTemplateId'] as String?,
       bhkType: json['bhkType'] as String?,
       editableRent: (json['editableRent'] as num?)?.toDouble(),
-      tenantId: (json['tenantId'] as num?)?.toInt(),
+      currentTenancyId: json['currentTenancyId'] as String?,
       furnishingStatus: json['furnishingStatus'] as String?,
       carpetArea: (json['carpetArea'] as num?)?.toDouble(),
       parkingSlot: json['parkingSlot'] as String?,
@@ -57,13 +60,14 @@ Map<String, dynamic> _$$UnitImplToJson(_$UnitImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'houseId': instance.houseId,
+      'ownerId': instance.ownerId,
       'nameOrNumber': instance.nameOrNumber,
       'floor': instance.floor,
       'baseRent': instance.baseRent,
       'bhkTemplateId': instance.bhkTemplateId,
       'bhkType': instance.bhkType,
       'editableRent': instance.editableRent,
-      'tenantId': instance.tenantId,
+      'currentTenancyId': instance.currentTenancyId,
       'furnishingStatus': instance.furnishingStatus,
       'carpetArea': instance.carpetArea,
       'parkingSlot': instance.parkingSlot,

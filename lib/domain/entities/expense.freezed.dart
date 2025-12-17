@@ -20,7 +20,7 @@ Expense _$ExpenseFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Expense {
-  int get id => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
   double get amount => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
@@ -43,7 +43,7 @@ abstract class $ExpenseCopyWith<$Res> {
       _$ExpenseCopyWithImpl<$Res, Expense>;
   @useResult
   $Res call(
-      {int id,
+      {String id,
       String title,
       double amount,
       DateTime date,
@@ -77,7 +77,7 @@ class _$ExpenseCopyWithImpl<$Res, $Val extends Expense>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
@@ -110,7 +110,7 @@ abstract class _$$ExpenseImplCopyWith<$Res> implements $ExpenseCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id,
+      {String id,
       String title,
       double amount,
       DateTime date,
@@ -142,7 +142,7 @@ class __$$ExpenseImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
@@ -182,7 +182,7 @@ class _$ExpenseImpl implements _Expense {
       _$$ExpenseImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
   @override
   final String title;
   @override
@@ -237,7 +237,7 @@ class _$ExpenseImpl implements _Expense {
 
 abstract class _Expense implements Expense {
   const factory _Expense(
-      {required final int id,
+      {required final String id,
       required final String title,
       required final double amount,
       required final DateTime date,
@@ -247,7 +247,7 @@ abstract class _Expense implements Expense {
   factory _Expense.fromJson(Map<String, dynamic> json) = _$ExpenseImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
   @override
   String get title;
   @override
