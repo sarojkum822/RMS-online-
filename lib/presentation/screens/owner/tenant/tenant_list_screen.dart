@@ -10,6 +10,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../domain/entities/tenant.dart';
+import '../../../../domain/entities/tenancy.dart'; // Import Tenancy
 import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
 import '../rent/rent_controller.dart';
@@ -41,6 +42,7 @@ class TenantUiModel {
 // --- Local Providers for Type Safety ---
 final _tenantsStreamProvider = StreamProvider((ref) => ref.watch(tenantRepositoryProvider).getAllTenants());
 final _housesStreamProvider = StreamProvider((ref) => ref.watch(propertyRepositoryProvider).getHouses());
+final _tenanciesStreamProvider = StreamProvider((ref) => ref.watch(tenantRepositoryProvider).getAllTenancies());
 
 
 // --- Combined Provider for Performance ---
@@ -49,49 +51,69 @@ final tenantListViewModelProvider = Provider.autoDispose<AsyncValue<List<TenantU
   final unitsAsync = ref.watch(allUnitsProvider);
   final housesAsync = ref.watch(_housesStreamProvider);
   final rentCyclesAsync = ref.watch(rentControllerProvider);
+  final tenanciesAsync = ref.watch(_tenanciesStreamProvider);
 
   // Combine data only when all are available
   if (tenantsAsync is AsyncData && 
       unitsAsync is AsyncData && 
       housesAsync is AsyncData && 
-      rentCyclesAsync is AsyncData) {
+      rentCyclesAsync is AsyncData &&
+      tenanciesAsync is AsyncData) {
     
     final tenants = tenantsAsync.value ?? [];
     final units = unitsAsync.value ?? [];
     final houses = housesAsync.value ?? [];
     final cycles = rentCyclesAsync.value ?? [];
+    final tenancies = tenanciesAsync.value ?? [];
 
     // Pre-calculate Maps for O(1) lookup
     final unitMap = { for (var u in units) u.id : u };
     final houseMap = { for (var h in houses) h.id : h };
+    final tenancyMap = { for (var t in tenancies) t.id : t };
+    
+    // Map TenantId -> Active Tenancy
+    final activeTenancyMap = <String, Tenancy>{}; // TenantId -> Tenancy
+    for (var t in tenancies) {
+      if (t.status == TenancyStatus.active) {
+        activeTenancyMap[t.tenantId] = t;
+      }
+    }
+
     final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
     
     // Calculate Pending & Overdue Status per Tenant
-    final pendingMap = <int, double>{};
-    final overdueMap = <int, bool>{};
+    final pendingMap = <String, double>{}; // TenantId -> Amount
+    final overdueMap = <String, bool>{};   // TenantId -> Bool
 
     for (var c in cycles) {
       if (c.status.name != 'paid') {
-        pendingMap[c.tenantId] = (pendingMap[c.tenantId] ?? 0) + (c.totalDue - c.totalPaid);
-        
-        // Check if overdue (month < currentMonth)
-        if (c.month.compareTo(currentMonth) < 0) {
-           overdueMap[c.tenantId] = true;
+        final t = tenancyMap[c.tenancyId];
+        if (t != null) {
+          final tenantId = t.tenantId;
+          pendingMap[tenantId] = (pendingMap[tenantId] ?? 0) + (c.totalDue - c.totalPaid);
+          
+          // Check if overdue (month < currentMonth)
+          if (c.month.compareTo(currentMonth) < 0) {
+             overdueMap[tenantId] = true;
+          }
         }
       }
     }
 
     final uiList = tenants.map((tenant) {
-      final unit = unitMap[tenant.unitId];
-      final house = houseMap[tenant.houseId];
+      final tenancy = activeTenancyMap[tenant.id];
+      // Use details from active tenancy if available, else placeholders
+      final unit = tenancy != null ? unitMap[tenancy.unitId] : null;
+      final house = unit != null ? houseMap[unit.houseId] : null;
+      
       final pendingAmount = pendingMap[tenant.id] ?? 0.0;
       final isOver = overdueMap[tenant.id] ?? false;
       
       return TenantUiModel(
         tenant: tenant,
-        unitName: unit?.nameOrNumber ?? 'Unknown Unit',
-        propertyName: house?.name ?? 'Unknown Property',
-        rentAmount: tenant.agreedRent ?? unit?.baseRent ?? 0.0,
+        unitName: unit?.nameOrNumber ?? '-',
+        propertyName: house?.name ?? '-',
+        rentAmount: tenancy?.agreedRent ?? 0.0,
         isPending: pendingAmount > 0,
         isOverdue: isOver,
         totalDue: pendingAmount,
@@ -108,7 +130,7 @@ final tenantListViewModelProvider = Provider.autoDispose<AsyncValue<List<TenantU
     });
 
     return Asyncdata(uiList);
-  } else if (tenantsAsync is AsyncError || unitsAsync is AsyncError || housesAsync is AsyncError || rentCyclesAsync is AsyncError) {
+  } else if (tenantsAsync is AsyncError || unitsAsync is AsyncError || housesAsync is AsyncError || rentCyclesAsync is AsyncError || tenanciesAsync is AsyncError) {
     return AsyncError('Failed to load data', StackTrace.current);
   } else {
     return const AsyncLoading();

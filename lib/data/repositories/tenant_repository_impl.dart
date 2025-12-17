@@ -180,6 +180,18 @@ class TenantRepositoryImpl implements ITenantRepository {
 
   // NEW: Create Tenancy
   @override
+  Stream<List<Tenancy>> getAllTenancies() {
+    final uid = _uid;
+    if (uid == null) return Stream.value([]);
+    
+    return _firestore.collection('tenancies')
+        .where('ownerId', isEqualTo: uid)
+        .where('isDeleted', isEqualTo: false)
+        .snapshots()
+        .map((s) => s.docs.map((d) => _mapToTenancyDomain(d)).toList());
+  }
+
+  @override
   Future<String> createTenancy(Tenancy tenancy) async {
       final uid = _uid;
       if (uid == null) throw Exception('User not logged in');
@@ -212,6 +224,35 @@ class TenantRepositoryImpl implements ITenantRepository {
         'endDate': FieldValue.serverTimestamp(),
         'lastUpdated': FieldValue.serverTimestamp(),
      });
+  }
+
+  @override
+  Future<Tenancy?> getActiveTenancyForTenant(String tenantId) async {
+    final snapshot = await _firestore.collection('tenancies')
+        .where('tenantId', isEqualTo: tenantId)
+        .where('status', isEqualTo: TenancyStatus.active.index)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return null;
+    return _mapToTenancyDomain(snapshot.docs.first);
+  }
+
+  Tenancy _mapToTenancyDomain(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    return Tenancy(
+      id: data['id'] ?? doc.id,
+      ownerId: data['ownerId'] ?? '',
+      tenantId: data['tenantId'] ?? '',
+      unitId: data['unitId'] ?? '',
+      startDate: (data['startDate'] as Timestamp).toDate(),
+      endDate: (data['endDate'] as Timestamp?)?.toDate(),
+      agreedRent: (data['agreedRent'] as num?)?.toDouble() ?? 0.0,
+      securityDeposit: (data['securityDeposit'] as num?)?.toDouble() ?? 0.0,
+      openingBalance: (data['openingBalance'] as num?)?.toDouble() ?? 0.0,
+      status: TenancyStatus.values[data['status'] as int? ?? 0],
+      notes: data['notes'] as String?,
+    );
   }
 
   @override

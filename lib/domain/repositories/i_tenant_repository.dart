@@ -13,6 +13,9 @@ abstract class ITenantRepository {
   Future<Tenant?> authenticateTenant(String email, String password);
   
   // NEW: Tenancy Management
+  Stream<List<Tenancy>> getAllTenancies();
+  Future<String> createTenancy(Tenancy tenancy);
   Future<String> createTenancy(Tenancy tenancy);
   Future<void> endTenancy(String tenancyId);
+  Future<Tenancy?> getActiveTenancyForTenant(String tenantId);
 }

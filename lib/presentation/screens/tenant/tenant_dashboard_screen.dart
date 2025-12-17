@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/tenant.dart';
+import '../../../../domain/entities/tenancy.dart'; // Import Tenancy
 import '../../../../features/rent/domain/entities/rent_cycle.dart';
 
 import '../../providers/data_providers.dart';
+import '../../owner/tenant/tenant_controller.dart'; // Import for activeTenancyProvider
+import '../../owner/house/house_controller.dart'; // Import for House/Unit providers
 
 import 'package:app_badge_plus/app_badge_plus.dart';
 import '../maintenance/maintenance_controller.dart';
@@ -37,36 +40,45 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // Watch Notices
-    final noticesAsync = ref.watch(noticesForHouseProvider((houseId: widget.tenant.houseId.toString(), ownerId: widget.tenant.ownerId)));
-    
-    // Watch Maintenance Requests
-    final maintenanceAsync = ref.watch(tenantMaintenanceProvider((tenantId: widget.tenant.id.toString(), ownerId: widget.tenant.ownerId)));
-    
     // Logic for Popup & Badge
-    final unreadNotices = noticesAsync.valueOrNull?.where((n) => !n.readBy.contains(widget.tenant.id.toString())).toList() ?? [];
+    // Needs House ID. We must find Tenancy -> Unit -> House first.
+    final tenancyAsync = ref.watch(activeTenancyProvider(widget.tenant.id));
+    final tenancy = tenancyAsync.valueOrNull;
     
-    // App Icon Badge
+    // Derived IDs
+    final unitId = tenancy?.unitId;
+    final ownerId = widget.tenant.ownerId; // Owner ID is trusted from Tenant Profile
+    
+    // Helper to fetch keys
+    final unitAsync = unitId != null ? ref.watch(unitDetailsProvider(unitId)) : const AsyncValue.loading();
+    final unit = unitAsync.valueOrNull;
+    final houseId = unit?.houseId;
+
+    // Now Valid Collections
+    final noticesAsync = houseId != null ? ref.watch(noticesForHouseProvider((houseId: houseId, ownerId: ownerId))) : const AsyncValue.loading();
+    final unreadNotices = noticesAsync.valueOrNull?.where((n) => !n.readBy.contains(widget.tenant.id.toString())).toList() ?? [];
+
     if (noticesAsync.hasValue) {
        AppBadgePlus.updateBadge(unreadNotices.length);
        if (unreadNotices.isEmpty) AppBadgePlus.updateBadge(0);
     }
     
-    // Popup (Show only once per session or screen load for the latest notice)
     if (unreadNotices.isNotEmpty && !_hasShownNoticePopup) {
        WidgetsBinding.instance.addPostFrameCallback((_) {
           _showNoticePopup(unreadNotices.first);
-          
-          // Play Gentle Notification Sound
-          try {
+           try {
             FlutterRingtonePlayer().playNotification();
           } catch (e) {
             debugPrint('Sound Error: $e');
           }
-          
           setState(() => _hasShownNoticePopup = true);
        });
     }
+
+    // Maintenance Requests
+    final maintenanceAsync = (houseId != null) 
+      ? ref.watch(tenantMaintenanceProvider((tenantId: widget.tenant.id.toString(), ownerId: ownerId))) 
+      : const AsyncValue.loading();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -105,7 +117,7 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'tenant_repair_request',
-        onPressed: () => _showMaintenanceDialog(context),
+        onPressed: (houseId != null && unitId != null) ? () => _showMaintenanceDialog(context, houseId, unitId) : null,
         label: const Text('Request Repair'),
         icon: const Icon(Icons.build),
         backgroundColor: theme.colorScheme.primary,
@@ -170,8 +182,9 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
                               ],
                             ),
                             const SizedBox(height: 20),
+                            if (tenancy?.id != null)
                             StreamBuilder<List<RentCycle>>(
-                              stream: rentRepo.watchRentCyclesByTenantAccess(widget.tenant.id, widget.tenant.ownerId),
+                              stream: rentRepo.watchRentCyclesByTenancyAccess(tenancy!.id, ownerId),
                               builder: (context, snapshot) {
                                 if (!snapshot.hasData) return Text('Loading...', style: TextStyle(color: theme.textTheme.bodyMedium?.color));
                                 final cycles = snapshot.data!;
@@ -253,8 +266,9 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
                              
                             // Payment Summary Card
                             // ... (Same as before)
+                            if (tenancy?.id != null)
                             StreamBuilder<List<Payment>>( 
-                              stream: ref.read(rentRepositoryProvider).watchPaymentsByTenantAccess(widget.tenant.id, widget.tenant.ownerId),
+                              stream: ref.read(rentRepositoryProvider).watchPaymentsByTenancyAccess(tenancy!.id, ownerId),
                               builder: (context, snapshot) {
                                  if (!snapshot.hasData) return const SizedBox();
                                  final payments = snapshot.data!;
@@ -297,8 +311,9 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
                             Text('Your Bills', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                              
                             // List of Bills (Same as before)
+                            if (tenancy?.id != null)
                             StreamBuilder<List<RentCycle>>(
-                                stream: rentRepo.watchRentCyclesByTenantAccess(widget.tenant.id, widget.tenant.ownerId),
+                                stream: rentRepo.watchRentCyclesByTenancyAccess(tenancy!.id, ownerId),
                                 builder: (context, snapshot) {
                                   if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: theme.colorScheme.error)));
                                   if (!snapshot.hasData) return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
@@ -324,7 +339,7 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
                                         elevation: 0,
                                         color: theme.cardColor,
                                         child: InkWell(
-                                          onTap: () => _showBillDetails(context, c, ref), // Show Details
+                                          onTap: () => _showBillDetails(context, c, ref, houseId, unitId), // Show Details
                                           borderRadius: BorderRadius.circular(16),
                                           child: Padding(
                                             padding: const EdgeInsets.all(16.0),
@@ -385,7 +400,7 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
 
   // ... (Existing Notice, Bill methods same)
 
-  void _showMaintenanceDialog(BuildContext context) {
+  void _showMaintenanceDialog(BuildContext context, String houseId, String unitId) {
     final descController = TextEditingController();
     String category = 'Plumbing';
     
@@ -421,8 +436,8 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
                  await DialogUtils.runWithLoading(context, () async {
                     await ref.read(maintenanceControllerProvider.notifier).submitRequest(
                       ownerId: widget.tenant.ownerId,
-                      houseId: widget.tenant.houseId.toString(),
-                      unitId: widget.tenant.unitId.toString(),
+                      houseId: houseId,
+                      unitId: unitId,
                       tenantId: widget.tenant.id.toString(),
                       category: category,
                       description: descController.text,
@@ -539,7 +554,7 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
     );
   }
 
-  void _showBillDetails(BuildContext context, RentCycle c, WidgetRef ref) {
+  void _showBillDetails(BuildContext context, RentCycle c, WidgetRef ref, String? houseId, String? unitId) {
     // ... (Existing implementation)
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -580,7 +595,7 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
                  const SizedBox(height: 16),
                  Center(
                    child: OutlinedButton.icon(
-                     onPressed: () => _handleDownloadReceipt(context, ref, c),
+                     onPressed: (houseId != null && unitId != null) ? () => _handleDownloadReceipt(context, ref, c, houseId, unitId) : null,
                      icon: const Icon(Icons.download, size: 18),
                      label: const Text('Download Receipt'),
                      style: OutlinedButton.styleFrom(
@@ -686,7 +701,7 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
   }
 
 
-  Future<void> _handleDownloadReceipt(BuildContext context, WidgetRef ref, RentCycle cycle) async {
+  Future<void> _handleDownloadReceipt(BuildContext context, WidgetRef ref, RentCycle cycle, String houseId, String unitId) async {
     // Show Loading
     showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator()));
     
@@ -695,18 +710,18 @@ class _TenantDashboardScreenState extends ConsumerState<TenantDashboardScreen> {
       final rentRepo = ref.read(rentRepositoryProvider);
       
       // 1. Fetch House (Tenant Access)
-      final house = await houseRepo.getHouseForTenant(widget.tenant.houseId, widget.tenant.ownerId); 
+      final house = await houseRepo.getHouseForTenant(houseId, widget.tenant.ownerId); 
       if (house == null) throw Exception('House details not found');
       
       // 2. Fetch Unit (Tenant Access)
-      final unit = await houseRepo.getUnitForTenant(widget.tenant.unitId, widget.tenant.ownerId); 
+      final unit = await houseRepo.getUnitForTenant(unitId, widget.tenant.ownerId); 
       if (unit == null) throw Exception('Unit details not found');
 
       // 3. Fetch Payments (Tenant Access)
       final payments = await rentRepo.getPaymentsForRentCycleForTenant(cycle.id, widget.tenant.ownerId); 
       
       // 4. Fetch Readings (Tenant Access)
-      final allReadings = await rentRepo.getElectricReadingsForTenant(widget.tenant.unitId, widget.tenant.ownerId); 
+      final allReadings = await rentRepo.getElectricReadingsForTenant(unitId, widget.tenant.ownerId); 
       
       Map<String, dynamic>? currentReading;
       Map<String, dynamic>? previousReading;
