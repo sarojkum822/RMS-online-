@@ -83,17 +83,114 @@ class HouseController extends _$HouseController {
      await repo.deleteUnit(id);
   }
 
-  Future<void> addUnit(String houseId, String name) async {
+  Future<void> addUnit(String houseId, String name, {
+     double? baseRent,
+     String? bhkTemplateId,
+     String? bhkType,
+     String? imageBase64,
+     String? furnishingStatus,
+     double? carpetArea,
+     String? parkingSlot,
+     String? meterNumber,
+  }) async {
      final repo = ref.read(propertyRepositoryProvider);
      final unit = Unit(
        id: const Uuid().v4(),
        houseId: houseId,
        nameOrNumber: name,
-       baseRent: 0.0,
+       baseRent: baseRent ?? 0.0,
        defaultDueDay: 1,
-       ownerId: 'placeholder'
+       ownerId: 'placeholder',
+       bhkTemplateId: bhkTemplateId,
+       bhkType: bhkType,
+       imagesBase64: imageBase64 != null ? [imageBase64] : const [],
+       furnishingStatus: furnishingStatus,
+       carpetArea: carpetArea,
+       parkingSlot: parkingSlot,
+       meterNumber: meterNumber,
      );
      await repo.createUnit(unit);
+  }
+
+  Future<void> addUnitsBulk({
+    required String houseId, 
+    required int count,
+    required int startNumber, 
+    String prefix = 'Flat',
+    double? baseRent,
+    String? bhkTemplateId,
+    String? bhkType,
+    String? imageBase64, // Single image for all units
+  }) async {
+     final repo = ref.read(propertyRepositoryProvider);
+     
+     for (int i = 0; i < count; i++) {
+        final number = startNumber + i;
+        final name = '$prefix $number';
+        final unit = Unit(
+          id: const Uuid().v4(),
+          houseId: houseId,
+          nameOrNumber: name,
+          baseRent: baseRent ?? 0.0,
+          defaultDueDay: 1,
+          ownerId: 'placeholder',
+          bhkTemplateId: bhkTemplateId,
+          bhkType: bhkType,
+          imagesBase64: imageBase64 != null ? [imageBase64] : const [],
+        );
+        await repo.createUnit(unit);
+     }
+  }
+
+  /// Generate units with floor-wise naming scheme
+  /// Example: floors=2, unitsPerFloor=3 produces: 101, 102, 103, 201, 202, 203
+  Future<void> addUnitsFloorWise({
+    required String houseId,
+    required int floors,
+    required int unitsPerFloor,
+    double? baseRent,
+    String? bhkTemplateId,
+    String? bhkType,
+    String? imageBase64, // Single image for all units
+  }) async {
+    final repo = ref.read(propertyRepositoryProvider);
+    
+    for (int floor = 1; floor <= floors; floor++) {
+      for (int unitNum = 1; unitNum <= unitsPerFloor; unitNum++) {
+        // Generate name like 101, 102, 201, 202
+        final name = '$floor${unitNum.toString().padLeft(2, '0')}';
+        
+        final unit = Unit(
+          id: const Uuid().v4(),
+          houseId: houseId,
+          nameOrNumber: name,
+          baseRent: baseRent ?? 0.0,
+          defaultDueDay: 1,
+          ownerId: 'placeholder',
+          bhkTemplateId: bhkTemplateId,
+          bhkType: bhkType,
+          imagesBase64: imageBase64 != null ? [imageBase64] : const [],
+        );
+        await repo.createUnit(unit);
+      }
+    }
+  }
+
+  Future<void> duplicateUnit(Unit unit, {String? newName}) async {
+    final repo = ref.read(propertyRepositoryProvider);
+    
+    // Use provided name or default to " (Copy)"
+    final String actualName = newName ?? '${unit.nameOrNumber} (Copy)';
+    
+    final duplicatedUnit = unit.copyWith(
+      id: const Uuid().v4(),
+      nameOrNumber: actualName,
+      isOccupied: false,
+      currentTenancyId: null,
+      imagesBase64: List.from(unit.imagesBase64 ?? []),
+    );
+    
+    await repo.createUnit(duplicatedUnit);
   }
 }
 

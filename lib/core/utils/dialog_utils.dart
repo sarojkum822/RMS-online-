@@ -89,11 +89,14 @@ class DialogUtils {
   // Helper to run Future with loading
   static Future<void> runWithLoading(BuildContext context, Future<void> Function() asyncFunction) async {
     showLoading(context);
+    // Capture navigator to safely pop even if widget unmounts
+    final navigator = Navigator.of(context, rootNavigator: true);
+    
     try {
       await asyncFunction();
     } finally {
-      if (context.mounted && Navigator.of(context, rootNavigator: true).canPop()) {
-         hideLoading(context);
+      if (navigator.canPop()) {
+         navigator.pop();
       }
     }
   }

@@ -8,8 +8,8 @@ part of 'bhk_template.dart';
 
 _$BhkTemplateImpl _$$BhkTemplateImplFromJson(Map<String, dynamic> json) =>
     _$BhkTemplateImpl(
-      id: (json['id'] as num).toInt(),
-      houseId: (json['houseId'] as num).toInt(),
+      id: json['id'] as String,
+      houseId: json['houseId'] as String,
       bhkType: json['bhkType'] as String,
       defaultRent: (json['defaultRent'] as num).toDouble(),
       description: json['description'] as String?,
@@ -17,6 +17,7 @@ _$BhkTemplateImpl _$$BhkTemplateImplFromJson(Map<String, dynamic> json) =>
       kitchenCount: (json['kitchenCount'] as num?)?.toInt() ?? 1,
       hallCount: (json['hallCount'] as num?)?.toInt() ?? 1,
       hasBalcony: json['hasBalcony'] as bool? ?? false,
+      imageBase64: json['imageBase64'] as String?,
     );
 
 Map<String, dynamic> _$$BhkTemplateImplToJson(_$BhkTemplateImpl instance) =>
@@ -30,4 +31,5 @@ Map<String, dynamic> _$$BhkTemplateImplToJson(_$BhkTemplateImpl instance) =>
       'kitchenCount': instance.kitchenCount,
       'hallCount': instance.hallCount,
       'hasBalcony': instance.hasBalcony,
+      'imageBase64': instance.imageBase64,
     };

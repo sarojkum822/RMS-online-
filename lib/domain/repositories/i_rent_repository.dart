@@ -18,7 +18,7 @@ class DashboardStats {
 abstract class IRentRepository {
   // Rent Cycles
   Future<List<RentCycle>> getRentCyclesForTenancy(String tenancyId); // Changed from Tenant to Tenancy
-  Future<List<RentCycle>> getRentCyclesByTeenancyAccess(String tenancyId, String ownerId); 
+  Future<List<RentCycle>> getRentCyclesByTenancyAccess(String tenancyId, String ownerId); 
   Stream<List<RentCycle>> watchRentCyclesByTenancyAccess(String tenancyId, String ownerId);
   Future<List<RentCycle>> getRentCyclesForMonth(String month); // YYYY-MM
   Future<List<RentCycle>> getAllPendingRentCycles();
@@ -27,18 +27,26 @@ abstract class IRentRepository {
   Future<String> createRentCycle(RentCycle rentCycle);
   Future<void> updateRentCycle(RentCycle rentCycle);
   Future<void> deleteRentCycle(RentCycle cycle);
+  Future<void> recoverRentCycle(String id);
+  Future<void> permanentlyDeleteRentCycle(RentCycle cycle);
+  Future<List<RentCycle>> getDeletedRentCyclesForTenancy(String tenancyId);
 
   // Payments
   Future<List<Payment>> getAllPayments();
   Future<List<Payment>> getPaymentsForRentCycle(String rentCycleId);
   Future<List<Payment>> getPaymentsForRentCycleForTenant(String rentCycleId, String ownerId);
+  Future<List<RentCycle>> getRentCyclesForTenant(String tenantId); // NEW: Clean Architecture for Tenant History
   Future<List<Payment>> getPaymentsForTenancy(String tenancyId); // Changed
   Future<List<Payment>> getPaymentsByTenancyAccess(String tenancyId, String ownerId);
   Stream<List<Payment>> watchPaymentsByTenancyAccess(String tenancyId, String ownerId);
   Future<List<Payment>> getRecentPayments(int limit);
   Future<DashboardStats> getDashboardStats(); 
+  Future<List<Map<String, dynamic>>> getMonthlyRevenue(int months); // NEW: For charts 
   Future<String> recordPayment(Payment payment);
   Future<void> deletePayment(String id);
+  Future<void> recoverPayment(String id);
+  Future<void> permanentlyDeletePayment(String id);
+  Future<List<Payment>> getDeletedPaymentsForRentCycle(String rentCycleId);
   
   // Electric Readings
   Future<void> addElectricReading(String unitId, DateTime date, double reading, {String? imagePath, double? rate});

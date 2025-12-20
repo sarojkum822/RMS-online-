@@ -1,6 +1,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rentpilotpro/features/rent/domain/rent_rules.dart';
+import 'package:kirayabook/features/rent/domain/rent_rules.dart';
 
 void main() {
   group('RentRules', () {

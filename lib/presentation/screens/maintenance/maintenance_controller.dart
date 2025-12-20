@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:rentpilotpro/domain/entities/maintenance_request.dart';
-import 'package:rentpilotpro/presentation/providers/data_providers.dart';
-import 'package:rentpilotpro/domain/repositories/i_maintenance_repository.dart';
+import 'package:kirayabook/domain/entities/maintenance_request.dart';
+import 'package:kirayabook/presentation/providers/data_providers.dart';
 
 part 'maintenance_controller.g.dart';
 
@@ -38,10 +37,16 @@ class MaintenanceController extends _$MaintenanceController {
     });
   }
 
-  Future<void> updateStatus(String requestId, MaintenanceStatus status, {double? cost, String? notes}) async {
+  Future<void> updateStatus(String requestId, String ownerId, MaintenanceStatus status, {double? cost, String? notes}) async {
     final repo = ref.read(maintenanceRepositoryProvider);
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => repo.updateStatus(requestId, status, cost: cost, notes: notes));
+    state = await AsyncValue.guard(() => repo.updateStatus(requestId, ownerId, status, cost: cost, notes: notes));
+  }
+
+  Future<void> deleteRequest(String requestId, String ownerId) async {
+    final repo = ref.read(maintenanceRepositoryProvider);
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => repo.deleteRequest(requestId, ownerId));
   }
 }
 

@@ -1,4 +1,5 @@
 
+import 'dart:math';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
@@ -96,7 +97,8 @@ class ReportsController extends _$ReportsController {
       expensesFuture,            // [2]
       housesFuture,              // [3]
       tenantsFuture,             // [4]
-      tenantRepo.getAllTenancies(), // [5] New
+      tenantRepo.getAllTenancies().first, // [5] Fixed
+      houseRepo.getAllUnits().first,      // [6] New
     ]);
 
     // Offload heavy calculation to background isolate to keep UI smooth
@@ -111,7 +113,8 @@ ReportsData _processReportsData(List<dynamic> results) {
     final allExpenses = results[2] as List<Expense>;
     final allHouses = results[3] as List<House>;
     final allTenants = results[4] as List<Tenant>;
-    final allTenancies = results[5] as List<Tenancy>; // New
+    final allTenancies = results[5] as List<Tenancy>;
+    final allUnits = results[6] as List<Unit>;
 
     final now = DateTime.now();
     final currentMonthStr = DateFormat('yyyy-MM').format(now);
@@ -126,7 +129,7 @@ ReportsData _processReportsData(List<dynamic> results) {
       totalExpected += c.totalDue;
       accrualPaid += c.totalPaid;
     }
-    final totalPending = totalExpected - accrualPaid;
+    final totalPending = max(0.0, totalExpected - accrualPaid);
 
     // 2. Expenses & Net Profit
     final currentMonthExpenses = allExpenses.where((e) {
@@ -164,9 +167,9 @@ ReportsData _processReportsData(List<dynamic> results) {
       double collected = 0;
       double pending = 0;
 
-      for (final c in monthCycles) {
+       for (final c in monthCycles) {
         collected += c.totalPaid;
-        pending += (c.totalDue - c.totalPaid);
+        pending += max(0.0, c.totalDue - c.totalPaid);
       }
       revenueTrend.add(MonthlyStats(monthLabel: monthLabel, collected: collected, pending: pending));
     }
@@ -178,44 +181,22 @@ ReportsData _processReportsData(List<dynamic> results) {
     
     // Map Tenancy -> Unit -> House
     // Map<TenancyId, HouseId>
-    Map<String, String> tenancyToHouseMap = {};
-    
-    // Need Unit -> House mapping
-    // We don't have all Units here.
-    // Assuming we can get HouseId from Tenancy... NO, Tenancy has UnitId. 
-    // Unit has HouseId.
-    // We are missing Units list in the report fetch.
-    
-    // Quick Fix: Fetch Units too? Or iterate Houses -> Units.
-    // The previous code used tenant.houseId which was denormalized.
-    
-    // Let's rely on RentCycle's tenancyId.
-    // rentCycle.tenancyId -> Tenancy
-    // Tenancy -> UnitId
-    // UnitId -> HouseId (Need Units)
-    
-    // Better: Add Units to the fetch list in build()
-    // But for now, if we can't get Units, we can't map to House easily without extra fetch.
-    // Given complexity, let's skip PropertyRevenue details or simplify.
-    // Or... we assume HouseController caches units? No.
-    
-    // Let's assume we can't facilitate this report cleanly without Units.
-    // But we need to fix compilation.
-    
-    for(final h in allHouses) {
-       propertyPerformance.add(PropertyRevenue(houseName: h.name, revenue: 0));
+    // Map from map TenancyId -> HouseId
+    Map<String, String> tenancyIdsToHouseIds = {}; // Rename to avoid conflict if any (though scoping might be fine, duplicate local var is error)
+    for (var t in allTenancies) {
+        final unit = allUnits.firstWhere((u) => u.id == t.unitId, orElse: () => Unit(id: '', houseId: '', ownerId: '', nameOrNumber: '', baseRent: 0));
+        if(unit.houseId.isNotEmpty) {
+           tenancyIdsToHouseIds[t.id] = unit.houseId;
+        }
     }
-    // We will leave revenue 0 for now to avoid refactoring fetch logic too deeply in this single step.
-    // Ideally we fetch Units.
-    
-    /*
+
+    Map<String, double> houseRevenueMap = {};
     for(final c in allRentCycles) {
-        final houseId = tenantToHouseMap[c.tenantId]; 
+        final houseId = tenancyIdsToHouseIds[c.tenancyId]; 
         if (houseId != null) {
             houseRevenueMap[houseId] = (houseRevenueMap[houseId] ?? 0) + c.totalPaid;
         }
     }
-    */
     
     for(final h in allHouses) {
         propertyPerformance.add(PropertyRevenue(houseName: h.name, revenue: houseRevenueMap[h.id] ?? 0));

@@ -14,24 +14,11 @@ class Owner with _$Owner {
     @Default('free') String subscriptionPlan, // 'free', 'pro', 'power'
     @Default('INR') String currency,
     String? timezone,
+    String? upiId, // NEW: Payment destination
     DateTime? createdAt,
   }) = _Owner;
 
   factory Owner.fromJson(Map<String, dynamic> json) => _$OwnerFromJson(json);
-}
-
-@freezed
-class Expense with _$Expense {
-  const factory Expense({
-    required int id,
-    required int ownerId,
-    required DateTime date,
-    required double amount,
-    required String category,
-    String? description,
-  }) = _Expense;
-
-  factory Expense.fromJson(Map<String, dynamic> json) => _$ExpenseFromJson(json);
 }
 
 @freezed
@@ -50,3 +37,4 @@ class ElectricReading with _$ElectricReading {
 
   factory ElectricReading.fromJson(Map<String, dynamic> json) => _$ElectricReadingFromJson(json);
 }
+

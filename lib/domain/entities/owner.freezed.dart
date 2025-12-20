@@ -29,6 +29,8 @@ mixin _$Owner {
       throw _privateConstructorUsedError; // 'free', 'pro', 'power'
   String get currency => throw _privateConstructorUsedError;
   String? get timezone => throw _privateConstructorUsedError;
+  String? get upiId =>
+      throw _privateConstructorUsedError; // NEW: Payment destination
   DateTime? get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this Owner to a JSON map.
@@ -54,6 +56,7 @@ abstract class $OwnerCopyWith<$Res> {
       String subscriptionPlan,
       String currency,
       String? timezone,
+      String? upiId,
       DateTime? createdAt});
 }
 
@@ -80,6 +83,7 @@ class _$OwnerCopyWithImpl<$Res, $Val extends Owner>
     Object? subscriptionPlan = null,
     Object? currency = null,
     Object? timezone = freezed,
+    Object? upiId = freezed,
     Object? createdAt = freezed,
   }) {
     return _then(_value.copyWith(
@@ -115,6 +119,10 @@ class _$OwnerCopyWithImpl<$Res, $Val extends Owner>
           ? _value.timezone
           : timezone // ignore: cast_nullable_to_non_nullable
               as String?,
+      upiId: freezed == upiId
+          ? _value.upiId
+          : upiId // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -139,6 +147,7 @@ abstract class _$$OwnerImplCopyWith<$Res> implements $OwnerCopyWith<$Res> {
       String subscriptionPlan,
       String currency,
       String? timezone,
+      String? upiId,
       DateTime? createdAt});
 }
 
@@ -163,6 +172,7 @@ class __$$OwnerImplCopyWithImpl<$Res>
     Object? subscriptionPlan = null,
     Object? currency = null,
     Object? timezone = freezed,
+    Object? upiId = freezed,
     Object? createdAt = freezed,
   }) {
     return _then(_$OwnerImpl(
@@ -198,6 +208,10 @@ class __$$OwnerImplCopyWithImpl<$Res>
           ? _value.timezone
           : timezone // ignore: cast_nullable_to_non_nullable
               as String?,
+      upiId: freezed == upiId
+          ? _value.upiId
+          : upiId // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -218,6 +232,7 @@ class _$OwnerImpl implements _Owner {
       this.subscriptionPlan = 'free',
       this.currency = 'INR',
       this.timezone,
+      this.upiId,
       this.createdAt});
 
   factory _$OwnerImpl.fromJson(Map<String, dynamic> json) =>
@@ -244,11 +259,14 @@ class _$OwnerImpl implements _Owner {
   @override
   final String? timezone;
   @override
+  final String? upiId;
+// NEW: Payment destination
+  @override
   final DateTime? createdAt;
 
   @override
   String toString() {
-    return 'Owner(id: $id, name: $name, phone: $phone, email: $email, firestoreId: $firestoreId, subscriptionPlan: $subscriptionPlan, currency: $currency, timezone: $timezone, createdAt: $createdAt)';
+    return 'Owner(id: $id, name: $name, phone: $phone, email: $email, firestoreId: $firestoreId, subscriptionPlan: $subscriptionPlan, currency: $currency, timezone: $timezone, upiId: $upiId, createdAt: $createdAt)';
   }
 
   @override
@@ -268,6 +286,7 @@ class _$OwnerImpl implements _Owner {
                 other.currency == currency) &&
             (identical(other.timezone, timezone) ||
                 other.timezone == timezone) &&
+            (identical(other.upiId, upiId) || other.upiId == upiId) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -275,7 +294,7 @@ class _$OwnerImpl implements _Owner {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, phone, email,
-      firestoreId, subscriptionPlan, currency, timezone, createdAt);
+      firestoreId, subscriptionPlan, currency, timezone, upiId, createdAt);
 
   /// Create a copy of Owner
   /// with the given fields replaced by the non-null parameter values.
@@ -303,6 +322,7 @@ abstract class _Owner implements Owner {
       final String subscriptionPlan,
       final String currency,
       final String? timezone,
+      final String? upiId,
       final DateTime? createdAt}) = _$OwnerImpl;
 
   factory _Owner.fromJson(Map<String, dynamic> json) = _$OwnerImpl.fromJson;
@@ -324,6 +344,8 @@ abstract class _Owner implements Owner {
   @override
   String? get timezone;
   @override
+  String? get upiId; // NEW: Payment destination
+  @override
   DateTime? get createdAt;
 
   /// Create a copy of Owner
@@ -331,258 +353,6 @@ abstract class _Owner implements Owner {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$OwnerImplCopyWith<_$OwnerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-Expense _$ExpenseFromJson(Map<String, dynamic> json) {
-  return _Expense.fromJson(json);
-}
-
-/// @nodoc
-mixin _$Expense {
-  int get id => throw _privateConstructorUsedError;
-  int get ownerId => throw _privateConstructorUsedError;
-  DateTime get date => throw _privateConstructorUsedError;
-  double get amount => throw _privateConstructorUsedError;
-  String get category => throw _privateConstructorUsedError;
-  String? get description => throw _privateConstructorUsedError;
-
-  /// Serializes this Expense to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of Expense
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ExpenseCopyWith<Expense> get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $ExpenseCopyWith<$Res> {
-  factory $ExpenseCopyWith(Expense value, $Res Function(Expense) then) =
-      _$ExpenseCopyWithImpl<$Res, Expense>;
-  @useResult
-  $Res call(
-      {int id,
-      int ownerId,
-      DateTime date,
-      double amount,
-      String category,
-      String? description});
-}
-
-/// @nodoc
-class _$ExpenseCopyWithImpl<$Res, $Val extends Expense>
-    implements $ExpenseCopyWith<$Res> {
-  _$ExpenseCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of Expense
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? ownerId = null,
-    Object? date = null,
-    Object? amount = null,
-    Object? category = null,
-    Object? description = freezed,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as int,
-      ownerId: null == ownerId
-          ? _value.ownerId
-          : ownerId // ignore: cast_nullable_to_non_nullable
-              as int,
-      date: null == date
-          ? _value.date
-          : date // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      amount: null == amount
-          ? _value.amount
-          : amount // ignore: cast_nullable_to_non_nullable
-              as double,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$ExpenseImplCopyWith<$Res> implements $ExpenseCopyWith<$Res> {
-  factory _$$ExpenseImplCopyWith(
-          _$ExpenseImpl value, $Res Function(_$ExpenseImpl) then) =
-      __$$ExpenseImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {int id,
-      int ownerId,
-      DateTime date,
-      double amount,
-      String category,
-      String? description});
-}
-
-/// @nodoc
-class __$$ExpenseImplCopyWithImpl<$Res>
-    extends _$ExpenseCopyWithImpl<$Res, _$ExpenseImpl>
-    implements _$$ExpenseImplCopyWith<$Res> {
-  __$$ExpenseImplCopyWithImpl(
-      _$ExpenseImpl _value, $Res Function(_$ExpenseImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of Expense
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? ownerId = null,
-    Object? date = null,
-    Object? amount = null,
-    Object? category = null,
-    Object? description = freezed,
-  }) {
-    return _then(_$ExpenseImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as int,
-      ownerId: null == ownerId
-          ? _value.ownerId
-          : ownerId // ignore: cast_nullable_to_non_nullable
-              as int,
-      date: null == date
-          ? _value.date
-          : date // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      amount: null == amount
-          ? _value.amount
-          : amount // ignore: cast_nullable_to_non_nullable
-              as double,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as String,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
-  }
-}
-
-/// @nodoc
-@JsonSerializable()
-class _$ExpenseImpl implements _Expense {
-  const _$ExpenseImpl(
-      {required this.id,
-      required this.ownerId,
-      required this.date,
-      required this.amount,
-      required this.category,
-      this.description});
-
-  factory _$ExpenseImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ExpenseImplFromJson(json);
-
-  @override
-  final int id;
-  @override
-  final int ownerId;
-  @override
-  final DateTime date;
-  @override
-  final double amount;
-  @override
-  final String category;
-  @override
-  final String? description;
-
-  @override
-  String toString() {
-    return 'Expense(id: $id, ownerId: $ownerId, date: $date, amount: $amount, category: $category, description: $description)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ExpenseImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.ownerId, ownerId) || other.ownerId == ownerId) &&
-            (identical(other.date, date) || other.date == date) &&
-            (identical(other.amount, amount) || other.amount == amount) &&
-            (identical(other.category, category) ||
-                other.category == category) &&
-            (identical(other.description, description) ||
-                other.description == description));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType, id, ownerId, date, amount, category, description);
-
-  /// Create a copy of Expense
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ExpenseImplCopyWith<_$ExpenseImpl> get copyWith =>
-      __$$ExpenseImplCopyWithImpl<_$ExpenseImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ExpenseImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _Expense implements Expense {
-  const factory _Expense(
-      {required final int id,
-      required final int ownerId,
-      required final DateTime date,
-      required final double amount,
-      required final String category,
-      final String? description}) = _$ExpenseImpl;
-
-  factory _Expense.fromJson(Map<String, dynamic> json) = _$ExpenseImpl.fromJson;
-
-  @override
-  int get id;
-  @override
-  int get ownerId;
-  @override
-  DateTime get date;
-  @override
-  double get amount;
-  @override
-  String get category;
-  @override
-  String? get description;
-
-  /// Create a copy of Expense
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ExpenseImplCopyWith<_$ExpenseImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

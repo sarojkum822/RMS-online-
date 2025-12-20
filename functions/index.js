@@ -84,7 +84,7 @@ exports.verifyPayment = functions.https.onCall(async (data, context) => {
   // 3. Verify Signature
   // WARNING: STORE THIS SECRET IN ENVIRONMENTAL VARIABLES (firebase functions:config:set razorpay.secret="YOUR_SECRET")
   // For this demo, we use the hardcoded Test Secret. REPLACE THIS IN PRODUCTION.
-  const secret = "YOUR_RAZORPAY_TEST_SECRET"; // Replace with real secret from Dashboard
+  const secret = functions.config().razorpay.secret || "YOUR_RAZORPAY_TEST_SECRET";
 
   const crypto = require("crypto");
   const generated_signature = crypto
@@ -117,5 +117,125 @@ exports.verifyPayment = functions.https.onCall(async (data, context) => {
     return { success: true, message: "Subscription Updated" };
   } catch (error) {
     throw new functions.https.HttpsError('internal', 'Database update failed', error);
+  }
+});
+
+/**
+ * Triggered when a Tenant document is deleted.
+ * Deletes the corresponding Firebase Authentication user.
+ */
+exports.deleteTenantAuth = functions.firestore
+  .document("tenants/{tenantId}")
+  .onDelete(async (snap, context) => {
+    const deletedTenant = snap.data();
+    const authId = deletedTenant.authId;
+
+    if (!authId) {
+      console.log(`No authId found for deleted tenant ${context.params.tenantId}. Skipping auth deletion.`);
+      return;
+    }
+
+    try {
+      await admin.auth().deleteUser(authId);
+      console.log(`Successfully deleted auth user ${authId} for tenant ${context.params.tenantId}.`);
+    } catch (error) {
+      // If the user is already deleted or not found, we can consider it a success or just log it.
+      if (error.code === 'auth/user-not-found') {
+        console.log(`Auth user ${authId} already deleted.`);
+      } else {
+        console.error(`Error deleting auth user ${authId}:`, error);
+      }
+    }
+  });
+
+/**
+ * MIGRATION: Fix Tenant-Contract ID Mismatch
+ * Callable function to update contracts with correct tenantId.
+ * Matches tenants to contracts using ownerId + unitId relationship.
+ */
+exports.migrateContractTenantIds = functions.https.onCall(async (data, context) => {
+  // Require authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be logged in.');
+  }
+
+  const uid = context.auth.uid;
+  const db = admin.firestore();
+  let updated = 0;
+  let errors = [];
+
+  try {
+    // 1. Get all tenants for this owner
+    const tenantsSnap = await db.collection('tenants')
+      .where('ownerId', '==', uid)
+      .where('isDeleted', '==', false)
+      .get();
+
+    // 2. Get all contracts for this owner
+    const contractsSnap = await db.collection('contracts')
+      .where('ownerId', '==', uid)
+      .where('isDeleted', '==', false)
+      .get();
+
+    // 3. Get all units for this owner
+    const unitsSnap = await db.collection('units')
+      .where('ownerId', '==', uid)
+      .get();
+
+    // Build lookup maps
+    const tenantsByPhone = {}; // phone -> tenant
+    const tenantsById = {}; // id -> tenant
+    tenantsSnap.docs.forEach(doc => {
+      const t = doc.data();
+      tenantsById[t.id || doc.id] = { ...t, docId: doc.id };
+      if (t.phone) tenantsByPhone[t.phone] = { ...t, docId: doc.id };
+    });
+
+    const unitsById = {};
+    unitsSnap.docs.forEach(doc => {
+      const u = doc.data();
+      unitsById[u.id || doc.id] = { ...u, docId: doc.id };
+    });
+
+    // 4. For each contract, check if tenantId is valid
+    const batch = db.batch();
+
+    for (const contractDoc of contractsSnap.docs) {
+      const contract = contractDoc.data();
+      const currentTenantId = contract.tenantId;
+
+      // Check if tenant exists with this ID
+      if (tenantsById[currentTenantId]) {
+        // Good - ID matches
+        continue;
+      }
+
+      // Try to find correct tenant via unit's assigned tenant
+      const unit = unitsById[contract.unitId];
+      if (unit && unit.tenantId && tenantsById[unit.tenantId]) {
+        // Found via unit
+        batch.update(contractDoc.ref, { tenantId: unit.tenantId });
+        updated++;
+        continue;
+      }
+
+      // Log as error - couldn't find matching tenant
+      errors.push({ contractId: contractDoc.id, reason: 'No matching tenant found' });
+    }
+
+    if (updated > 0) {
+      await batch.commit();
+    }
+
+    return {
+      success: true,
+      updated,
+      errors,
+      message: `Updated ${updated} contracts. ${errors.length} couldn't be matched.`
+    };
+
+  } catch (error) {
+    console.error('Migration error:', error);
+    throw new functions.https.HttpsError('internal', error.message);
   }
 });

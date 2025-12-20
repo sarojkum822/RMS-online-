@@ -70,9 +70,9 @@ class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
          color: theme.cardColor,
          borderRadius: BorderRadius.circular(12),
          boxShadow: isDark ? [] : [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
          ],
-         border: Border.all(color: theme.dividerColor.withOpacity(0.1))
+         border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1))
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

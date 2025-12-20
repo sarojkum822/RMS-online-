@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../domain/entities/house.dart' as domain;
 import '../../domain/entities/bhk_template.dart' as domain;
 import '../../domain/repositories/i_property_repository.dart';
+import 'package:uuid/uuid.dart';
+import '../../core/constants/firebase_collections.dart'; // Import Constants
 
 class PropertyRepositoryImpl implements IPropertyRepository {
   final FirebaseFirestore _firestore;
@@ -21,7 +23,7 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     final uid = _uid;
     if (uid == null) return Stream.value([]);
     
-    return _firestore.collection('houses')
+    return _firestore.collection(FirebaseCollections.properties)
       .where('ownerId', isEqualTo: uid)
       .snapshots()
       .map((snapshot) {
@@ -33,10 +35,10 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
 
   @override
-  Future<domain.House?> getHouse(int id) async {
+  Future<domain.House?> getHouse(String id) async {
     if (_uid == null) return null;
 
-    final snapshot = await _firestore.collection('houses')
+    final snapshot = await _firestore.collection(FirebaseCollections.properties)
         .where('ownerId', isEqualTo: _uid) 
         .where('id', isEqualTo: id)
         .limit(1)
@@ -50,8 +52,8 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
 
   @override
-  Future<domain.House?> getHouseForTenant(int id, String ownerId) async {
-    final snapshot = await _firestore.collection('houses')
+  Future<domain.House?> getHouseForTenant(String id, String ownerId) async {
+    final snapshot = await _firestore.collection(FirebaseCollections.properties)
         .where('ownerId', isEqualTo: ownerId)
         .where('id', isEqualTo: id)
         .limit(1)
@@ -65,11 +67,12 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
 
   @override
-  Future<int> createHouse(domain.House house) async {
+  Future<String> createHouse(domain.House house) async {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
-    final id = DateTime.now().millisecondsSinceEpoch;
+    // Use the ID passed from the controller (ensures consistency)
+    final id = house.id.isNotEmpty ? house.id : const Uuid().v4();
     
     final data = {
       'id': id,
@@ -84,13 +87,14 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       'isDeleted': false,
     };
 
-    await _firestore.collection('houses').add(data);
+    // Use .doc(id).set() to ensure Firestore document ID matches id field
+    await _firestore.collection(FirebaseCollections.properties).doc(id).set(data);
     return id;
   }
 
   @override
   Future<void> updateHouse(domain.House house) async {
-    final snapshot = await _firestore.collection('houses')
+    final snapshot = await _firestore.collection(FirebaseCollections.properties)
         .where('ownerId', isEqualTo: _uid)
         .where('id', isEqualTo: house.id)
         .limit(1)
@@ -110,31 +114,54 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
 
   @override
-  Future<void> deleteHouse(int id) async {
+  Future<void> deleteHouse(String id) async {
     final batch = _firestore.batch();
     
-    // 1. Get House
-    final houseSnapshot = await _firestore.collection('houses')
+    // 1. Get House Reference (Try Field ID first, then Doc ID)
+    DocumentReference? houseRef;
+    String? resolvedHouseId; // The ID used by units to link to this house
+
+    // A. Try finding by internal 'id' field
+    final snapshot = await _firestore.collection(FirebaseCollections.properties)
         .where('ownerId', isEqualTo: _uid)
         .where('id', isEqualTo: id)
         .limit(1)
-        .get()
-        .timeout(const Duration(seconds: 10));
-        
-    if (houseSnapshot.docs.isEmpty) return; 
-
-    // 2. Delete House (Hard Delete)
-    batch.delete(houseSnapshot.docs.first.reference);
-      
-    // 3. Get Units
-    final unitsSnapshot = await _firestore.collection('units')
-        .where('ownerId', isEqualTo: _uid) 
-        .where('houseId', isEqualTo: id)
         .get();
         
-    // 4. Delete Units (Hard Delete)
-    for (final doc in unitsSnapshot.docs) {
-      batch.delete(doc.reference);
+    if (snapshot.docs.isNotEmpty) {
+      houseRef = snapshot.docs.first.reference;
+      resolvedHouseId = snapshot.docs.first.data()['id']; 
+    } else {
+      // B. Fallback: Try finding by Document ID
+      final docRef = _firestore.collection(FirebaseCollections.properties).doc(id);
+      final docSnapshot = await docRef.get();
+      if (docSnapshot.exists && docSnapshot.data()?['ownerId'] == _uid) {
+        houseRef = docRef;
+        resolvedHouseId = docSnapshot.data()?['id'] ?? docRef.id; 
+        // If data['id'] is missing, assumed units might link via Doc ID (fallback behaviour)
+      }
+    }
+
+    if (houseRef == null) {
+       // House not found, nothing to delete
+       return;
+    }
+    
+    // 2. Queue House Deletion
+    batch.delete(houseRef);
+      
+    // 3. Get Units linked to this House
+    // Use the resolved ID (usually UUID)
+    if (resolvedHouseId != null) {
+      final unitsSnapshot = await _firestore.collection(FirebaseCollections.units)
+          .where('ownerId', isEqualTo: _uid) 
+          .where('houseId', isEqualTo: resolvedHouseId)
+          .get();
+          
+      // 4. Queue Units Deletion
+      for (final doc in unitsSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
     }
 
     // 5. Commit
@@ -148,31 +175,50 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     final uid = _uid;
     if (uid == null) return Stream.value([]);
     
-    return _firestore.collection('units')
+    return _firestore.collection(FirebaseCollections.units)
         .where('ownerId', isEqualTo: uid)
-        .where('isDeleted', isEqualTo: false)
+        // .where('isDeleted', isEqualTo: false) // Moved to memory for rule compatibility
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => _mapUnit(doc)).toList());
+        .map((snapshot) => snapshot.docs
+            .where((doc) => doc.data()['isDeleted'] != true)
+            .map((doc) => _mapUnit(doc))
+            .toList());
   }
 
   @override
-  Stream<List<domain.Unit>> getUnits(int houseId) {
+  Stream<List<domain.Unit>> getUnits(String houseId) {
     final uid = _uid;
     if (uid == null) return Stream.value([]);
 
-    return _firestore.collection('units')
+    return _firestore.collection(FirebaseCollections.units)
         .where('ownerId', isEqualTo: uid) 
         .where('houseId', isEqualTo: houseId)
         .where('isDeleted', isEqualTo: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => _mapUnit(doc)).toList());
+        .map((snapshot) {
+          final units = snapshot.docs.map((doc) => _mapUnit(doc)).toList();
+          units.sort((a, b) {
+             final aNumStr = RegExp(r'(\d+)').firstMatch(a.nameOrNumber)?.group(0);
+             final bNumStr = RegExp(r'(\d+)').firstMatch(b.nameOrNumber)?.group(0);
+             if (aNumStr != null && bNumStr != null) {
+                // If both look like "Flat 123", sort by 123
+                final aNum = int.parse(aNumStr);
+                final bNum = int.parse(bNumStr);
+                final aText = a.nameOrNumber.replaceAll(RegExp(r'\d'), '').trim();
+                final bText = b.nameOrNumber.replaceAll(RegExp(r'\d'), '').trim();
+                if (aText == bText) return aNum.compareTo(bNum);
+             }
+             return a.nameOrNumber.compareTo(b.nameOrNumber);
+          });
+          return units;
+        });
   }
 
   @override
-  Future<domain.Unit?> getUnit(int id) async {
+  Future<domain.Unit?> getUnit(String id) async {
      if (_uid == null) return null;
 
-    final snapshot = await _firestore.collection('units')
+    final snapshot = await _firestore.collection(FirebaseCollections.units)
         .where('ownerId', isEqualTo: _uid) 
         .where('id', isEqualTo: id)
         .limit(1)
@@ -186,8 +232,8 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
 
   @override
-  Future<domain.Unit?> getUnitForTenant(int id, String ownerId) async {
-    final snapshot = await _firestore.collection('units')
+  Future<domain.Unit?> getUnitForTenant(String id, String ownerId) async {
+    final snapshot = await _firestore.collection(FirebaseCollections.units)
         .where('ownerId', isEqualTo: ownerId)
         .where('id', isEqualTo: id)
         .limit(1)
@@ -201,11 +247,24 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
 
   @override
-  Future<int> createUnit(domain.Unit unit) async {
+  Future<String> createUnit(domain.Unit unit) async {
      final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
     
-    final id = DateTime.now().millisecondsSinceEpoch;
+    // Check for duplicate name in this house to prevent ghosts
+    final existingParams = await _firestore.collection(FirebaseCollections.units)
+        .where('ownerId', isEqualTo: uid)
+        .where('houseId', isEqualTo: unit.houseId)
+        .where('nameOrNumber', isEqualTo: unit.nameOrNumber)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (existingParams.docs.isNotEmpty) {
+      return existingParams.docs.first.data()['id'] ?? existingParams.docs.first.id;
+    }
+    // Use the ID passed from the controller (ensures consistency with electric readings)
+    final id = unit.id.isNotEmpty ? unit.id : const Uuid().v4();
     
     final data = {
       'id': id,
@@ -222,7 +281,7 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       'bhkTemplateId': unit.bhkTemplateId,
       'bhkType': unit.bhkType,
       'editableRent': unit.editableRent,
-      'tenantId': unit.tenantId,
+      'currentTenancyId': unit.currentTenancyId,
 
       'furnishingStatus': unit.furnishingStatus,
       'carpetArea': unit.carpetArea,
@@ -232,13 +291,14 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       'imagesBase64': unit.imagesBase64, 
     };
     
-    await _firestore.collection('units').add(data);
+    // Use .doc(id).set() to ensure Firestore document ID matches id field
+    await _firestore.collection(FirebaseCollections.units).doc(id).set(data);
     return id;
   }
 
   @override
   Future<void> updateUnit(domain.Unit unit) async {
-    final snapshot = await _firestore.collection('units')
+    final snapshot = await _firestore.collection(FirebaseCollections.units)
         .where('ownerId', isEqualTo: _uid)
         .where('id', isEqualTo: unit.id)
         .limit(1)
@@ -255,7 +315,7 @@ class PropertyRepositoryImpl implements IPropertyRepository {
         'bhkTemplateId': unit.bhkTemplateId,
         'bhkType': unit.bhkType,
         'editableRent': unit.editableRent,
-        'tenantId': unit.tenantId,
+        'currentTenancyId': unit.currentTenancyId,
 
         'furnishingStatus': unit.furnishingStatus,
         'carpetArea': unit.carpetArea,
@@ -276,20 +336,23 @@ class PropertyRepositoryImpl implements IPropertyRepository {
     if (units.isEmpty) return;
     final houseId = units.first.houseId;
 
-    final snapshot = await _firestore.collection('units')
+    final snapshot = await _firestore.collection(FirebaseCollections.units)
         .where('ownerId', isEqualTo: _uid)
         .where('houseId', isEqualTo: houseId)
         .get();
         
-    final Map<int, DocumentReference> idToRefMap = {};
+    final Map<String, DocumentReference> idToRefMap = {};
     for (var doc in snapshot.docs) {
       final data = doc.data();
-      final internalId = data['id'] as int;
+      final internalId = (data['id'] ?? doc.id).toString();
       idToRefMap[internalId] = doc.reference;
     }
+    
+    // Explicitly define Map key type as String
+    final Map<String, DocumentReference> idToRefMapTyped = idToRefMap;
 
     for (final unit in units) {
-      final ref = idToRefMap[unit.id];
+      final ref = idToRefMapTyped[unit.id];
       if (ref != null) {
         batch.update(ref, {
           'nameOrNumber': unit.nameOrNumber,
@@ -300,7 +363,7 @@ class PropertyRepositoryImpl implements IPropertyRepository {
           'bhkTemplateId': unit.bhkTemplateId,
           'bhkType': unit.bhkType,
           'editableRent': unit.editableRent,
-          'tenantId': unit.tenantId,
+          'currentTenancyId': unit.currentTenancyId,
 
           'furnishingStatus': unit.furnishingStatus,
           'carpetArea': unit.carpetArea,
@@ -318,28 +381,50 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
 
   @override
-  Future<void> deleteUnit(int id) async {
-     final snapshot = await _firestore.collection('units')
+  Future<void> deleteUnit(String id) async {
+     // 1. Try finding by internal 'id' (UUID) - REMOVE LIMIT to delete duplicates
+     var snapshot = await _firestore.collection(FirebaseCollections.units)
         .where('ownerId', isEqualTo: _uid) 
         .where('id', isEqualTo: id)
-        .limit(1)
-        .get()
+        .get() // No limit(1)
         .timeout(const Duration(seconds: 10));
         
+    bool deletedAny = false;
     if (snapshot.docs.isNotEmpty) {
-      // Hard Delete
-      await snapshot.docs.first.reference.delete();
+      // Delete ALL matching duplicates
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+         batch.delete(doc.reference);
+      }
+      await batch.commit();
+      deletedAny = true;
+    }
+
+    // 2. Fallback: Try finding by Document ID (only if searching by field didn't find anything, OR purely to be safe)
+    // If the ID passed IS the Doc ID, step 1 finds nothing (unless 'id' field matches Doc ID).
+    // So we check Doc ID explicitly.
+    if (!deletedAny) {
+       final docRef = _firestore.collection(FirebaseCollections.units).doc(id);
+      final docSnapshot = await docRef.get();
+      
+      if (docSnapshot.exists) {
+         final data = docSnapshot.data();
+         // Security Check: Ensure it belongs to current owner
+         if (data != null && data['ownerId'] == _uid) {
+            await docRef.delete();
+         }
+      }
     }
   }
 
   // --- BHK Templates ---
   
   @override
-  Future<int> createBhkTemplate(domain.BhkTemplate template) async {
+  Future<String> createBhkTemplate(domain.BhkTemplate template) async {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
     
-    final id = DateTime.now().millisecondsSinceEpoch;
+    final id = const Uuid().v4();
     
     final data = {
       'id': id,
@@ -357,13 +442,13 @@ class PropertyRepositoryImpl implements IPropertyRepository {
       'isDeleted': false,
     };
     
-    await _firestore.collection('bhkTemplates').add(data);
+    await _firestore.collection(FirebaseCollections.bhkTemplates).add(data);
     return id;
   }
   
   @override
   Future<void> updateBhkTemplate(domain.BhkTemplate template) async {
-    final snapshot = await _firestore.collection('bhkTemplates')
+    final snapshot = await _firestore.collection(FirebaseCollections.bhkTemplates)
         .where('ownerId', isEqualTo: _uid)
         .where('id', isEqualTo: template.id)
         .limit(1)
@@ -385,11 +470,11 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   }
   
   @override
-  Stream<List<domain.BhkTemplate>> getBhkTemplates(int houseId) {
+  Stream<List<domain.BhkTemplate>> getBhkTemplates(String houseId) {
     final uid = _uid;
     if (uid == null) return Stream.value([]);
     
-    return _firestore.collection('bhkTemplates')
+    return _firestore.collection(FirebaseCollections.bhkTemplates)
         .where('ownerId', isEqualTo: uid)
         .where('houseId', isEqualTo: houseId)
         .snapshots()
@@ -406,8 +491,8 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   domain.BhkTemplate _mapBhkTemplate(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return domain.BhkTemplate(
-      id: data['id'],
-      houseId: data['houseId'],
+      id: (data['id'] ?? doc.id).toString(),
+      houseId: data['houseId']?.toString() ?? '',
       bhkType: data['bhkType'],
       defaultRent: (data['defaultRent'] as num).toDouble(),
       description: data['description'],
@@ -421,7 +506,8 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   domain.House _mapHouse(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return domain.House(
-      id: data['id'],
+      id: (data['id'] ?? doc.id).toString(),
+      ownerId: data['ownerId']?.toString() ?? '',
       name: data['name'],
       address: data['address'],
       notes: data['notes'],
@@ -434,17 +520,18 @@ class PropertyRepositoryImpl implements IPropertyRepository {
   domain.Unit _mapUnit(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return domain.Unit(
-      id: data['id'],
-      houseId: data['houseId'],
+      id: (data['id'] ?? doc.id).toString(),
+      ownerId: data['ownerId']?.toString() ?? '',
+      houseId: data['houseId']?.toString() ?? '',
       nameOrNumber: data['nameOrNumber'],
       floor: data['floor'],
       baseRent: (data['baseRent'] as num).toDouble(),
       
-      bhkTemplateId: data['bhkTemplateId'],
+      bhkTemplateId: data['bhkTemplateId']?.toString(),
       bhkType: data['bhkType'],
       editableRent: (data['editableRent'] as num?)?.toDouble(),
-      tenantId: data['tenantId'],
-
+      currentTenancyId: data['currentTenancyId']?.toString() ?? data['tenantId']?.toString(), // Fallback for migration
+ 
       furnishingStatus: data['furnishingStatus'],
       carpetArea: (data['carpetArea'] as num?)?.toDouble(),
       parkingSlot: data['parkingSlot'],

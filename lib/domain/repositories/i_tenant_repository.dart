@@ -11,11 +11,17 @@ abstract class ITenantRepository {
   Future<void> updateTenant(Tenant tenant, {File? imageFile});
   Future<void> deleteTenant(String id);
   Future<Tenant?> authenticateTenant(String email, String password);
+  Future<Tenant?> getTenantByEmail(String email); // NEW
+  Future<void> deleteTenantCascade(String tenantId, String? unitId);
   
   // NEW: Tenancy Management
   Stream<List<Tenancy>> getAllTenancies();
   Future<String> createTenancy(Tenancy tenancy);
-  Future<String> createTenancy(Tenancy tenancy);
+
   Future<void> endTenancy(String tenancyId);
   Future<Tenancy?> getActiveTenancyForTenant(String tenantId);
+  Stream<Tenancy?> watchActiveTenancyForTenant(String tenantId); // For owner-side
+  Stream<Tenancy?> watchActiveTenancyForTenantAccess(String tenantId, String ownerId); // For tenant-side (uses ownerId)
+  Future<Tenancy?> getTenancy(String tenancyId);
 }
+

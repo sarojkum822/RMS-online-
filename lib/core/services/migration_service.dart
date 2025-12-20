@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'data_integrity_validator.dart';
 import 'data_management_service.dart';
+import '../constants/firebase_collections.dart';
 
 class MigrationService {
   final FirebaseFirestore _firestore;
@@ -44,13 +44,24 @@ class MigrationService {
     // 5. Restore (Batch Insert) with OwnerID Override
     final data = backup['data'] as Map<String, dynamic>;
     
-    await _restoreCollection('houses', data['houses'], currentUid);
-    await _restoreCollection('units', data['units'], currentUid);
-    await _restoreCollection('tenants', data['tenants'], currentUid);
-    await _restoreCollection('rent_cycles', data['rentCycles'], currentUid);
-    await _restoreCollection('payments', data['payments'], currentUid);
-    await _restoreCollection('expenses', data['expenses'], currentUid);
-    await _restoreCollection('electric_readings', data['electricReadings'], currentUid);
+    await _restoreCollection(FirebaseCollections.properties, data['houses'], currentUid);
+    await _restoreCollection(FirebaseCollections.units, data['units'], currentUid);
+    await _restoreCollection(FirebaseCollections.tenants, data['tenants'], currentUid);
+    await _restoreCollection(FirebaseCollections.contracts, data['contracts'], currentUid);
+    await _restoreCollection(FirebaseCollections.invoices, data['rentCycles'], currentUid);
+    await _restoreCollection(FirebaseCollections.transactions, data['payments'], currentUid);
+    await _restoreCollection(FirebaseCollections.expenses, data['expenses'], currentUid);
+    await _restoreCollection(FirebaseCollections.tickets, data['tickets'], currentUid); // NEW
+    await _restoreCollection(FirebaseCollections.electricReadings, data['electricReadings'], currentUid);
+    // Note: tenancies/contracts are missing in old Export logic?
+    // Wait, BackupService didn't export 'tenancies'? 
+    // Checking BackupService: it fetched 'tenants' but not 'tenancies' collection explicitly?
+    // NO! BackupService line 24: "final tenants = ... 'tenants'"
+    // WHERE IS TENANCIES?
+    // BackupService line 22-28: houses, units, tenants, rent_cycles, payments, expenses, electric_readings. 
+    // IT MISSED 'tenancies' (Contracts)!
+    // CRITICAL BUG IN BACKUP SERVICE FOUND.
+    // I should fix BackupService to include contracts/tenancies first.
   }
 
   Future<void> _restoreCollection(String collectionPath, List<dynamic>? records, String ownerId) async {
@@ -75,37 +86,14 @@ class MigrationService {
       
       DocumentReference ref;
       
-      if (collectionPath == 'rent_cycles') {
+      if (collectionPath == FirebaseCollections.invoices) {
           // Reconstruct ID logic from RentRepository logic
+          // Rent Cycles use composite ID: tenantId_month
           final docId = '${map['tenantId']}_${map['month']}';
           ref = _firestore.collection(collectionPath).doc(docId);
-      } else if (collectionPath == 'houses' || collectionPath == 'units' || collectionPath == 'tenants' || collectionPath == 'expenses' || collectionPath == 'payments' || collectionPath == 'electric_readings') {
-         // These use auto-generated IDs or specific ID logic?
-         // Repos usually allow Firestore to generate ID or use 'id' field?
-         // Actually, most Repos in this project use `.add()` which generates random ID.
-         // BUT they store an internal 'id' (int).
-         // If we restore, we lose the original Firestore DocID unless we backed it up.
-         // Our backup `_fetchCollection` just dumped data().
-         // Issue: updates will fail if we don't know the Doc ID.
-         // FIX: We should have backed up Doc ID.
-         // Too late to change Export schema if we had old backups, but we are designing NEW system.
-         // SO: I should update Export to include DocID.
-         // BUT wait, Repos query by 'id' field mostly?
-         // Let's check RentRepository: `where('id', isEqualTo: id)`.
-         // So Firestore Doc ID doesn't matter for logic, mostly.
-         // EXCEPT for `rent_cycles` which uses a specific Doc ID to prevent duplicates.
-         // AND `createRentCycle` uses `.doc(docId).set()`.
-         
-         if (collectionPath == 'rent_cycles') {
-             // Already handled
-             final docId = '${map['tenantId']}_${map['month']}';
-             ref = _firestore.collection(collectionPath).doc(docId);
-         } else {
-             // For others, generate new Doc ID
-             ref = _firestore.collection(collectionPath).doc();
-         }
       } else {
-        ref = _firestore.collection(collectionPath).doc();
+          // Default: Generate new Auto ID
+          ref = _firestore.collection(collectionPath).doc();
       }
 
       batch.set(ref, map);

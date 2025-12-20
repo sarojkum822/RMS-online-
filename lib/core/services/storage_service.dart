@@ -12,36 +12,52 @@ class StorageService {
 
   // 1. Pick Image
   Future<File?> pickImage(ImageSource source) async {
-    final XFile? pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      return File(pickedFile.path);
+    try {
+      final XFile? pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        return File(pickedFile.path);
+      }
+      return null;
+    } catch (e) {
+      // Handle permission denial or picker errors
+      print('Error picking image: $e');
+      return null;
     }
-    return null;
-    return null;
   }
 
   // 1b. Pick Multiple Images
   Future<List<File>> pickMultiImage() async {
-    final List<XFile> pickedFiles = await _picker.pickMultiImage();
-    return pickedFiles.map((e) => File(e.path)).toList();
+    try {
+      final List<XFile> pickedFiles = await _picker.pickMultiImage();
+      return pickedFiles.map((e) => File(e.path)).toList();
+    } catch (e) {
+      print('Error picking multiple images: $e');
+      return [];
+    }
   }
 
   // 2. Compress Image
   // Targeted for mobile display (e.g. 800px width, 70% quality) to save bandwidth/storage
   Future<File?> compressImage(File file, {int minWidth = 800, int quality = 70}) async {
-    final String targetPath = '${file.parent.path}/${_uuid.v4()}_compressed.jpg';
-    
-    final XFile? result = await FlutterImageCompress.compressAndGetFile(
-      file.absolute.path,
-      targetPath,
-      minWidth: minWidth,
-      quality: quality,
-    );
+    try {
+      final String targetPath = '${file.parent.path}/${_uuid.v4()}_compressed.jpg';
+      
+      final XFile? result = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        minWidth: minWidth,
+        quality: quality,
+      );
 
-    if (result != null) {
-      return File(result.path);
+      if (result != null) {
+        return File(result.path);
+      }
+      return null;
+    } catch (e) {
+      print('Error compressing image: $e');
+      // Return original file if compression fails
+      return file;
     }
-    return null;
   }
 
   // 3. Upload Image

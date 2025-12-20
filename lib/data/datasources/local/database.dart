@@ -15,19 +15,44 @@ part 'database.g.dart';
   ElectricReadings,
   PaymentChannels, // NEW
   OtherCharges, // NEW
-  BhkTemplates
+  BhkTemplates,
+  Tenancies // ADDED
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (Migrator m, int from, int to) async {
        if (from < 2) {
          await m.addColumn(tenants, tenants.password);
+       }
+       if (from < 3) {
+         await m.addColumn(expenses, expenses.receiptPath);
+       }
+       if (from < 4) {
+         // Migration for version 4 (Multiple missing columns)
+         await m.addColumn(owners, owners.upiId);
+         await m.addColumn(houses, houses.imageUrl);
+         await m.addColumn(houses, houses.imageBase64);
+         await m.addColumn(houses, houses.unitCount);
+         await m.addColumn(units, units.imageUrls);
+         await m.addColumn(units, units.imagesBase64);
+         await m.addColumn(tenants, tenants.imageUrl);
+         await m.addColumn(tenants, tenants.imageBase64);
+         await m.addColumn(tenants, tenants.authId);
+         await m.addColumn(tenants, tenants.advanceAmount);
+         await m.addColumn(tenants, tenants.policeVerification);
+         await m.addColumn(tenants, tenants.idProof);
+         await m.addColumn(tenants, tenants.address);
+         await m.addColumn(tenants, tenants.memberCount);
+         await m.addColumn(tenants, tenants.notes);
+         
+         // Create Tenancies table if not exists (it was missing from previous builds)
+         await m.createTable(tenancies);
        }
     },
     beforeOpen: (details) async {

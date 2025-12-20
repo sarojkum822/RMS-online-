@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // NEW
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/print_service.dart';
 import '../../core/services/biometric_service.dart';
@@ -7,8 +7,10 @@ import '../../core/services/data_management_service.dart';
 import '../../core/services/notification_service.dart'; // NEW
 import '../../core/services/user_session_service.dart';
 import '../../core/services/migration_service.dart';
-import '../../core/services/pdf_service.dart'; // NEW // NEW
-import '../../data/datasources/local/database.dart' hide Unit; // Keeping for BackupService
+import '../../core/services/pdf_service.dart'; // NEW
+import '../../core/services/pdf_generator_service.dart'; // NEW Receipt Service
+import '../../core/services/database_migration_service.dart'; // Database Migration
+import '../../data/datasources/local/database.dart' as db; // Re-added for Expenses logic
 import '../../data/repositories/property_repository_impl.dart';
 import '../../data/repositories/rent_repository_impl.dart';
 import '../../data/repositories/tenant_repository_impl.dart';
@@ -19,19 +21,20 @@ import '../../domain/repositories/i_tenant_repository.dart';
 import '../../domain/repositories/i_owner_repository.dart';
 import '../../data/repositories/owner_repository_impl.dart';
 import '../../domain/entities/house.dart'; 
+import '../../domain/entities/owner.dart'; // For ownerByIdProvider
+import '../../domain/entities/tenancy.dart'; 
+import '../../domain/entities/notice.dart'; 
 import '../../domain/repositories/i_notice_repository.dart';
 import '../../data/repositories/notice_repository_impl.dart';
 import '../../domain/repositories/i_maintenance_repository.dart';
 import '../../data/repositories/maintenance_repository_impl.dart';
+import '../../domain/repositories/i_expense_repository.dart'; // NEW
+import '../../data/repositories/expense_repository_impl.dart'; // NEW
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'data_providers.g.dart';
 
-// Database Provider (Legacy / Backup Only)
-@Riverpod(keepAlive: true)
-AppDatabase database(DatabaseRef ref) {
-  return AppDatabase();
-}
+// Database Provider Removed
 
 // Firestore Provider
 final firestoreProvider = Provider<FirebaseFirestore>((ref) {
@@ -42,6 +45,7 @@ final firestoreProvider = Provider<FirebaseFirestore>((ref) {
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
   return FirebaseAuth.instance;
 });
+
 
 // Notice Repository Provider
 final noticeRepositoryProvider = Provider<INoticeRepository>((ref) {
@@ -55,6 +59,12 @@ final maintenanceRepositoryProvider = Provider<IMaintenanceRepository>((ref) {
   return MaintenanceRepositoryImpl(firestore);
 });
 
+final expenseRepositoryProvider = Provider<IExpenseRepository>((ref) {
+   // Note: ExpenseRepo uses Local Database (Drift), not Firestore directly in this implementation plan
+   // We use AppDatabase singleton or new instance. 
+   return ExpenseRepositoryImpl(db.AppDatabase());
+});
+
 // Repository Providers
 @Riverpod(keepAlive: true)
 IPropertyRepository propertyRepository(PropertyRepositoryRef ref) {
@@ -65,7 +75,14 @@ IPropertyRepository propertyRepository(PropertyRepositoryRef ref) {
 @Riverpod(keepAlive: true)
 ITenantRepository tenantRepository(TenantRepositoryRef ref) {
   final firestore = ref.watch(firestoreProvider);
-  return TenantRepositoryImpl(firestore);
+  const key = String.fromEnvironment('ENCRYPTION_KEY', defaultValue: 'KirayaBookProSecretKey32CharsLong');
+  const iv = String.fromEnvironment('ENCRYPTION_IV', defaultValue: 'KirayaBookProIV16');
+  
+  return TenantRepositoryImpl(
+    firestore,
+    encryptionKey: key,
+    encryptionIv: iv,
+  );
 }
 
 @Riverpod(keepAlive: true)
@@ -78,6 +95,13 @@ final ownerRepositoryProvider = Provider<IOwnerRepository>((ref) {
   final firestore = ref.watch(firestoreProvider);
   return OwnerRepositoryImpl(firestore);
 });
+
+/// Get owner by ID - for tenant-side access to owner's subscription plan
+final ownerByIdProvider = FutureProvider.family<Owner?, String>((ref, ownerId) async {
+  final repo = ref.watch(ownerRepositoryProvider);
+  return repo.getOwnerById(ownerId);
+});
+
 
 @Riverpod(keepAlive: true)
 BackupService backupService(BackupServiceRef ref) {
@@ -124,7 +148,43 @@ final storageServiceProvider = Provider<StorageService>((ref) {
   return StorageService();
 });
 
+final pdfGeneratorServiceProvider = Provider<PdfGeneratorService>((ref) {
+  return PdfGeneratorService();
+});
+
 final allUnitsProvider = StreamProvider<List<Unit>>((ref) {
   final repo = ref.watch(propertyRepositoryProvider);
   return repo.getAllUnits();
+});
+
+final allTenanciesProvider = StreamProvider<List<Tenancy>>((ref) {
+  final repo = ref.watch(tenantRepositoryProvider);
+  return repo.getAllTenancies();
+});
+
+// Unit Details Provider
+final unitDetailsProvider = FutureProvider.family<Unit?, String>((ref, unitId) async {
+  final repo = ref.watch(propertyRepositoryProvider);
+  return repo.getUnit(unitId);
+});
+
+// Unit Details Provider for Tenant Access
+final unitDetailsForTenantProvider = FutureProvider.family<Unit?, ({String unitId, String ownerId}) >((ref, arg) async {
+  final repo = ref.watch(propertyRepositoryProvider);
+  return repo.getUnitForTenant(arg.unitId, arg.ownerId);
+});
+
+final houseDetailsForTenantProvider = FutureProvider.family<House?, ({String houseId, String ownerId}) >((ref, arg) async {
+  final repo = ref.watch(propertyRepositoryProvider);
+  return repo.getHouseForTenant(arg.houseId, arg.ownerId);
+});
+
+final noticesForHouseProvider = StreamProvider.family<List<Notice>, ({String houseId, String ownerId}) >((ref, arg) {
+  final repo = ref.watch(noticeRepositoryProvider);
+  return repo.watchNoticesForHouse(arg.houseId, arg.ownerId);
+});
+
+final databaseMigrationServiceProvider = Provider<DatabaseMigrationService>((ref) {
+  final firestore = ref.watch(firestoreProvider);
+  return DatabaseMigrationService(firestore);
 });

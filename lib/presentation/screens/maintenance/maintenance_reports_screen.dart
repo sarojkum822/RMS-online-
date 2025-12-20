@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../domain/entities/maintenance_request.dart';
 import 'maintenance_controller.dart';
-import '../../../../core/utils/dialog_utils.dart';
-import 'package:rentpilotpro/presentation/providers/data_providers.dart';
-import '../owner/rent/rent_controller.dart';
+import 'package:kirayabook/presentation/providers/data_providers.dart';
+import 'widgets/add_maintenance_sheet.dart' as widgets;
+import 'widgets/add_maintenance_sheet.dart' as widgets;
+import '../../widgets/empty_state_widget.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class MaintenanceReportsScreen extends ConsumerStatefulWidget {
   const MaintenanceReportsScreen({super.key});
@@ -63,21 +64,45 @@ class _MaintenanceReportsScreenState extends ConsumerState<MaintenanceReportsScr
              ],
            );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SkeletonList(),
         error: (e, s) => Center(child: Text('Error: $e')),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context, 
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => const widgets.AddMaintenanceSheet()
+          );
+        },
+        label: Text('New Request', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.add),
+        backgroundColor: theme.colorScheme.primary,
+        elevation: 4,
       ),
     );
   }
 
   Widget _buildRequestList(List<MaintenanceRequest> list, ThemeData theme, bool isDark, {required bool isPending}) {
-    if (list.isEmpty) return Center(child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.check_circle_outline, size: 60, color: theme.disabledColor),
-        const SizedBox(height: 16),
-        Text('No requests found', style: TextStyle(color: theme.hintColor)),
-      ],
-    ));
+    if (list.isEmpty) {
+      return EmptyStateWidget(
+        title: isPending ? 'No Open Requests' : 'No Completed History',
+        subtitle: isPending 
+            ? 'Everything is running smoothly! No pending maintenance issues.' 
+            : 'No resolved maintenance requests found in history.',
+        icon: isPending ? Icons.check_circle_outline : Icons.history_toggle_off,
+        buttonText: isPending ? 'Create Request' : null,
+        onButtonPressed: isPending ? () {
+           showModalBottomSheet(
+            context: context, 
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => const widgets.AddMaintenanceSheet()
+          );
+        } : null,
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -121,7 +146,7 @@ class _MaintenanceRequestCard extends ConsumerWidget {
         border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(
-             color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
              blurRadius: 10,
              offset: const Offset(0, 4)
           )
@@ -155,7 +180,7 @@ class _MaintenanceRequestCard extends ConsumerWidget {
             request.description,
             style: GoogleFonts.outfit(
               fontSize: 14,
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
               height: 1.4,
             ),
             maxLines: 2,
@@ -361,7 +386,7 @@ class _MaintenanceActionSheet extends StatelessWidget {
                  title: const Text('Mark In Progress'),
                  onTap: () {
                     Navigator.pop(context);
-                    ref.read(maintenanceControllerProvider.notifier).updateStatus(request.id, MaintenanceStatus.inProgress);
+                    ref.read(maintenanceControllerProvider.notifier).updateStatus(request.id, request.ownerId, MaintenanceStatus.inProgress);
                  },
               ),
             if (request.status != MaintenanceStatus.completed)
@@ -406,7 +431,7 @@ class _MaintenanceActionSheet extends StatelessWidget {
             onPressed: () {
                final cost = double.tryParse(costController.text);
                Navigator.pop(ctx);
-               ref.read(maintenanceControllerProvider.notifier).updateStatus(r.id, MaintenanceStatus.completed, cost: cost, notes: noteController.text);
+               ref.read(maintenanceControllerProvider.notifier).updateStatus(r.id, r.ownerId, MaintenanceStatus.completed, cost: cost, notes: noteController.text);
             },
             child: const Text('Complete'),
           )

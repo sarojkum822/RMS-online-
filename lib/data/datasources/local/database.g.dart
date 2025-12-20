@@ -86,6 +86,11 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
   late final GeneratedColumn<String> timezone = GeneratedColumn<String>(
       'timezone', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _upiIdMeta = const VerificationMeta('upiId');
+  @override
+  late final GeneratedColumn<String> upiId = GeneratedColumn<String>(
+      'upi_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -107,6 +112,7 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
         subscriptionPlan,
         currency,
         timezone,
+        upiId,
         createdAt
       ];
   @override
@@ -172,6 +178,10 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
       context.handle(_timezoneMeta,
           timezone.isAcceptableOrUnknown(data['timezone']!, _timezoneMeta));
     }
+    if (data.containsKey('upi_id')) {
+      context.handle(
+          _upiIdMeta, upiId.isAcceptableOrUnknown(data['upi_id']!, _upiIdMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -207,6 +217,8 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
           .read(DriftSqlType.string, data['${effectivePrefix}currency'])!,
       timezone: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}timezone']),
+      upiId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}upi_id']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
@@ -230,6 +242,7 @@ class Owner extends DataClass implements Insertable<Owner> {
   final String subscriptionPlan;
   final String currency;
   final String? timezone;
+  final String? upiId;
   final DateTime createdAt;
   const Owner(
       {this.firestoreId,
@@ -243,6 +256,7 @@ class Owner extends DataClass implements Insertable<Owner> {
       required this.subscriptionPlan,
       required this.currency,
       this.timezone,
+      this.upiId,
       required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -265,6 +279,9 @@ class Owner extends DataClass implements Insertable<Owner> {
     map['currency'] = Variable<String>(currency);
     if (!nullToAbsent || timezone != null) {
       map['timezone'] = Variable<String>(timezone);
+    }
+    if (!nullToAbsent || upiId != null) {
+      map['upi_id'] = Variable<String>(upiId);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -289,6 +306,8 @@ class Owner extends DataClass implements Insertable<Owner> {
       timezone: timezone == null && nullToAbsent
           ? const Value.absent()
           : Value(timezone),
+      upiId:
+          upiId == null && nullToAbsent ? const Value.absent() : Value(upiId),
       createdAt: Value(createdAt),
     );
   }
@@ -308,6 +327,7 @@ class Owner extends DataClass implements Insertable<Owner> {
       subscriptionPlan: serializer.fromJson<String>(json['subscriptionPlan']),
       currency: serializer.fromJson<String>(json['currency']),
       timezone: serializer.fromJson<String?>(json['timezone']),
+      upiId: serializer.fromJson<String?>(json['upiId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -326,6 +346,7 @@ class Owner extends DataClass implements Insertable<Owner> {
       'subscriptionPlan': serializer.toJson<String>(subscriptionPlan),
       'currency': serializer.toJson<String>(currency),
       'timezone': serializer.toJson<String?>(timezone),
+      'upiId': serializer.toJson<String?>(upiId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -342,6 +363,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           String? subscriptionPlan,
           String? currency,
           Value<String?> timezone = const Value.absent(),
+          Value<String?> upiId = const Value.absent(),
           DateTime? createdAt}) =>
       Owner(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
@@ -355,6 +377,7 @@ class Owner extends DataClass implements Insertable<Owner> {
         subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
         currency: currency ?? this.currency,
         timezone: timezone.present ? timezone.value : this.timezone,
+        upiId: upiId.present ? upiId.value : this.upiId,
         createdAt: createdAt ?? this.createdAt,
       );
   Owner copyWithCompanion(OwnersCompanion data) {
@@ -374,6 +397,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           : this.subscriptionPlan,
       currency: data.currency.present ? data.currency.value : this.currency,
       timezone: data.timezone.present ? data.timezone.value : this.timezone,
+      upiId: data.upiId.present ? data.upiId.value : this.upiId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -392,14 +416,27 @@ class Owner extends DataClass implements Insertable<Owner> {
           ..write('subscriptionPlan: $subscriptionPlan, ')
           ..write('currency: $currency, ')
           ..write('timezone: $timezone, ')
+          ..write('upiId: $upiId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, name, phone, email, subscriptionPlan, currency, timezone, createdAt);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      name,
+      phone,
+      email,
+      subscriptionPlan,
+      currency,
+      timezone,
+      upiId,
+      createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -415,6 +452,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           other.subscriptionPlan == this.subscriptionPlan &&
           other.currency == this.currency &&
           other.timezone == this.timezone &&
+          other.upiId == this.upiId &&
           other.createdAt == this.createdAt);
 }
 
@@ -430,6 +468,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
   final Value<String> subscriptionPlan;
   final Value<String> currency;
   final Value<String?> timezone;
+  final Value<String?> upiId;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const OwnersCompanion({
@@ -444,6 +483,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     this.subscriptionPlan = const Value.absent(),
     this.currency = const Value.absent(),
     this.timezone = const Value.absent(),
+    this.upiId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -459,6 +499,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     this.subscriptionPlan = const Value.absent(),
     this.currency = const Value.absent(),
     this.timezone = const Value.absent(),
+    this.upiId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -475,6 +516,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     Expression<String>? subscriptionPlan,
     Expression<String>? currency,
     Expression<String>? timezone,
+    Expression<String>? upiId,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -490,6 +532,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       if (subscriptionPlan != null) 'subscription_plan': subscriptionPlan,
       if (currency != null) 'currency': currency,
       if (timezone != null) 'timezone': timezone,
+      if (upiId != null) 'upi_id': upiId,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -507,6 +550,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       Value<String>? subscriptionPlan,
       Value<String>? currency,
       Value<String?>? timezone,
+      Value<String?>? upiId,
       Value<DateTime>? createdAt,
       Value<int>? rowid}) {
     return OwnersCompanion(
@@ -521,6 +565,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
       currency: currency ?? this.currency,
       timezone: timezone ?? this.timezone,
+      upiId: upiId ?? this.upiId,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -562,6 +607,9 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     if (timezone.present) {
       map['timezone'] = Variable<String>(timezone.value);
     }
+    if (upiId.present) {
+      map['upi_id'] = Variable<String>(upiId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -585,6 +633,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
           ..write('subscriptionPlan: $subscriptionPlan, ')
           ..write('currency: $currency, ')
           ..write('timezone: $timezone, ')
+          ..write('upiId: $upiId, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -663,6 +712,26 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
       'notes', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageUrlMeta =
+      const VerificationMeta('imageUrl');
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+      'image_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageBase64Meta =
+      const VerificationMeta('imageBase64');
+  @override
+  late final GeneratedColumn<String> imageBase64 = GeneratedColumn<String>(
+      'image_base64', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _unitCountMeta =
+      const VerificationMeta('unitCount');
+  @override
+  late final GeneratedColumn<int> unitCount = GeneratedColumn<int>(
+      'unit_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -673,7 +742,10 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
         ownerId,
         name,
         address,
-        notes
+        notes,
+        imageUrl,
+        imageBase64,
+        unitCount
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -732,6 +804,20 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
+    if (data.containsKey('image_url')) {
+      context.handle(_imageUrlMeta,
+          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
+    }
+    if (data.containsKey('image_base64')) {
+      context.handle(
+          _imageBase64Meta,
+          imageBase64.isAcceptableOrUnknown(
+              data['image_base64']!, _imageBase64Meta));
+    }
+    if (data.containsKey('unit_count')) {
+      context.handle(_unitCountMeta,
+          unitCount.isAcceptableOrUnknown(data['unit_count']!, _unitCountMeta));
+    }
     return context;
   }
 
@@ -759,6 +845,12 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
           .read(DriftSqlType.string, data['${effectivePrefix}address'])!,
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
+      imageUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
+      imageBase64: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_base64']),
+      unitCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}unit_count'])!,
     );
   }
 
@@ -778,6 +870,9 @@ class House extends DataClass implements Insertable<House> {
   final String name;
   final String address;
   final String? notes;
+  final String? imageUrl;
+  final String? imageBase64;
+  final int unitCount;
   const House(
       {this.firestoreId,
       required this.lastUpdated,
@@ -787,7 +882,10 @@ class House extends DataClass implements Insertable<House> {
       required this.ownerId,
       required this.name,
       required this.address,
-      this.notes});
+      this.notes,
+      this.imageUrl,
+      this.imageBase64,
+      required this.unitCount});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -804,6 +902,13 @@ class House extends DataClass implements Insertable<House> {
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || imageBase64 != null) {
+      map['image_base64'] = Variable<String>(imageBase64);
+    }
+    map['unit_count'] = Variable<int>(unitCount);
     return map;
   }
 
@@ -821,6 +926,13 @@ class House extends DataClass implements Insertable<House> {
       address: Value(address),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      imageBase64: imageBase64 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageBase64),
+      unitCount: Value(unitCount),
     );
   }
 
@@ -837,6 +949,9 @@ class House extends DataClass implements Insertable<House> {
       name: serializer.fromJson<String>(json['name']),
       address: serializer.fromJson<String>(json['address']),
       notes: serializer.fromJson<String?>(json['notes']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      imageBase64: serializer.fromJson<String?>(json['imageBase64']),
+      unitCount: serializer.fromJson<int>(json['unitCount']),
     );
   }
   @override
@@ -852,6 +967,9 @@ class House extends DataClass implements Insertable<House> {
       'name': serializer.toJson<String>(name),
       'address': serializer.toJson<String>(address),
       'notes': serializer.toJson<String?>(notes),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'imageBase64': serializer.toJson<String?>(imageBase64),
+      'unitCount': serializer.toJson<int>(unitCount),
     };
   }
 
@@ -864,7 +982,10 @@ class House extends DataClass implements Insertable<House> {
           String? ownerId,
           String? name,
           String? address,
-          Value<String?> notes = const Value.absent()}) =>
+          Value<String?> notes = const Value.absent(),
+          Value<String?> imageUrl = const Value.absent(),
+          Value<String?> imageBase64 = const Value.absent(),
+          int? unitCount}) =>
       House(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -875,6 +996,9 @@ class House extends DataClass implements Insertable<House> {
         name: name ?? this.name,
         address: address ?? this.address,
         notes: notes.present ? notes.value : this.notes,
+        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+        imageBase64: imageBase64.present ? imageBase64.value : this.imageBase64,
+        unitCount: unitCount ?? this.unitCount,
       );
   House copyWithCompanion(HousesCompanion data) {
     return House(
@@ -889,6 +1013,10 @@ class House extends DataClass implements Insertable<House> {
       name: data.name.present ? data.name.value : this.name,
       address: data.address.present ? data.address.value : this.address,
       notes: data.notes.present ? data.notes.value : this.notes,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      imageBase64:
+          data.imageBase64.present ? data.imageBase64.value : this.imageBase64,
+      unitCount: data.unitCount.present ? data.unitCount.value : this.unitCount,
     );
   }
 
@@ -903,14 +1031,17 @@ class House extends DataClass implements Insertable<House> {
           ..write('ownerId: $ownerId, ')
           ..write('name: $name, ')
           ..write('address: $address, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('unitCount: $unitCount')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, ownerId, name, address, notes);
+      id, ownerId, name, address, notes, imageUrl, imageBase64, unitCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -923,7 +1054,10 @@ class House extends DataClass implements Insertable<House> {
           other.ownerId == this.ownerId &&
           other.name == this.name &&
           other.address == this.address &&
-          other.notes == this.notes);
+          other.notes == this.notes &&
+          other.imageUrl == this.imageUrl &&
+          other.imageBase64 == this.imageBase64 &&
+          other.unitCount == this.unitCount);
 }
 
 class HousesCompanion extends UpdateCompanion<House> {
@@ -936,6 +1070,9 @@ class HousesCompanion extends UpdateCompanion<House> {
   final Value<String> name;
   final Value<String> address;
   final Value<String?> notes;
+  final Value<String?> imageUrl;
+  final Value<String?> imageBase64;
+  final Value<int> unitCount;
   final Value<int> rowid;
   const HousesCompanion({
     this.firestoreId = const Value.absent(),
@@ -947,6 +1084,9 @@ class HousesCompanion extends UpdateCompanion<House> {
     this.name = const Value.absent(),
     this.address = const Value.absent(),
     this.notes = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.unitCount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   HousesCompanion.insert({
@@ -959,6 +1099,9 @@ class HousesCompanion extends UpdateCompanion<House> {
     required String name,
     required String address,
     this.notes = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.unitCount = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         ownerId = Value(ownerId),
@@ -974,6 +1117,9 @@ class HousesCompanion extends UpdateCompanion<House> {
     Expression<String>? name,
     Expression<String>? address,
     Expression<String>? notes,
+    Expression<String>? imageUrl,
+    Expression<String>? imageBase64,
+    Expression<int>? unitCount,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -986,6 +1132,9 @@ class HousesCompanion extends UpdateCompanion<House> {
       if (name != null) 'name': name,
       if (address != null) 'address': address,
       if (notes != null) 'notes': notes,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (imageBase64 != null) 'image_base64': imageBase64,
+      if (unitCount != null) 'unit_count': unitCount,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1000,6 +1149,9 @@ class HousesCompanion extends UpdateCompanion<House> {
       Value<String>? name,
       Value<String>? address,
       Value<String?>? notes,
+      Value<String?>? imageUrl,
+      Value<String?>? imageBase64,
+      Value<int>? unitCount,
       Value<int>? rowid}) {
     return HousesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
@@ -1011,6 +1163,9 @@ class HousesCompanion extends UpdateCompanion<House> {
       name: name ?? this.name,
       address: address ?? this.address,
       notes: notes ?? this.notes,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageBase64: imageBase64 ?? this.imageBase64,
+      unitCount: unitCount ?? this.unitCount,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1045,6 +1200,15 @@ class HousesCompanion extends UpdateCompanion<House> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (imageBase64.present) {
+      map['image_base64'] = Variable<String>(imageBase64.value);
+    }
+    if (unitCount.present) {
+      map['unit_count'] = Variable<int>(unitCount.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1063,6 +1227,9 @@ class HousesCompanion extends UpdateCompanion<House> {
           ..write('name: $name, ')
           ..write('address: $address, ')
           ..write('notes: $notes, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('unitCount: $unitCount, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1869,6 +2036,18 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_occupied" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _imageUrlsMeta =
+      const VerificationMeta('imageUrls');
+  @override
+  late final GeneratedColumn<String> imageUrls = GeneratedColumn<String>(
+      'image_urls', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imagesBase64Meta =
+      const VerificationMeta('imagesBase64');
+  @override
+  late final GeneratedColumn<String> imagesBase64 = GeneratedColumn<String>(
+      'images_base64', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _currentTenancyIdMeta =
       const VerificationMeta('currentTenancyId');
   @override
@@ -1896,6 +2075,8 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
         meterNumber,
         defaultDueDay,
         isOccupied,
+        imageUrls,
+        imagesBase64,
         currentTenancyId
       ];
   @override
@@ -2015,6 +2196,16 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
           isOccupied.isAcceptableOrUnknown(
               data['is_occupied']!, _isOccupiedMeta));
     }
+    if (data.containsKey('image_urls')) {
+      context.handle(_imageUrlsMeta,
+          imageUrls.isAcceptableOrUnknown(data['image_urls']!, _imageUrlsMeta));
+    }
+    if (data.containsKey('images_base64')) {
+      context.handle(
+          _imagesBase64Meta,
+          imagesBase64.isAcceptableOrUnknown(
+              data['images_base64']!, _imagesBase64Meta));
+    }
     if (data.containsKey('current_tenancy_id')) {
       context.handle(
           _currentTenancyIdMeta,
@@ -2068,6 +2259,10 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
           .read(DriftSqlType.int, data['${effectivePrefix}default_due_day'])!,
       isOccupied: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_occupied'])!,
+      imageUrls: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_urls']),
+      imagesBase64: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}images_base64']),
       currentTenancyId: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}current_tenancy_id']),
     );
@@ -2099,6 +2294,8 @@ class Unit extends DataClass implements Insertable<Unit> {
   final String? meterNumber;
   final int defaultDueDay;
   final bool isOccupied;
+  final String? imageUrls;
+  final String? imagesBase64;
   final String? currentTenancyId;
   const Unit(
       {this.firestoreId,
@@ -2120,6 +2317,8 @@ class Unit extends DataClass implements Insertable<Unit> {
       this.meterNumber,
       required this.defaultDueDay,
       required this.isOccupied,
+      this.imageUrls,
+      this.imagesBase64,
       this.currentTenancyId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2161,6 +2360,12 @@ class Unit extends DataClass implements Insertable<Unit> {
     }
     map['default_due_day'] = Variable<int>(defaultDueDay);
     map['is_occupied'] = Variable<bool>(isOccupied);
+    if (!nullToAbsent || imageUrls != null) {
+      map['image_urls'] = Variable<String>(imageUrls);
+    }
+    if (!nullToAbsent || imagesBase64 != null) {
+      map['images_base64'] = Variable<String>(imagesBase64);
+    }
     if (!nullToAbsent || currentTenancyId != null) {
       map['current_tenancy_id'] = Variable<String>(currentTenancyId);
     }
@@ -2205,6 +2410,12 @@ class Unit extends DataClass implements Insertable<Unit> {
           : Value(meterNumber),
       defaultDueDay: Value(defaultDueDay),
       isOccupied: Value(isOccupied),
+      imageUrls: imageUrls == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrls),
+      imagesBase64: imagesBase64 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imagesBase64),
       currentTenancyId: currentTenancyId == null && nullToAbsent
           ? const Value.absent()
           : Value(currentTenancyId),
@@ -2234,6 +2445,8 @@ class Unit extends DataClass implements Insertable<Unit> {
       meterNumber: serializer.fromJson<String?>(json['meterNumber']),
       defaultDueDay: serializer.fromJson<int>(json['defaultDueDay']),
       isOccupied: serializer.fromJson<bool>(json['isOccupied']),
+      imageUrls: serializer.fromJson<String?>(json['imageUrls']),
+      imagesBase64: serializer.fromJson<String?>(json['imagesBase64']),
       currentTenancyId: serializer.fromJson<String?>(json['currentTenancyId']),
     );
   }
@@ -2260,6 +2473,8 @@ class Unit extends DataClass implements Insertable<Unit> {
       'meterNumber': serializer.toJson<String?>(meterNumber),
       'defaultDueDay': serializer.toJson<int>(defaultDueDay),
       'isOccupied': serializer.toJson<bool>(isOccupied),
+      'imageUrls': serializer.toJson<String?>(imageUrls),
+      'imagesBase64': serializer.toJson<String?>(imagesBase64),
       'currentTenancyId': serializer.toJson<String?>(currentTenancyId),
     };
   }
@@ -2284,6 +2499,8 @@ class Unit extends DataClass implements Insertable<Unit> {
           Value<String?> meterNumber = const Value.absent(),
           int? defaultDueDay,
           bool? isOccupied,
+          Value<String?> imageUrls = const Value.absent(),
+          Value<String?> imagesBase64 = const Value.absent(),
           Value<String?> currentTenancyId = const Value.absent()}) =>
       Unit(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
@@ -2309,6 +2526,9 @@ class Unit extends DataClass implements Insertable<Unit> {
         meterNumber: meterNumber.present ? meterNumber.value : this.meterNumber,
         defaultDueDay: defaultDueDay ?? this.defaultDueDay,
         isOccupied: isOccupied ?? this.isOccupied,
+        imageUrls: imageUrls.present ? imageUrls.value : this.imageUrls,
+        imagesBase64:
+            imagesBase64.present ? imagesBase64.value : this.imagesBase64,
         currentTenancyId: currentTenancyId.present
             ? currentTenancyId.value
             : this.currentTenancyId,
@@ -2350,6 +2570,10 @@ class Unit extends DataClass implements Insertable<Unit> {
           : this.defaultDueDay,
       isOccupied:
           data.isOccupied.present ? data.isOccupied.value : this.isOccupied,
+      imageUrls: data.imageUrls.present ? data.imageUrls.value : this.imageUrls,
+      imagesBase64: data.imagesBase64.present
+          ? data.imagesBase64.value
+          : this.imagesBase64,
       currentTenancyId: data.currentTenancyId.present
           ? data.currentTenancyId.value
           : this.currentTenancyId,
@@ -2378,33 +2602,38 @@ class Unit extends DataClass implements Insertable<Unit> {
           ..write('meterNumber: $meterNumber, ')
           ..write('defaultDueDay: $defaultDueDay, ')
           ..write('isOccupied: $isOccupied, ')
+          ..write('imageUrls: $imageUrls, ')
+          ..write('imagesBase64: $imagesBase64, ')
           ..write('currentTenancyId: $currentTenancyId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      firestoreId,
-      lastUpdated,
-      isSynced,
-      isDeleted,
-      id,
-      houseId,
-      ownerId,
-      nameOrNumber,
-      floor,
-      bhkTemplateId,
-      bhkType,
-      baseRent,
-      editableRent,
-      furnishingStatus,
-      carpetArea,
-      parkingSlot,
-      meterNumber,
-      defaultDueDay,
-      isOccupied,
-      currentTenancyId);
+  int get hashCode => Object.hashAll([
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        houseId,
+        ownerId,
+        nameOrNumber,
+        floor,
+        bhkTemplateId,
+        bhkType,
+        baseRent,
+        editableRent,
+        furnishingStatus,
+        carpetArea,
+        parkingSlot,
+        meterNumber,
+        defaultDueDay,
+        isOccupied,
+        imageUrls,
+        imagesBase64,
+        currentTenancyId
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2428,6 +2657,8 @@ class Unit extends DataClass implements Insertable<Unit> {
           other.meterNumber == this.meterNumber &&
           other.defaultDueDay == this.defaultDueDay &&
           other.isOccupied == this.isOccupied &&
+          other.imageUrls == this.imageUrls &&
+          other.imagesBase64 == this.imagesBase64 &&
           other.currentTenancyId == this.currentTenancyId);
 }
 
@@ -2451,6 +2682,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   final Value<String?> meterNumber;
   final Value<int> defaultDueDay;
   final Value<bool> isOccupied;
+  final Value<String?> imageUrls;
+  final Value<String?> imagesBase64;
   final Value<String?> currentTenancyId;
   final Value<int> rowid;
   const UnitsCompanion({
@@ -2473,6 +2706,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     this.meterNumber = const Value.absent(),
     this.defaultDueDay = const Value.absent(),
     this.isOccupied = const Value.absent(),
+    this.imageUrls = const Value.absent(),
+    this.imagesBase64 = const Value.absent(),
     this.currentTenancyId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2496,6 +2731,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     this.meterNumber = const Value.absent(),
     this.defaultDueDay = const Value.absent(),
     this.isOccupied = const Value.absent(),
+    this.imageUrls = const Value.absent(),
+    this.imagesBase64 = const Value.absent(),
     this.currentTenancyId = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -2523,6 +2760,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     Expression<String>? meterNumber,
     Expression<int>? defaultDueDay,
     Expression<bool>? isOccupied,
+    Expression<String>? imageUrls,
+    Expression<String>? imagesBase64,
     Expression<String>? currentTenancyId,
     Expression<int>? rowid,
   }) {
@@ -2546,6 +2785,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       if (meterNumber != null) 'meter_number': meterNumber,
       if (defaultDueDay != null) 'default_due_day': defaultDueDay,
       if (isOccupied != null) 'is_occupied': isOccupied,
+      if (imageUrls != null) 'image_urls': imageUrls,
+      if (imagesBase64 != null) 'images_base64': imagesBase64,
       if (currentTenancyId != null) 'current_tenancy_id': currentTenancyId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2571,6 +2812,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       Value<String?>? meterNumber,
       Value<int>? defaultDueDay,
       Value<bool>? isOccupied,
+      Value<String?>? imageUrls,
+      Value<String?>? imagesBase64,
       Value<String?>? currentTenancyId,
       Value<int>? rowid}) {
     return UnitsCompanion(
@@ -2593,6 +2836,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       meterNumber: meterNumber ?? this.meterNumber,
       defaultDueDay: defaultDueDay ?? this.defaultDueDay,
       isOccupied: isOccupied ?? this.isOccupied,
+      imageUrls: imageUrls ?? this.imageUrls,
+      imagesBase64: imagesBase64 ?? this.imagesBase64,
       currentTenancyId: currentTenancyId ?? this.currentTenancyId,
       rowid: rowid ?? this.rowid,
     );
@@ -2658,6 +2903,12 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     if (isOccupied.present) {
       map['is_occupied'] = Variable<bool>(isOccupied.value);
     }
+    if (imageUrls.present) {
+      map['image_urls'] = Variable<String>(imageUrls.value);
+    }
+    if (imagesBase64.present) {
+      map['images_base64'] = Variable<String>(imagesBase64.value);
+    }
     if (currentTenancyId.present) {
       map['current_tenancy_id'] = Variable<String>(currentTenancyId.value);
     }
@@ -2689,6 +2940,8 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
           ..write('meterNumber: $meterNumber, ')
           ..write('defaultDueDay: $defaultDueDay, ')
           ..write('isOccupied: $isOccupied, ')
+          ..write('imageUrls: $imageUrls, ')
+          ..write('imagesBase64: $imagesBase64, ')
           ..write('currentTenancyId: $currentTenancyId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2790,6 +3043,66 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
   late final GeneratedColumn<String> password = GeneratedColumn<String>(
       'password', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageUrlMeta =
+      const VerificationMeta('imageUrl');
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+      'image_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageBase64Meta =
+      const VerificationMeta('imageBase64');
+  @override
+  late final GeneratedColumn<String> imageBase64 = GeneratedColumn<String>(
+      'image_base64', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _authIdMeta = const VerificationMeta('authId');
+  @override
+  late final GeneratedColumn<String> authId = GeneratedColumn<String>(
+      'auth_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _advanceAmountMeta =
+      const VerificationMeta('advanceAmount');
+  @override
+  late final GeneratedColumn<double> advanceAmount = GeneratedColumn<double>(
+      'advance_amount', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _policeVerificationMeta =
+      const VerificationMeta('policeVerification');
+  @override
+  late final GeneratedColumn<bool> policeVerification = GeneratedColumn<bool>(
+      'police_verification', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("police_verification" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _idProofMeta =
+      const VerificationMeta('idProof');
+  @override
+  late final GeneratedColumn<String> idProof = GeneratedColumn<String>(
+      'id_proof', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _addressMeta =
+      const VerificationMeta('address');
+  @override
+  late final GeneratedColumn<String> address = GeneratedColumn<String>(
+      'address', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _memberCountMeta =
+      const VerificationMeta('memberCount');
+  @override
+  late final GeneratedColumn<int> memberCount = GeneratedColumn<int>(
+      'member_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -2803,7 +3116,16 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
         phone,
         email,
         isActive,
-        password
+        password,
+        imageUrl,
+        imageBase64,
+        authId,
+        advanceAmount,
+        policeVerification,
+        idProof,
+        address,
+        memberCount,
+        notes
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2878,6 +3200,50 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
       context.handle(_passwordMeta,
           password.isAcceptableOrUnknown(data['password']!, _passwordMeta));
     }
+    if (data.containsKey('image_url')) {
+      context.handle(_imageUrlMeta,
+          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
+    }
+    if (data.containsKey('image_base64')) {
+      context.handle(
+          _imageBase64Meta,
+          imageBase64.isAcceptableOrUnknown(
+              data['image_base64']!, _imageBase64Meta));
+    }
+    if (data.containsKey('auth_id')) {
+      context.handle(_authIdMeta,
+          authId.isAcceptableOrUnknown(data['auth_id']!, _authIdMeta));
+    }
+    if (data.containsKey('advance_amount')) {
+      context.handle(
+          _advanceAmountMeta,
+          advanceAmount.isAcceptableOrUnknown(
+              data['advance_amount']!, _advanceAmountMeta));
+    }
+    if (data.containsKey('police_verification')) {
+      context.handle(
+          _policeVerificationMeta,
+          policeVerification.isAcceptableOrUnknown(
+              data['police_verification']!, _policeVerificationMeta));
+    }
+    if (data.containsKey('id_proof')) {
+      context.handle(_idProofMeta,
+          idProof.isAcceptableOrUnknown(data['id_proof']!, _idProofMeta));
+    }
+    if (data.containsKey('address')) {
+      context.handle(_addressMeta,
+          address.isAcceptableOrUnknown(data['address']!, _addressMeta));
+    }
+    if (data.containsKey('member_count')) {
+      context.handle(
+          _memberCountMeta,
+          memberCount.isAcceptableOrUnknown(
+              data['member_count']!, _memberCountMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
     return context;
   }
 
@@ -2911,6 +3277,24 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
       password: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}password']),
+      imageUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
+      imageBase64: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_base64']),
+      authId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}auth_id']),
+      advanceAmount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}advance_amount'])!,
+      policeVerification: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}police_verification'])!,
+      idProof: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id_proof']),
+      address: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}address']),
+      memberCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}member_count'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes']),
     );
   }
 
@@ -2933,6 +3317,15 @@ class Tenant extends DataClass implements Insertable<Tenant> {
   final String? email;
   final bool isActive;
   final String? password;
+  final String? imageUrl;
+  final String? imageBase64;
+  final String? authId;
+  final double advanceAmount;
+  final bool policeVerification;
+  final String? idProof;
+  final String? address;
+  final int memberCount;
+  final String? notes;
   const Tenant(
       {this.firestoreId,
       required this.lastUpdated,
@@ -2945,7 +3338,16 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       required this.phone,
       this.email,
       required this.isActive,
-      this.password});
+      this.password,
+      this.imageUrl,
+      this.imageBase64,
+      this.authId,
+      required this.advanceAmount,
+      required this.policeVerification,
+      this.idProof,
+      this.address,
+      required this.memberCount,
+      this.notes});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2966,6 +3368,27 @@ class Tenant extends DataClass implements Insertable<Tenant> {
     map['is_active'] = Variable<bool>(isActive);
     if (!nullToAbsent || password != null) {
       map['password'] = Variable<String>(password);
+    }
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || imageBase64 != null) {
+      map['image_base64'] = Variable<String>(imageBase64);
+    }
+    if (!nullToAbsent || authId != null) {
+      map['auth_id'] = Variable<String>(authId);
+    }
+    map['advance_amount'] = Variable<double>(advanceAmount);
+    map['police_verification'] = Variable<bool>(policeVerification);
+    if (!nullToAbsent || idProof != null) {
+      map['id_proof'] = Variable<String>(idProof);
+    }
+    if (!nullToAbsent || address != null) {
+      map['address'] = Variable<String>(address);
+    }
+    map['member_count'] = Variable<int>(memberCount);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
     }
     return map;
   }
@@ -2989,6 +3412,25 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       password: password == null && nullToAbsent
           ? const Value.absent()
           : Value(password),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      imageBase64: imageBase64 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageBase64),
+      authId:
+          authId == null && nullToAbsent ? const Value.absent() : Value(authId),
+      advanceAmount: Value(advanceAmount),
+      policeVerification: Value(policeVerification),
+      idProof: idProof == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idProof),
+      address: address == null && nullToAbsent
+          ? const Value.absent()
+          : Value(address),
+      memberCount: Value(memberCount),
+      notes:
+          notes == null && nullToAbsent ? const Value.absent() : Value(notes),
     );
   }
 
@@ -3008,6 +3450,15 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       email: serializer.fromJson<String?>(json['email']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       password: serializer.fromJson<String?>(json['password']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      imageBase64: serializer.fromJson<String?>(json['imageBase64']),
+      authId: serializer.fromJson<String?>(json['authId']),
+      advanceAmount: serializer.fromJson<double>(json['advanceAmount']),
+      policeVerification: serializer.fromJson<bool>(json['policeVerification']),
+      idProof: serializer.fromJson<String?>(json['idProof']),
+      address: serializer.fromJson<String?>(json['address']),
+      memberCount: serializer.fromJson<int>(json['memberCount']),
+      notes: serializer.fromJson<String?>(json['notes']),
     );
   }
   @override
@@ -3026,6 +3477,15 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       'email': serializer.toJson<String?>(email),
       'isActive': serializer.toJson<bool>(isActive),
       'password': serializer.toJson<String?>(password),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'imageBase64': serializer.toJson<String?>(imageBase64),
+      'authId': serializer.toJson<String?>(authId),
+      'advanceAmount': serializer.toJson<double>(advanceAmount),
+      'policeVerification': serializer.toJson<bool>(policeVerification),
+      'idProof': serializer.toJson<String?>(idProof),
+      'address': serializer.toJson<String?>(address),
+      'memberCount': serializer.toJson<int>(memberCount),
+      'notes': serializer.toJson<String?>(notes),
     };
   }
 
@@ -3041,7 +3501,16 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           String? phone,
           Value<String?> email = const Value.absent(),
           bool? isActive,
-          Value<String?> password = const Value.absent()}) =>
+          Value<String?> password = const Value.absent(),
+          Value<String?> imageUrl = const Value.absent(),
+          Value<String?> imageBase64 = const Value.absent(),
+          Value<String?> authId = const Value.absent(),
+          double? advanceAmount,
+          bool? policeVerification,
+          Value<String?> idProof = const Value.absent(),
+          Value<String?> address = const Value.absent(),
+          int? memberCount,
+          Value<String?> notes = const Value.absent()}) =>
       Tenant(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -3055,6 +3524,15 @@ class Tenant extends DataClass implements Insertable<Tenant> {
         email: email.present ? email.value : this.email,
         isActive: isActive ?? this.isActive,
         password: password.present ? password.value : this.password,
+        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+        imageBase64: imageBase64.present ? imageBase64.value : this.imageBase64,
+        authId: authId.present ? authId.value : this.authId,
+        advanceAmount: advanceAmount ?? this.advanceAmount,
+        policeVerification: policeVerification ?? this.policeVerification,
+        idProof: idProof.present ? idProof.value : this.idProof,
+        address: address.present ? address.value : this.address,
+        memberCount: memberCount ?? this.memberCount,
+        notes: notes.present ? notes.value : this.notes,
       );
   Tenant copyWithCompanion(TenantsCompanion data) {
     return Tenant(
@@ -3073,6 +3551,21 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       email: data.email.present ? data.email.value : this.email,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       password: data.password.present ? data.password.value : this.password,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      imageBase64:
+          data.imageBase64.present ? data.imageBase64.value : this.imageBase64,
+      authId: data.authId.present ? data.authId.value : this.authId,
+      advanceAmount: data.advanceAmount.present
+          ? data.advanceAmount.value
+          : this.advanceAmount,
+      policeVerification: data.policeVerification.present
+          ? data.policeVerification.value
+          : this.policeVerification,
+      idProof: data.idProof.present ? data.idProof.value : this.idProof,
+      address: data.address.present ? data.address.value : this.address,
+      memberCount:
+          data.memberCount.present ? data.memberCount.value : this.memberCount,
+      notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
 
@@ -3090,14 +3583,44 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           ..write('phone: $phone, ')
           ..write('email: $email, ')
           ..write('isActive: $isActive, ')
-          ..write('password: $password')
+          ..write('password: $password, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('authId: $authId, ')
+          ..write('advanceAmount: $advanceAmount, ')
+          ..write('policeVerification: $policeVerification, ')
+          ..write('idProof: $idProof, ')
+          ..write('address: $address, ')
+          ..write('memberCount: $memberCount, ')
+          ..write('notes: $notes')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, ownerId, tenantCode, name, phone, email, isActive, password);
+  int get hashCode => Object.hashAll([
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        ownerId,
+        tenantCode,
+        name,
+        phone,
+        email,
+        isActive,
+        password,
+        imageUrl,
+        imageBase64,
+        authId,
+        advanceAmount,
+        policeVerification,
+        idProof,
+        address,
+        memberCount,
+        notes
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3113,7 +3636,16 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           other.phone == this.phone &&
           other.email == this.email &&
           other.isActive == this.isActive &&
-          other.password == this.password);
+          other.password == this.password &&
+          other.imageUrl == this.imageUrl &&
+          other.imageBase64 == this.imageBase64 &&
+          other.authId == this.authId &&
+          other.advanceAmount == this.advanceAmount &&
+          other.policeVerification == this.policeVerification &&
+          other.idProof == this.idProof &&
+          other.address == this.address &&
+          other.memberCount == this.memberCount &&
+          other.notes == this.notes);
 }
 
 class TenantsCompanion extends UpdateCompanion<Tenant> {
@@ -3129,6 +3661,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
   final Value<String?> email;
   final Value<bool> isActive;
   final Value<String?> password;
+  final Value<String?> imageUrl;
+  final Value<String?> imageBase64;
+  final Value<String?> authId;
+  final Value<double> advanceAmount;
+  final Value<bool> policeVerification;
+  final Value<String?> idProof;
+  final Value<String?> address;
+  final Value<int> memberCount;
+  final Value<String?> notes;
   final Value<int> rowid;
   const TenantsCompanion({
     this.firestoreId = const Value.absent(),
@@ -3143,6 +3684,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     this.email = const Value.absent(),
     this.isActive = const Value.absent(),
     this.password = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.authId = const Value.absent(),
+    this.advanceAmount = const Value.absent(),
+    this.policeVerification = const Value.absent(),
+    this.idProof = const Value.absent(),
+    this.address = const Value.absent(),
+    this.memberCount = const Value.absent(),
+    this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TenantsCompanion.insert({
@@ -3158,6 +3708,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     this.email = const Value.absent(),
     this.isActive = const Value.absent(),
     this.password = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.authId = const Value.absent(),
+    this.advanceAmount = const Value.absent(),
+    this.policeVerification = const Value.absent(),
+    this.idProof = const Value.absent(),
+    this.address = const Value.absent(),
+    this.memberCount = const Value.absent(),
+    this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         ownerId = Value(ownerId),
@@ -3177,6 +3736,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     Expression<String>? email,
     Expression<bool>? isActive,
     Expression<String>? password,
+    Expression<String>? imageUrl,
+    Expression<String>? imageBase64,
+    Expression<String>? authId,
+    Expression<double>? advanceAmount,
+    Expression<bool>? policeVerification,
+    Expression<String>? idProof,
+    Expression<String>? address,
+    Expression<int>? memberCount,
+    Expression<String>? notes,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3192,6 +3760,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       if (email != null) 'email': email,
       if (isActive != null) 'is_active': isActive,
       if (password != null) 'password': password,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (imageBase64 != null) 'image_base64': imageBase64,
+      if (authId != null) 'auth_id': authId,
+      if (advanceAmount != null) 'advance_amount': advanceAmount,
+      if (policeVerification != null) 'police_verification': policeVerification,
+      if (idProof != null) 'id_proof': idProof,
+      if (address != null) 'address': address,
+      if (memberCount != null) 'member_count': memberCount,
+      if (notes != null) 'notes': notes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3209,6 +3786,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       Value<String?>? email,
       Value<bool>? isActive,
       Value<String?>? password,
+      Value<String?>? imageUrl,
+      Value<String?>? imageBase64,
+      Value<String?>? authId,
+      Value<double>? advanceAmount,
+      Value<bool>? policeVerification,
+      Value<String?>? idProof,
+      Value<String?>? address,
+      Value<int>? memberCount,
+      Value<String?>? notes,
       Value<int>? rowid}) {
     return TenantsCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
@@ -3223,6 +3809,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       email: email ?? this.email,
       isActive: isActive ?? this.isActive,
       password: password ?? this.password,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageBase64: imageBase64 ?? this.imageBase64,
+      authId: authId ?? this.authId,
+      advanceAmount: advanceAmount ?? this.advanceAmount,
+      policeVerification: policeVerification ?? this.policeVerification,
+      idProof: idProof ?? this.idProof,
+      address: address ?? this.address,
+      memberCount: memberCount ?? this.memberCount,
+      notes: notes ?? this.notes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3266,6 +3861,33 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     if (password.present) {
       map['password'] = Variable<String>(password.value);
     }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (imageBase64.present) {
+      map['image_base64'] = Variable<String>(imageBase64.value);
+    }
+    if (authId.present) {
+      map['auth_id'] = Variable<String>(authId.value);
+    }
+    if (advanceAmount.present) {
+      map['advance_amount'] = Variable<double>(advanceAmount.value);
+    }
+    if (policeVerification.present) {
+      map['police_verification'] = Variable<bool>(policeVerification.value);
+    }
+    if (idProof.present) {
+      map['id_proof'] = Variable<String>(idProof.value);
+    }
+    if (address.present) {
+      map['address'] = Variable<String>(address.value);
+    }
+    if (memberCount.present) {
+      map['member_count'] = Variable<int>(memberCount.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3287,6 +3909,15 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
           ..write('email: $email, ')
           ..write('isActive: $isActive, ')
           ..write('password: $password, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('authId: $authId, ')
+          ..write('advanceAmount: $advanceAmount, ')
+          ..write('policeVerification: $policeVerification, ')
+          ..write('idProof: $idProof, ')
+          ..write('address: $address, ')
+          ..write('memberCount: $memberCount, ')
+          ..write('notes: $notes, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6208,6 +6839,12 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
       'description', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _receiptPathMeta =
+      const VerificationMeta('receiptPath');
+  @override
+  late final GeneratedColumn<String> receiptPath = GeneratedColumn<String>(
+      'receipt_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -6220,7 +6857,8 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         date,
         amount,
         category,
-        description
+        description,
+        receiptPath
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6293,6 +6931,12 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
           description.isAcceptableOrUnknown(
               data['description']!, _descriptionMeta));
     }
+    if (data.containsKey('receipt_path')) {
+      context.handle(
+          _receiptPathMeta,
+          receiptPath.isAcceptableOrUnknown(
+              data['receipt_path']!, _receiptPathMeta));
+    }
     return context;
   }
 
@@ -6324,6 +6968,8 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
           .read(DriftSqlType.string, data['${effectivePrefix}category'])!,
       description: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}description']),
+      receiptPath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}receipt_path']),
     );
   }
 
@@ -6345,6 +6991,7 @@ class Expense extends DataClass implements Insertable<Expense> {
   final double amount;
   final String category;
   final String? description;
+  final String? receiptPath;
   const Expense(
       {this.firestoreId,
       required this.lastUpdated,
@@ -6356,7 +7003,8 @@ class Expense extends DataClass implements Insertable<Expense> {
       required this.date,
       required this.amount,
       required this.category,
-      this.description});
+      this.description,
+      this.receiptPath});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -6374,6 +7022,9 @@ class Expense extends DataClass implements Insertable<Expense> {
     map['category'] = Variable<String>(category);
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || receiptPath != null) {
+      map['receipt_path'] = Variable<String>(receiptPath);
     }
     return map;
   }
@@ -6395,6 +7046,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      receiptPath: receiptPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receiptPath),
     );
   }
 
@@ -6413,6 +7067,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       amount: serializer.fromJson<double>(json['amount']),
       category: serializer.fromJson<String>(json['category']),
       description: serializer.fromJson<String?>(json['description']),
+      receiptPath: serializer.fromJson<String?>(json['receiptPath']),
     );
   }
   @override
@@ -6430,6 +7085,7 @@ class Expense extends DataClass implements Insertable<Expense> {
       'amount': serializer.toJson<double>(amount),
       'category': serializer.toJson<String>(category),
       'description': serializer.toJson<String?>(description),
+      'receiptPath': serializer.toJson<String?>(receiptPath),
     };
   }
 
@@ -6444,7 +7100,8 @@ class Expense extends DataClass implements Insertable<Expense> {
           DateTime? date,
           double? amount,
           String? category,
-          Value<String?> description = const Value.absent()}) =>
+          Value<String?> description = const Value.absent(),
+          Value<String?> receiptPath = const Value.absent()}) =>
       Expense(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -6457,6 +7114,7 @@ class Expense extends DataClass implements Insertable<Expense> {
         amount: amount ?? this.amount,
         category: category ?? this.category,
         description: description.present ? description.value : this.description,
+        receiptPath: receiptPath.present ? receiptPath.value : this.receiptPath,
       );
   Expense copyWithCompanion(ExpensesCompanion data) {
     return Expense(
@@ -6474,6 +7132,8 @@ class Expense extends DataClass implements Insertable<Expense> {
       category: data.category.present ? data.category.value : this.category,
       description:
           data.description.present ? data.description.value : this.description,
+      receiptPath:
+          data.receiptPath.present ? data.receiptPath.value : this.receiptPath,
     );
   }
 
@@ -6490,14 +7150,15 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('date: $date, ')
           ..write('amount: $amount, ')
           ..write('category: $category, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('receiptPath: $receiptPath')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, ownerId, title, date, amount, category, description);
+      id, ownerId, title, date, amount, category, description, receiptPath);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6512,7 +7173,8 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.date == this.date &&
           other.amount == this.amount &&
           other.category == this.category &&
-          other.description == this.description);
+          other.description == this.description &&
+          other.receiptPath == this.receiptPath);
 }
 
 class ExpensesCompanion extends UpdateCompanion<Expense> {
@@ -6527,6 +7189,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<double> amount;
   final Value<String> category;
   final Value<String?> description;
+  final Value<String?> receiptPath;
   final Value<int> rowid;
   const ExpensesCompanion({
     this.firestoreId = const Value.absent(),
@@ -6540,6 +7203,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.amount = const Value.absent(),
     this.category = const Value.absent(),
     this.description = const Value.absent(),
+    this.receiptPath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ExpensesCompanion.insert({
@@ -6554,6 +7218,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     required double amount,
     required String category,
     this.description = const Value.absent(),
+    this.receiptPath = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         ownerId = Value(ownerId),
@@ -6573,6 +7238,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<double>? amount,
     Expression<String>? category,
     Expression<String>? description,
+    Expression<String>? receiptPath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6587,6 +7253,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (amount != null) 'amount': amount,
       if (category != null) 'category': category,
       if (description != null) 'description': description,
+      if (receiptPath != null) 'receipt_path': receiptPath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6603,6 +7270,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       Value<double>? amount,
       Value<String>? category,
       Value<String?>? description,
+      Value<String?>? receiptPath,
       Value<int>? rowid}) {
     return ExpensesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
@@ -6616,6 +7284,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       amount: amount ?? this.amount,
       category: category ?? this.category,
       description: description ?? this.description,
+      receiptPath: receiptPath ?? this.receiptPath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6656,6 +7325,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (receiptPath.present) {
+      map['receipt_path'] = Variable<String>(receiptPath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6676,6 +7348,7 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('amount: $amount, ')
           ..write('category: $category, ')
           ..write('description: $description, ')
+          ..write('receiptPath: $receiptPath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8064,6 +8737,7 @@ typedef $$OwnersTableCreateCompanionBuilder = OwnersCompanion Function({
   Value<String> subscriptionPlan,
   Value<String> currency,
   Value<String?> timezone,
+  Value<String?> upiId,
   Value<DateTime> createdAt,
   Value<int> rowid,
 });
@@ -8079,6 +8753,7 @@ typedef $$OwnersTableUpdateCompanionBuilder = OwnersCompanion Function({
   Value<String> subscriptionPlan,
   Value<String> currency,
   Value<String?> timezone,
+  Value<String?> upiId,
   Value<DateTime> createdAt,
   Value<int> rowid,
 });
@@ -8245,6 +8920,9 @@ class $$OwnersTableFilterComposer
 
   ColumnFilters<String> get timezone => $composableBuilder(
       column: $table.timezone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get upiId => $composableBuilder(
+      column: $table.upiId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -8461,6 +9139,9 @@ class $$OwnersTableOrderingComposer
   ColumnOrderings<String> get timezone => $composableBuilder(
       column: $table.timezone, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get upiId => $composableBuilder(
+      column: $table.upiId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
@@ -8506,6 +9187,9 @@ class $$OwnersTableAnnotationComposer
 
   GeneratedColumn<String> get timezone =>
       $composableBuilder(column: $table.timezone, builder: (column) => column);
+
+  GeneratedColumn<String> get upiId =>
+      $composableBuilder(column: $table.upiId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -8721,6 +9405,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             Value<String> subscriptionPlan = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String?> timezone = const Value.absent(),
+            Value<String?> upiId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -8736,6 +9421,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             subscriptionPlan: subscriptionPlan,
             currency: currency,
             timezone: timezone,
+            upiId: upiId,
             createdAt: createdAt,
             rowid: rowid,
           ),
@@ -8751,6 +9437,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             Value<String> subscriptionPlan = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String?> timezone = const Value.absent(),
+            Value<String?> upiId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -8766,6 +9453,7 @@ class $$OwnersTableTableManager extends RootTableManager<
             subscriptionPlan: subscriptionPlan,
             currency: currency,
             timezone: timezone,
+            upiId: upiId,
             createdAt: createdAt,
             rowid: rowid,
           ),
@@ -8926,6 +9614,9 @@ typedef $$HousesTableCreateCompanionBuilder = HousesCompanion Function({
   required String name,
   required String address,
   Value<String?> notes,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<int> unitCount,
   Value<int> rowid,
 });
 typedef $$HousesTableUpdateCompanionBuilder = HousesCompanion Function({
@@ -8938,6 +9629,9 @@ typedef $$HousesTableUpdateCompanionBuilder = HousesCompanion Function({
   Value<String> name,
   Value<String> address,
   Value<String?> notes,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<int> unitCount,
   Value<int> rowid,
 });
 
@@ -9021,6 +9715,15 @@ class $$HousesTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get unitCount => $composableBuilder(
+      column: $table.unitCount, builder: (column) => ColumnFilters(column));
 
   $$OwnersTableFilterComposer get ownerId {
     final $$OwnersTableFilterComposer composer = $composerBuilder(
@@ -9118,6 +9821,15 @@ class $$HousesTableOrderingComposer
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get unitCount => $composableBuilder(
+      column: $table.unitCount, builder: (column) => ColumnOrderings(column));
+
   $$OwnersTableOrderingComposer get ownerId {
     final $$OwnersTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -9171,6 +9883,15 @@ class $$HousesTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => column);
+
+  GeneratedColumn<int> get unitCount =>
+      $composableBuilder(column: $table.unitCount, builder: (column) => column);
 
   $$OwnersTableAnnotationComposer get ownerId {
     final $$OwnersTableAnnotationComposer composer = $composerBuilder(
@@ -9268,6 +9989,9 @@ class $$HousesTableTableManager extends RootTableManager<
             Value<String> name = const Value.absent(),
             Value<String> address = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<int> unitCount = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               HousesCompanion(
@@ -9280,6 +10004,9 @@ class $$HousesTableTableManager extends RootTableManager<
             name: name,
             address: address,
             notes: notes,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            unitCount: unitCount,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -9292,6 +10019,9 @@ class $$HousesTableTableManager extends RootTableManager<
             required String name,
             required String address,
             Value<String?> notes = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<int> unitCount = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               HousesCompanion.insert(
@@ -9304,6 +10034,9 @@ class $$HousesTableTableManager extends RootTableManager<
             name: name,
             address: address,
             notes: notes,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            unitCount: unitCount,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -9874,6 +10607,8 @@ typedef $$UnitsTableCreateCompanionBuilder = UnitsCompanion Function({
   Value<String?> meterNumber,
   Value<int> defaultDueDay,
   Value<bool> isOccupied,
+  Value<String?> imageUrls,
+  Value<String?> imagesBase64,
   Value<String?> currentTenancyId,
   Value<int> rowid,
 });
@@ -9897,6 +10632,8 @@ typedef $$UnitsTableUpdateCompanionBuilder = UnitsCompanion Function({
   Value<String?> meterNumber,
   Value<int> defaultDueDay,
   Value<bool> isOccupied,
+  Value<String?> imageUrls,
+  Value<String?> imagesBase64,
   Value<String?> currentTenancyId,
   Value<int> rowid,
 });
@@ -10036,6 +10773,12 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
 
   ColumnFilters<bool> get isOccupied => $composableBuilder(
       column: $table.isOccupied, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageUrls => $composableBuilder(
+      column: $table.imageUrls, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imagesBase64 => $composableBuilder(
+      column: $table.imagesBase64, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get currentTenancyId => $composableBuilder(
       column: $table.currentTenancyId,
@@ -10205,6 +10948,13 @@ class $$UnitsTableOrderingComposer
   ColumnOrderings<bool> get isOccupied => $composableBuilder(
       column: $table.isOccupied, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get imageUrls => $composableBuilder(
+      column: $table.imageUrls, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imagesBase64 => $composableBuilder(
+      column: $table.imagesBase64,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get currentTenancyId => $composableBuilder(
       column: $table.currentTenancyId,
       builder: (column) => ColumnOrderings(column));
@@ -10326,6 +11076,12 @@ class $$UnitsTableAnnotationComposer
 
   GeneratedColumn<bool> get isOccupied => $composableBuilder(
       column: $table.isOccupied, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrls =>
+      $composableBuilder(column: $table.imageUrls, builder: (column) => column);
+
+  GeneratedColumn<String> get imagesBase64 => $composableBuilder(
+      column: $table.imagesBase64, builder: (column) => column);
 
   GeneratedColumn<String> get currentTenancyId => $composableBuilder(
       column: $table.currentTenancyId, builder: (column) => column);
@@ -10480,6 +11236,8 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<String?> meterNumber = const Value.absent(),
             Value<int> defaultDueDay = const Value.absent(),
             Value<bool> isOccupied = const Value.absent(),
+            Value<String?> imageUrls = const Value.absent(),
+            Value<String?> imagesBase64 = const Value.absent(),
             Value<String?> currentTenancyId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -10503,6 +11261,8 @@ class $$UnitsTableTableManager extends RootTableManager<
             meterNumber: meterNumber,
             defaultDueDay: defaultDueDay,
             isOccupied: isOccupied,
+            imageUrls: imageUrls,
+            imagesBase64: imagesBase64,
             currentTenancyId: currentTenancyId,
             rowid: rowid,
           ),
@@ -10526,6 +11286,8 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<String?> meterNumber = const Value.absent(),
             Value<int> defaultDueDay = const Value.absent(),
             Value<bool> isOccupied = const Value.absent(),
+            Value<String?> imageUrls = const Value.absent(),
+            Value<String?> imagesBase64 = const Value.absent(),
             Value<String?> currentTenancyId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -10549,6 +11311,8 @@ class $$UnitsTableTableManager extends RootTableManager<
             meterNumber: meterNumber,
             defaultDueDay: defaultDueDay,
             isOccupied: isOccupied,
+            imageUrls: imageUrls,
+            imagesBase64: imagesBase64,
             currentTenancyId: currentTenancyId,
             rowid: rowid,
           ),
@@ -10675,6 +11439,15 @@ typedef $$TenantsTableCreateCompanionBuilder = TenantsCompanion Function({
   Value<String?> email,
   Value<bool> isActive,
   Value<String?> password,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<String?> authId,
+  Value<double> advanceAmount,
+  Value<bool> policeVerification,
+  Value<String?> idProof,
+  Value<String?> address,
+  Value<int> memberCount,
+  Value<String?> notes,
   Value<int> rowid,
 });
 typedef $$TenantsTableUpdateCompanionBuilder = TenantsCompanion Function({
@@ -10690,6 +11463,15 @@ typedef $$TenantsTableUpdateCompanionBuilder = TenantsCompanion Function({
   Value<String?> email,
   Value<bool> isActive,
   Value<String?> password,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<String?> authId,
+  Value<double> advanceAmount,
+  Value<bool> policeVerification,
+  Value<String?> idProof,
+  Value<String?> address,
+  Value<int> memberCount,
+  Value<String?> notes,
   Value<int> rowid,
 });
 
@@ -10768,6 +11550,34 @@ class $$TenantsTableFilterComposer
 
   ColumnFilters<String> get password => $composableBuilder(
       column: $table.password, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get authId => $composableBuilder(
+      column: $table.authId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get advanceAmount => $composableBuilder(
+      column: $table.advanceAmount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get policeVerification => $composableBuilder(
+      column: $table.policeVerification,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get idProof => $composableBuilder(
+      column: $table.idProof, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get address => $composableBuilder(
+      column: $table.address, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get memberCount => $composableBuilder(
+      column: $table.memberCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
 
   $$OwnersTableFilterComposer get ownerId {
     final $$OwnersTableFilterComposer composer = $composerBuilder(
@@ -10853,6 +11663,35 @@ class $$TenantsTableOrderingComposer
   ColumnOrderings<String> get password => $composableBuilder(
       column: $table.password, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get authId => $composableBuilder(
+      column: $table.authId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get advanceAmount => $composableBuilder(
+      column: $table.advanceAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get policeVerification => $composableBuilder(
+      column: $table.policeVerification,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get idProof => $composableBuilder(
+      column: $table.idProof, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get address => $composableBuilder(
+      column: $table.address, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get memberCount => $composableBuilder(
+      column: $table.memberCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
   $$OwnersTableOrderingComposer get ownerId {
     final $$OwnersTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -10915,6 +11754,33 @@ class $$TenantsTableAnnotationComposer
 
   GeneratedColumn<String> get password =>
       $composableBuilder(column: $table.password, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => column);
+
+  GeneratedColumn<String> get authId =>
+      $composableBuilder(column: $table.authId, builder: (column) => column);
+
+  GeneratedColumn<double> get advanceAmount => $composableBuilder(
+      column: $table.advanceAmount, builder: (column) => column);
+
+  GeneratedColumn<bool> get policeVerification => $composableBuilder(
+      column: $table.policeVerification, builder: (column) => column);
+
+  GeneratedColumn<String> get idProof =>
+      $composableBuilder(column: $table.idProof, builder: (column) => column);
+
+  GeneratedColumn<String> get address =>
+      $composableBuilder(column: $table.address, builder: (column) => column);
+
+  GeneratedColumn<int> get memberCount => $composableBuilder(
+      column: $table.memberCount, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
 
   $$OwnersTableAnnotationComposer get ownerId {
     final $$OwnersTableAnnotationComposer composer = $composerBuilder(
@@ -10993,6 +11859,15 @@ class $$TenantsTableTableManager extends RootTableManager<
             Value<String?> email = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String?> password = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<String?> authId = const Value.absent(),
+            Value<double> advanceAmount = const Value.absent(),
+            Value<bool> policeVerification = const Value.absent(),
+            Value<String?> idProof = const Value.absent(),
+            Value<String?> address = const Value.absent(),
+            Value<int> memberCount = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TenantsCompanion(
@@ -11008,6 +11883,15 @@ class $$TenantsTableTableManager extends RootTableManager<
             email: email,
             isActive: isActive,
             password: password,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            authId: authId,
+            advanceAmount: advanceAmount,
+            policeVerification: policeVerification,
+            idProof: idProof,
+            address: address,
+            memberCount: memberCount,
+            notes: notes,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -11023,6 +11907,15 @@ class $$TenantsTableTableManager extends RootTableManager<
             Value<String?> email = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String?> password = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<String?> authId = const Value.absent(),
+            Value<double> advanceAmount = const Value.absent(),
+            Value<bool> policeVerification = const Value.absent(),
+            Value<String?> idProof = const Value.absent(),
+            Value<String?> address = const Value.absent(),
+            Value<int> memberCount = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TenantsCompanion.insert(
@@ -11038,6 +11931,15 @@ class $$TenantsTableTableManager extends RootTableManager<
             email: email,
             isActive: isActive,
             password: password,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            authId: authId,
+            advanceAmount: advanceAmount,
+            policeVerification: policeVerification,
+            idProof: idProof,
+            address: address,
+            memberCount: memberCount,
+            notes: notes,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -13378,6 +14280,7 @@ typedef $$ExpensesTableCreateCompanionBuilder = ExpensesCompanion Function({
   required double amount,
   required String category,
   Value<String?> description,
+  Value<String?> receiptPath,
   Value<int> rowid,
 });
 typedef $$ExpensesTableUpdateCompanionBuilder = ExpensesCompanion Function({
@@ -13392,6 +14295,7 @@ typedef $$ExpensesTableUpdateCompanionBuilder = ExpensesCompanion Function({
   Value<double> amount,
   Value<String> category,
   Value<String?> description,
+  Value<String?> receiptPath,
   Value<int> rowid,
 });
 
@@ -13453,6 +14357,9 @@ class $$ExpensesTableFilterComposer
   ColumnFilters<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get receiptPath => $composableBuilder(
+      column: $table.receiptPath, builder: (column) => ColumnFilters(column));
+
   $$OwnersTableFilterComposer get ownerId {
     final $$OwnersTableFilterComposer composer = $composerBuilder(
         composer: this,
@@ -13512,6 +14419,9 @@ class $$ExpensesTableOrderingComposer
 
   ColumnOrderings<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get receiptPath => $composableBuilder(
+      column: $table.receiptPath, builder: (column) => ColumnOrderings(column));
 
   $$OwnersTableOrderingComposer get ownerId {
     final $$OwnersTableOrderingComposer composer = $composerBuilder(
@@ -13573,6 +14483,9 @@ class $$ExpensesTableAnnotationComposer
   GeneratedColumn<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => column);
 
+  GeneratedColumn<String> get receiptPath => $composableBuilder(
+      column: $table.receiptPath, builder: (column) => column);
+
   $$OwnersTableAnnotationComposer get ownerId {
     final $$OwnersTableAnnotationComposer composer = $composerBuilder(
         composer: this,
@@ -13628,6 +14541,7 @@ class $$ExpensesTableTableManager extends RootTableManager<
             Value<double> amount = const Value.absent(),
             Value<String> category = const Value.absent(),
             Value<String?> description = const Value.absent(),
+            Value<String?> receiptPath = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ExpensesCompanion(
@@ -13642,6 +14556,7 @@ class $$ExpensesTableTableManager extends RootTableManager<
             amount: amount,
             category: category,
             description: description,
+            receiptPath: receiptPath,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -13656,6 +14571,7 @@ class $$ExpensesTableTableManager extends RootTableManager<
             required double amount,
             required String category,
             Value<String?> description = const Value.absent(),
+            Value<String?> receiptPath = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ExpensesCompanion.insert(
@@ -13670,6 +14586,7 @@ class $$ExpensesTableTableManager extends RootTableManager<
             amount: amount,
             category: category,
             description: description,
+            receiptPath: receiptPath,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

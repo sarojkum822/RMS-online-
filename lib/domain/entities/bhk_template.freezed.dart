@@ -20,8 +20,8 @@ BhkTemplate _$BhkTemplateFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$BhkTemplate {
-  int get id => throw _privateConstructorUsedError;
-  int get houseId => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
+  String get houseId => throw _privateConstructorUsedError;
   String get bhkType => throw _privateConstructorUsedError;
   double get defaultRent => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
@@ -29,6 +29,7 @@ mixin _$BhkTemplate {
   int get kitchenCount => throw _privateConstructorUsedError;
   int get hallCount => throw _privateConstructorUsedError;
   bool get hasBalcony => throw _privateConstructorUsedError;
+  String? get imageBase64 => throw _privateConstructorUsedError;
 
   /// Serializes this BhkTemplate to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -47,15 +48,16 @@ abstract class $BhkTemplateCopyWith<$Res> {
       _$BhkTemplateCopyWithImpl<$Res, BhkTemplate>;
   @useResult
   $Res call(
-      {int id,
-      int houseId,
+      {String id,
+      String houseId,
       String bhkType,
       double defaultRent,
       String? description,
       int roomCount,
       int kitchenCount,
       int hallCount,
-      bool hasBalcony});
+      bool hasBalcony,
+      String? imageBase64});
 }
 
 /// @nodoc
@@ -82,16 +84,17 @@ class _$BhkTemplateCopyWithImpl<$Res, $Val extends BhkTemplate>
     Object? kitchenCount = null,
     Object? hallCount = null,
     Object? hasBalcony = null,
+    Object? imageBase64 = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       houseId: null == houseId
           ? _value.houseId
           : houseId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       bhkType: null == bhkType
           ? _value.bhkType
           : bhkType // ignore: cast_nullable_to_non_nullable
@@ -120,6 +123,10 @@ class _$BhkTemplateCopyWithImpl<$Res, $Val extends BhkTemplate>
           ? _value.hasBalcony
           : hasBalcony // ignore: cast_nullable_to_non_nullable
               as bool,
+      imageBase64: freezed == imageBase64
+          ? _value.imageBase64
+          : imageBase64 // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -133,15 +140,16 @@ abstract class _$$BhkTemplateImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {int id,
-      int houseId,
+      {String id,
+      String houseId,
       String bhkType,
       double defaultRent,
       String? description,
       int roomCount,
       int kitchenCount,
       int hallCount,
-      bool hasBalcony});
+      bool hasBalcony,
+      String? imageBase64});
 }
 
 /// @nodoc
@@ -166,16 +174,17 @@ class __$$BhkTemplateImplCopyWithImpl<$Res>
     Object? kitchenCount = null,
     Object? hallCount = null,
     Object? hasBalcony = null,
+    Object? imageBase64 = freezed,
   }) {
     return _then(_$BhkTemplateImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       houseId: null == houseId
           ? _value.houseId
           : houseId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       bhkType: null == bhkType
           ? _value.bhkType
           : bhkType // ignore: cast_nullable_to_non_nullable
@@ -204,6 +213,10 @@ class __$$BhkTemplateImplCopyWithImpl<$Res>
           ? _value.hasBalcony
           : hasBalcony // ignore: cast_nullable_to_non_nullable
               as bool,
+      imageBase64: freezed == imageBase64
+          ? _value.imageBase64
+          : imageBase64 // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -220,15 +233,16 @@ class _$BhkTemplateImpl implements _BhkTemplate {
       this.roomCount = 1,
       this.kitchenCount = 1,
       this.hallCount = 1,
-      this.hasBalcony = false});
+      this.hasBalcony = false,
+      this.imageBase64});
 
   factory _$BhkTemplateImpl.fromJson(Map<String, dynamic> json) =>
       _$$BhkTemplateImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
   @override
-  final int houseId;
+  final String houseId;
   @override
   final String bhkType;
   @override
@@ -247,10 +261,12 @@ class _$BhkTemplateImpl implements _BhkTemplate {
   @override
   @JsonKey()
   final bool hasBalcony;
+  @override
+  final String? imageBase64;
 
   @override
   String toString() {
-    return 'BhkTemplate(id: $id, houseId: $houseId, bhkType: $bhkType, defaultRent: $defaultRent, description: $description, roomCount: $roomCount, kitchenCount: $kitchenCount, hallCount: $hallCount, hasBalcony: $hasBalcony)';
+    return 'BhkTemplate(id: $id, houseId: $houseId, bhkType: $bhkType, defaultRent: $defaultRent, description: $description, roomCount: $roomCount, kitchenCount: $kitchenCount, hallCount: $hallCount, hasBalcony: $hasBalcony, imageBase64: $imageBase64)';
   }
 
   @override
@@ -272,13 +288,25 @@ class _$BhkTemplateImpl implements _BhkTemplate {
             (identical(other.hallCount, hallCount) ||
                 other.hallCount == hallCount) &&
             (identical(other.hasBalcony, hasBalcony) ||
-                other.hasBalcony == hasBalcony));
+                other.hasBalcony == hasBalcony) &&
+            (identical(other.imageBase64, imageBase64) ||
+                other.imageBase64 == imageBase64));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, houseId, bhkType,
-      defaultRent, description, roomCount, kitchenCount, hallCount, hasBalcony);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      houseId,
+      bhkType,
+      defaultRent,
+      description,
+      roomCount,
+      kitchenCount,
+      hallCount,
+      hasBalcony,
+      imageBase64);
 
   /// Create a copy of BhkTemplate
   /// with the given fields replaced by the non-null parameter values.
@@ -298,23 +326,24 @@ class _$BhkTemplateImpl implements _BhkTemplate {
 
 abstract class _BhkTemplate implements BhkTemplate {
   const factory _BhkTemplate(
-      {required final int id,
-      required final int houseId,
+      {required final String id,
+      required final String houseId,
       required final String bhkType,
       required final double defaultRent,
       final String? description,
       final int roomCount,
       final int kitchenCount,
       final int hallCount,
-      final bool hasBalcony}) = _$BhkTemplateImpl;
+      final bool hasBalcony,
+      final String? imageBase64}) = _$BhkTemplateImpl;
 
   factory _BhkTemplate.fromJson(Map<String, dynamic> json) =
       _$BhkTemplateImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
   @override
-  int get houseId;
+  String get houseId;
   @override
   String get bhkType;
   @override
@@ -329,6 +358,8 @@ abstract class _BhkTemplate implements BhkTemplate {
   int get hallCount;
   @override
   bool get hasBalcony;
+  @override
+  String? get imageBase64;
 
   /// Create a copy of BhkTemplate
   /// with the given fields replaced by the non-null parameter values.

@@ -11,6 +11,8 @@ import '../house/house_controller.dart';
 import '../../../../core/extensions/string_extensions.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import '../../../../domain/entities/tenant.dart';
+import '../../../../core/services/ocr_service.dart';
+import 'package:easy_localization/easy_localization.dart'; // NEW IMPORT
 
 class TenantFormScreen extends ConsumerStatefulWidget {
   final Tenant? tenant; // Optional for Edit Mode
@@ -27,14 +29,34 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   late TextEditingController _emailCtrl;
   late TextEditingController _passwordCtrl;
   late TextEditingController _rentCtrl; 
-  late TextEditingController _electricCtrl; 
+  late TextEditingController _securityDepositCtrl;
+  late TextEditingController _openingBalanceCtrl; // NEW
+  late TextEditingController _tenancyNotesCtrl; // NEW
+  late TextEditingController _initialReadingCtrl; 
+  late TextEditingController _dateCtrl; // NEW for Date Picker
+  // NEW Fields
+  late TextEditingController _addressCtrl;
+  late TextEditingController _idProofCtrl;
+  late TextEditingController _memberCountCtrl;
+  late TextEditingController _advanceAmountCtrl; 
+  late TextEditingController _dobCtrl; // NEW
+  bool _policeVerification = false;
+  String? _selectedGender; // NEW
+
   
   String? _selectedHouseId;
   String? _selectedUnitId;
   File? _selectedImage;
   // New: Start Date
   DateTime _startDate = DateTime.now();
+  
+  String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}"; // Simple formatter
+  final bool _attendanceLoading = false; // Unused but kept if strictly needed, or just remove
   bool _isLoading = false;
+  bool _isScanning = false; // NEW: Track OCR progress
+  bool _obscurePassword = true; 
+  // OcrService managed by Riverpod
+
 
   bool get _isEditing => widget.tenant != null;
 
@@ -45,21 +67,24 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     _nameCtrl = TextEditingController(text: t?.name ?? '');
     _phoneCtrl = TextEditingController(text: t?.phone ?? '');
     _emailCtrl = TextEditingController(text: t?.email ?? '');
-    _passwordCtrl = TextEditingController(); // Empty for security, optional in edit
-    _rentCtrl = TextEditingController(); // Start empty for new. If editing, we don't show rent here ideally or fetch from Tenancy.
-    // However, since we removed Rent/Unit from Tenant Edit form (lines 118+ check for !_isEditing), 
-    // _rentCtrl is only used for NEW tenants. 
-    // Wait, line 232 shows Rent Field ALWAYS.
-    // If editing, we shouldn't edit Rent here anymore as it's Tenancy data.
-    // I should hide Rent Field if _isEditing too?
-    // Let's assume for MVP refactor we hide Rent editing here.
-    
-    _electricCtrl = TextEditingController(); // usually cleared for new reading, but maybe N/A for edit
+    _passwordCtrl = TextEditingController(); 
+    _rentCtrl = TextEditingController(); 
+    _securityDepositCtrl = TextEditingController();
+    _openingBalanceCtrl = TextEditingController(); // NEW
+    _tenancyNotesCtrl = TextEditingController(); // NEW
+    _initialReadingCtrl = TextEditingController(); 
+    _dateCtrl = TextEditingController(text: _formatDate(_startDate));
+    // NEW
+    _addressCtrl = TextEditingController(text: t?.address ?? '');
+    _idProofCtrl = TextEditingController(text: t?.idProof ?? '');
+    _memberCountCtrl = TextEditingController(text: (t?.memberCount ?? 1).toString());
+    _advanceAmountCtrl = TextEditingController(text: t?.advanceAmount.toString() ?? '');
+    _dobCtrl = TextEditingController(text: t?.dob ?? '');
+    _selectedGender = t?.gender;
+    _policeVerification = t?.policeVerification ?? false;
     
     if (_isEditing) {
-       // We can't pre-fill House/Unit from Tenant object alone anymore (as it's in Tenancy).
-       // But Edit Mode hides House/Unit selection anyway (lines 118+).
-       // So we just leave them null.
+       // ...
     }
   }
 
@@ -70,8 +95,141 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _rentCtrl.dispose();
-    _electricCtrl.dispose();
+    _securityDepositCtrl.dispose();
+    _openingBalanceCtrl.dispose(); // NEW
+    _tenancyNotesCtrl.dispose(); // NEW
+    _initialReadingCtrl.dispose(); 
+    _dateCtrl.dispose();
+    _addressCtrl.dispose();
+    _idProofCtrl.dispose();
+    _memberCountCtrl.dispose();
+    _advanceAmountCtrl.dispose();
+    _dobCtrl.dispose();
+    _initialReadingCtrl.dispose(); 
+    _dateCtrl.dispose();
+    _dateCtrl.dispose();
+    // _ocrService disposed by provider
     super.dispose();
+  }
+
+  Future<void> _scanIdCard({bool isBackSide = false}) async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isBackSide ? 'Scan ID Back Side' : 'Scan ID Document', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: Colors.indigo),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: Colors.indigo),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source, 
+      maxWidth: 1200, 
+      maxHeight: 1200,
+    );
+    
+    if (pickedFile != null) {
+      if (!mounted) return;
+      setState(() => _isScanning = true);
+      try {
+        final ocrService = ref.read(ocrServiceProvider);
+        final result = await ocrService.scanImage(File(pickedFile.path));
+        
+        if (mounted) {
+          bool dataFound = false;
+          
+          if (!isBackSide) {
+             // Front Scan Logic
+             if (result.name != null && _nameCtrl.text.isEmpty) {
+                _nameCtrl.text = result.name!;
+                dataFound = true;
+             }
+             if (result.idNumber != null) {
+                _idProofCtrl.text = result.idNumber!;
+                dataFound = true;
+             }
+             if (result.dob != null) {
+                _dobCtrl.text = result.dob!;
+             }
+             if (result.gender != null) {
+                setState(() => _selectedGender = result.gender);
+             }
+             
+             // Check if address found on front (rare)
+             if (result.address != null && _addressCtrl.text.isEmpty) {
+                 _addressCtrl.text = result.address!;
+                 dataFound = true;
+             }
+          } else {
+             // Back Scan Logic (Focus on Address)
+             if (result.address != null) {
+                 _addressCtrl.text = result.address!;
+                 dataFound = true;
+             }
+          }
+          
+          
+          if (!dataFound && !isBackSide) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('Could not extract details clearly. Please fill manually.'))
+             );
+          } else {
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('Details scanned successfully!'))
+             );
+          }
+          
+          // Trigger Back Side Scan if Address missing
+          if (!isBackSide && _addressCtrl.text.isEmpty) {
+               await showDialog(
+                 context: context, 
+                 builder: (ctx) => AlertDialog(
+                    title: const Text("Scan Back Side?"),
+                    content: const Text("Address was not detected on the front side. Would you like to scan the back side of the ID?"),
+                    actions: [
+                       TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Skip")),
+                       FilledButton(
+                          onPressed: () { 
+                             Navigator.pop(ctx); 
+                             _scanIdCard(isBackSide: true); 
+                          }, 
+                          child: const Text("Scan Back")
+                       )
+                    ],
+                 )
+               );
+          }
+
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Scan Error: $e'))
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isScanning = false);
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -86,6 +244,9 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep OCR Service alive while screen is open
+    ref.watch(ocrServiceProvider);
+
     final theme = Theme.of(context);
     final housesValue = ref.watch(houseControllerProvider);
 
@@ -132,7 +293,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
               // House Selection
               housesValue.when(
                 data: (houses) => DropdownButtonFormField<String>(
-                  value: _selectedHouseId,
+                  initialValue: _selectedHouseId,
                   decoration: InputDecoration(
                     labelText: 'Select House',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -160,10 +321,65 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                       final unitsAsync = ref.watch(availableUnitsProvider(_selectedHouseId!));
                       return unitsAsync.when(
                         data: (units) {
-                           if (units.isEmpty) return const Text('No available flats in this property.', style: TextStyle(color: Colors.red));
+                           if (units.isEmpty) {
+                               return Container(
+                                 width: double.infinity,
+                                 margin: const EdgeInsets.symmetric(vertical: 8),
+                                 padding: const EdgeInsets.all(24),
+                                 decoration: BoxDecoration(
+                                   color: theme.cardColor,
+                                   borderRadius: BorderRadius.circular(20),
+                                   border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                                   boxShadow: [
+                                      BoxShadow(
+                                         color: Colors.black.withValues(alpha: 0.03),
+                                         blurRadius: 10,
+                                         offset: const Offset(0, 4)
+                                      )
+                                   ]
+                                 ),
+                                 child: Column(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+                                   children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(Icons.playlist_add_rounded, size: 32, color: theme.colorScheme.primary),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        "Units Not Configured",
+                                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: theme.textTheme.titleMedium?.color),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                         "Here, add the number of units (flats/rooms/shops) you have at this property to start assigning tenants.",
+                                         textAlign: TextAlign.center,
+                                         style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 13),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton(
+                                           onPressed: () => context.push('/owner/houses/$_selectedHouseId'),
+                                           style: OutlinedButton.styleFrom(
+                                             side: BorderSide(color: theme.colorScheme.primary),
+                                             padding: const EdgeInsets.symmetric(vertical: 12),
+                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                                           ),
+                                           child: Text('Configure Units', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                                        ),
+                                      )
+                                   ],
+                                 ),
+                               );
+                           }
                            
                            return DropdownButtonFormField<String>(
-                              value: _selectedUnitId,
+                              initialValue: _selectedUnitId,
                               decoration: InputDecoration(
                                 labelText: 'Select Flat / Unit',
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -205,22 +421,112 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(labelText: 'Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
               autovalidateMode: AutovalidateMode.onUserInteraction,
-              validator: (v) => v!.isEmpty ? 'Required' : null,
+              validator: (v) => (v ?? '').isEmpty ? 'Required' : null, // Fix Null Check
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _phoneCtrl,
               decoration: InputDecoration(labelText: 'Phone', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
               keyboardType: TextInputType.phone,
-              validator: (v) => v!.isEmpty ? 'Required' : null,
+              validator: (v) => (v ?? '').isEmpty ? 'Required' : null, 
+            ),
+
+            // NEW: DOB and Gender
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _dobCtrl,
+                    decoration: InputDecoration(
+                       labelText: 'DOB (DD/MM/YYYY)', 
+                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                       suffixIcon: const Icon(Icons.cake)
+                    ),
+                    keyboardType: TextInputType.datetime,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                   child: DropdownButtonFormField<String>(
+                      value: _selectedGender,
+                      decoration: InputDecoration(
+                        labelText: 'Gender',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                      onChanged: (v) => setState(() => _selectedGender = v),
+                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // NEW Fields
+            TextFormField(
+              controller: _addressCtrl,
+              decoration: InputDecoration(labelText: 'Permanent Address', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 16),
+             TextFormField(
+              controller: _idProofCtrl,
+              decoration: InputDecoration(
+                labelText: 'ID Proof Number (Aadhaar/PAN)', 
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                suffixIcon: _isScanning 
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.document_scanner_outlined, color: Colors.indigo),
+                      onPressed: () => _scanIdCard(isBackSide: false),
+                      tooltip: 'tenants.scan_id'.tr(),
+                    ),
+              ),
+            ),
+            if (!_isScanning)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'tenants.scan_tip'.tr(),
+                  style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor, fontStyle: FontStyle.italic),
+                ),
+              ),
+            const SizedBox(height: 16),
+            Row(
+               children: [
+                 Expanded(
+                   child: TextFormField(
+                      controller: _memberCountCtrl,
+                      decoration: InputDecoration(labelText: 'Members Count', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                      keyboardType: TextInputType.number,
+                   ),
+                 ),
+                 const SizedBox(width: 16),
+                 Expanded(
+                   child: SwitchListTile(
+                     title: const Text('Police Verified', style: TextStyle(fontSize: 14)),
+                     value: _policeVerification,
+                     onChanged: (v) => setState(() => _policeVerification = v),
+                     contentPadding: EdgeInsets.zero,
+                   ),
+                 ),
+               ],
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _emailCtrl,
               decoration: InputDecoration(labelText: 'Email (Login ID)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
               textCapitalization: TextCapitalization.none,
+              autocorrect: false,
               keyboardType: TextInputType.emailAddress,
-              validator: (v) => v!.isEmpty ? 'Required for Login' : null,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required for Login';
+                final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                if (!emailRegex.hasMatch(v.trim())) return 'Invalid email format';
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -228,50 +534,116 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
               decoration: InputDecoration(
                 labelText: _isEditing ? 'New Password (Optional)' : 'Password (For Tenant Login)', 
                 helperText: _isEditing ? 'Leave empty to keep current password' : null,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
               ),
-              obscureText: false, 
+              obscureText: _obscurePassword, 
               validator: (v) {
-                if (_isEditing && (v == null || v.isEmpty)) return null; // Optional in edit
+                if (_isEditing && (v == null || v.isEmpty)) return null; 
                 if (v == null || v.length < 6) return 'Min 6 chars';
                 return null;
               },
             ),
             const SizedBox(height: 16),
             
-            if (!_isEditing) // Only show Rent for new Tenancy
-            TextFormField(
-              controller: _rentCtrl,
-              decoration: InputDecoration(
-                labelText: 'Agreed Rent Amount', 
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.currency_rupee),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            
             if (!_isEditing) ...[
+              TextFormField(
+                controller: _rentCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Agreed Rent Amount', 
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.currency_rupee),
+                ),
+                keyboardType: TextInputType.number,
+              ),
               const SizedBox(height: 16),
-              FormField<String>( // Dummy field for visual consistency if needed, but keeping actual logic simple
-                 builder: (_) => TextFormField(
-                  controller: _electricCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Initial Electric Reading (Optional)',
-                    helperText: 'Current meter reading',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.electric_meter),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+
+              TextFormField(
+                controller: _securityDepositCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Security Deposit (Optional)', 
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.shield), 
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              
+               TextFormField(
+                controller: _advanceAmountCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Advance Amount (If any)', 
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.money), 
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+
+              // Opening Balance (for migrating existing tenants)
+              TextFormField(
+                controller: _openingBalanceCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Opening Balance (Optional)', 
+                  helperText: 'Previous dues when migrating existing tenants',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.account_balance_wallet), 
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 16),
+
+              // Restore Initial Reading
+              TextFormField(
+                controller: _initialReadingCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Initial Meter Reading (Optional)', 
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.flash_on),
+                  suffixText: 'units'
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _dateCtrl,
+                readOnly: true,
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _startDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _startDate = picked;
+                      _dateCtrl.text = _formatDate(picked);
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Lease Start Date',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  suffixIcon: const Icon(Icons.calendar_today),
                 ),
               ),
               const SizedBox(height: 16),
-              InputDatePickerFormField(
-                fieldLabelText: 'Lease Start Date',
-                initialDate: _startDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-                onDateSubmitted: (date) => _startDate = date,
-                onDateSaved: (date) => _startDate = date,
+
+              // Tenancy Notes
+              TextFormField(
+                controller: _tenancyNotesCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Notes (Optional)', 
+                  hintText: 'e.g. Special agreements, tekirayabook, etc.',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.notes), 
+                ),
+                maxLines: 2,
               ),
             ],
 
@@ -304,6 +676,16 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
 
     setState(() => _isLoading = true);
     final rent = double.tryParse(_rentCtrl.text);
+    final securityDeposit = double.tryParse(_securityDepositCtrl.text);
+    final openingBalance = double.tryParse(_openingBalanceCtrl.text); // NEW
+    final initialReading = double.tryParse(_initialReadingCtrl.text);
+    final tenancyNotes = _tenancyNotesCtrl.text.trim(); // NEW
+    
+    // NEW fields
+    final advanceAmount = double.tryParse(_advanceAmountCtrl.text);
+    final address = _addressCtrl.text.trim();
+    final idProof = _idProofCtrl.text.trim();
+    final memberCount = int.tryParse(_memberCountCtrl.text) ?? 1;
 
     try {
       if (_isEditing) {
@@ -312,25 +694,13 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
           name: _nameCtrl.text.trim().toTitleCase(),
           phone: _phoneCtrl.text.trim(),
           email: _emailCtrl.text.trim().toLowerCase(),
-          // Rent removed from Tenant Update here as it belongs to Tenancy. 
-          // If we want to update Rent, we should update Tenancy separately.
-          // For now, removing agreedRent update from Tenant Profile update.
-          // agreedRent: rent, 
-          // Only update password if provided
-          password: _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text.trim() : widget.tenant!.password,
+          // password: _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text.trim() : widget.tenant!.password, // Removed
         );
         
         await ref.read(tenantControllerProvider.notifier).updateTenant(updatedTenant, imageFile: _selectedImage);
 
-        // Also update Auth if credentials changed (Advanced: handled in controller usually or skip for now)
-        if (_passwordCtrl.text.isNotEmpty || _emailCtrl.text.trim() != widget.tenant!.email) {
-           // We might need a separate call for auth update if repository doesn't handle it fully automatically 
-           // But assumed repository/controller handles basic sync.
-        }
-
       } else {
          // CREATE Logic
-         final initialElectric = double.tryParse(_electricCtrl.text);
            await ref.read(tenantControllerProvider.notifier).registerTenant(
            houseId: _selectedHouseId!,
            unitId: _selectedUnitId!,
@@ -339,10 +709,22 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
            email: _emailCtrl.text.trim().toLowerCase(),
            password: _passwordCtrl.text.trim(),
            agreedRent: rent,
-           initialElectricReading: initialElectric,
+           securityDeposit: securityDeposit,
+           openingBalance: openingBalance, // NEW
+           notes: tenancyNotes.isNotEmpty ? tenancyNotes : null, // NEW
            imageFile: _selectedImage, 
-           startDate: _startDate, // Pass Start Date
+           startDate: _startDate, 
+           initialElectricReading: initialReading,
+           // NEW Arguments
+           advanceAmount: advanceAmount,
+           policeVerification: _policeVerification,
+           idProof: idProof.isNotEmpty ? idProof : null,
+           address: address.isNotEmpty ? address : null,
+           dob: _dobCtrl.text.isEmpty ? null : _dobCtrl.text,
+           gender: _selectedGender,
+           memberCount: memberCount,
          );
+
       }
 
       if (mounted) {

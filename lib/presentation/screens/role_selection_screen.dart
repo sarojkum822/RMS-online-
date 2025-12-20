@@ -35,7 +35,7 @@ class RoleSelectionScreen extends StatelessWidget {
               const SizedBox(height: 32),
               // Welcome Text
               Text(
-                'Welcome to RentPilot',
+                'Welcome to KirayaBook',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
                   fontSize: 28,

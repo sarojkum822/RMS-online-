@@ -4,7 +4,7 @@ import '../../../../domain/entities/bhk_template.dart';
 import 'bhk_template_controller.dart';
 
 class BhkTemplateListScreen extends ConsumerWidget {
-  final int houseId;
+  final String houseId;
   const BhkTemplateListScreen({super.key, required this.houseId});
 
   @override
@@ -64,7 +64,7 @@ class BhkTemplateListScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddDialog(BuildContext context, WidgetRef ref, int houseId, {BhkTemplate? template}) {
+  void _showAddDialog(BuildContext context, WidgetRef ref, String houseId, {BhkTemplate? template}) {
     final bhkCtrl = TextEditingController(text: template?.bhkType);
     final rentCtrl = TextEditingController(text: template?.defaultRent.toString());
     final descCtrl = TextEditingController(text: template?.description);
@@ -150,9 +150,9 @@ class BhkTemplateListScreen extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: Colors.grey[700]), // Increased from 14 to 18, Darker
+        Icon(icon, size: 18, color: Colors.grey[700]),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[800], fontWeight: FontWeight.bold)), // Increased from 12 to 14
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[800], fontWeight: FontWeight.bold)),
       ],
     );
   }

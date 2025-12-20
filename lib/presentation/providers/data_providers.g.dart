@@ -6,22 +6,6 @@ part of 'data_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$databaseHash() => r'dfb355b75031c13f4b9aacb208490f1d92f17762';
-
-/// See also [database].
-@ProviderFor(database)
-final databaseProvider = Provider<AppDatabase>.internal(
-  database,
-  name: r'databaseProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$databaseHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef DatabaseRef = ProviderRef<AppDatabase>;
 String _$propertyRepositoryHash() =>
     r'81142942786ce23a54c4946690d2781afee549b5';
 
@@ -40,7 +24,7 @@ final propertyRepositoryProvider = Provider<IPropertyRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PropertyRepositoryRef = ProviderRef<IPropertyRepository>;
-String _$tenantRepositoryHash() => r'9529e6bb4311c7fca35ab986b7dd3768311ea3d7';
+String _$tenantRepositoryHash() => r'89c609241ead9cf9f31c3807c49e8243f5c2231e';
 
 /// See also [tenantRepository].
 @ProviderFor(tenantRepository)

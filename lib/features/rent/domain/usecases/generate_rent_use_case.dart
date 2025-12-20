@@ -1,5 +1,4 @@
 import 'package:intl/intl.dart';
-import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/tenancy.dart'; // Import
 import '../../../../domain/repositories/i_rent_repository.dart';
 import '../../../../domain/repositories/i_property_repository.dart';
@@ -31,7 +30,7 @@ class GenerateRentUseCase {
     final existingCycles = await _rentRepository.getRentCyclesForMonth(currentMonth);
     
     // We need ALL active tenancies. The repository should support this or we filter locally.
-    final allTenancies = await _tenantRepository.getAllTenancies();
+    final allTenancies = await _tenantRepository.getAllTenancies().first;
     
     // Filter active
     final activeTenancies = allTenancies.where((t) => t.status == TenancyStatus.active).toList();
@@ -78,7 +77,7 @@ class GenerateRentUseCase {
         totalDue: rentAmount, // Starts equal to base rent
         dueDate: RentRules.calculateDueDate(now),
         status: RentStatus.pending,
-        notes: 'Auto-generated via RentPilot Pro',
+        notes: 'Auto-generated via KirayaBook Pro',
         
         // Strict Defaults
         electricAmount: 0,

@@ -10,8 +10,9 @@ service cloud.firestore {
     }
 
     // 2. Prevent Changing Critical Fields (Anti-Tamper)
+    // Safe version: Handles missing fields without crashing
     function notUpdating(field) {
-      return request.resource.data[field] == resource.data[field];
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
     }
     
     // 3. Ensure OwnerId is Correct on Create
@@ -19,139 +20,189 @@ service cloud.firestore {
       return request.auth != null && request.resource.data.ownerId == request.auth.uid;
     }
 
+    // 4. Safe Amount Check (Anti-Spam Strategy: Max 99 Crores)
+    function isSafeAmount(val) {
+      return val is number && val < 999999999;
+    }
+
+    // 5. Safe String Check (Required, Max Length)
+    function isSafeString(text, maxLen) {
+      return text is string && text.size() <= maxLen && text.size() > 0;
+    }
+
+    // 6. Optional String Check (Can be null/missing, but if present, Max Length)
+    function isOptionalString(text, maxLen) {
+      return text == null || (text is string && text.size() <= maxLen);
+    }
+
     // --- 1. OWNERS COLLECTION ---
     match /owners/{ownerId} {
-      // READ: Users can read their own profile
-      allow read: if request.auth != null && request.auth.uid == ownerId;
-      
-      // CREATE: Allow initial setup
-      allow create: if request.auth != null && request.auth.uid == ownerId;
-      
-      // UPDATE: CRITICAL SECURITY FIX
-      // Users can update name/email/currency etc.
-      // BUT CANNOT update subscription fields (Server-Side Only)
+      // Allow authenticated users to read owner profile (for tenant access to subscriptionPlan)
+      // Note: This exposes owner's profile to tenants, but only basic info is stored
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == ownerId
+                   // Name: 100, Phone: 20, Email: 100
+                   && isOptionalString(request.resource.data.name, 100)
+                   && isOptionalString(request.resource.data.phone, 20)
+                   && isOptionalString(request.resource.data.email, 100);
       allow update: if request.auth != null && request.auth.uid == ownerId
                    && notUpdating('subscriptionPlan')
                    && notUpdating('subscriptionStatus')
-                   && notUpdating('lastPaymentId');
+                   && notUpdating('lastPaymentId')
+                   // Validation on Update
+                   && isOptionalString(request.resource.data.name, 100)
+                   && isOptionalString(request.resource.data.phone, 20)
+                   && isOptionalString(request.resource.data.email, 100);
     }
 
-    // --- 2. PROPERTIES (HOUSES) ---
-    match /houses/{docId} {
-      allow create: if isValidOwner() && request.resource.data.name is string;
-      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId'); 
-      // READ: Restricted to Owner (or Tenant if explicitly linked - for now Owner Only for security)
+    // --- 2. PROPERTIES (Old: houses) ---
+    match /properties/{docId} {
+      // Name: 50, Address: 200
+      allow create: if isValidOwner() && isSafeString(request.resource.data.name, 50) && isOptionalString(request.resource.data.address, 200);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId') 
+                   && isSafeString(request.resource.data.name, 50) && isOptionalString(request.resource.data.address, 200);
+      allow read: if isOwner(resource.data.ownerId);
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+    match /houses/{docId} { // Legacy Support
+      allow create: if isValidOwner() && isSafeString(request.resource.data.name, 50) && isOptionalString(request.resource.data.address, 200);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId')
+                   && isSafeString(request.resource.data.name, 50) && isOptionalString(request.resource.data.address, 200);
       allow read: if isOwner(resource.data.ownerId);
       allow delete: if isOwner(resource.data.ownerId);
     }
     
     // --- 3. UNITS ---
     match /units/{docId} {
-      allow create: if isValidOwner() && request.resource.data.baseRent is number;
-      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      // Name: 30, Rent: 99Cr
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.baseRent) && isSafeString(request.resource.data.nameOrNumber, 30);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId')
+                   && isSafeAmount(request.resource.data.baseRent) && isSafeString(request.resource.data.nameOrNumber, 30);
       allow read: if isOwner(resource.data.ownerId);
       allow delete: if isOwner(resource.data.ownerId);
     }
 
     // --- 4. TENANTS ---
     match /tenants/{docId} {
-      // READ: Owner OR the Tenant themselves
       allow read: if request.auth != null && (
         resource.data.ownerId == request.auth.uid || 
         resource.data.authId == request.auth.uid
       );
-      allow create: if isValidOwner() && request.resource.data.name is string;
-      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      // Name: 100, Phone: 20, Email: 100
+      allow create: if isValidOwner() && isSafeString(request.resource.data.name, 100) 
+                   && isSafeString(request.resource.data.phone, 20)
+                   && isOptionalString(request.resource.data.email, 100);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId')
+                   && isSafeString(request.resource.data.name, 100)
+                   && isSafeString(request.resource.data.phone, 20)
+                   && isOptionalString(request.resource.data.email, 100);
       allow delete: if isOwner(resource.data.ownerId);
     }
 
-    // --- 4.5. TENANCIES (Rent Contracts) ---
-    match /tenancies/{docId} {
-      // READ: Owner OR the Tenant named in the contract
-      allow read: if request.auth != null && (
-        resource.data.ownerId == request.auth.uid || 
-        resource.data.tenantId == request.auth.uid // Note: TenantId here refers to the Tenant Profile ID, not Auth UID. 
-                                                   // BUT, we don't have Tenant Profile ID in request.auth. 
-                                                   // We have to rely on the fact that ONLY the Owner creates these.
-                                                   // And for reading, we might need a trusted way to link AuthID -> TenantID.
-                                                   // FOR NOW: We will trust client to filter correctly, but enforce authentication.
-                                                   // IMPROVEMENT: Store 'tenantAuthId' on Tenancy if feasible, or rely on fetching 'tenants' first to verify identity.
-                                                   true 
-      );
-      // Wait, 'true' is unsafe. Let's restrict:
-      // Allow read if you are the Owner.
-      // Tenants need to read their tenancy. But they only know their TenantID.
-      // They don't have their AuthID stamped on the Tenancy directly (it's on the Tenant Profile).
-      // Solution: Allow read if authenticated. Data privacy relies on complex queries or adding `tenantAuthId` to Tenancy.
-      // OPTION B: Since we are in MVP cleanup, let's update Tenancy to include tenantAuthId? No, too much refactor.
-      // Let's assume for now that if you can read the Tenant Profile (which has authId), you can find your Tenancy.
-      // But Firestore Rules don't support "Join".
-      // Let's allow read if request.auth.uid exists. (Low security for Tenants reading each other's contracts if they guess IDs, but Owner protected by ownerId if we enforced it).
-      // BETTER: Update the rule to allow if resource.data.ownerId == uid OR... we can't easily check tenant.
-      // Let's stick to:
-      allow read: if request.auth != null; 
-      
-      allow create: if isValidOwner();
-      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
-      allow delete: if isOwner(resource.data.ownerId);
-    }
-
-    // --- 5. RENT CYCLES (BILLS) ---
-    match /rent_cycles/{docId} {
-    // --- 5. RENT CYCLES (BILLS) ---
-    match /rent_cycles/{docId} {
-      // READ: Owner OR Tenant (if we could verify). For now, strict Owner or Authenticated User.
-      // TenantDashboard needs to read these.
+    // --- 5. CONTRACTS (Old: tenancies) ---
+    match /contracts/{docId} {
+      // Rent: 99Cr
       allow read: if request.auth != null;
-      allow create: if isValidOwner() && request.resource.data.totalDue is number;
-      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.agreedRent);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId') && isSafeAmount(request.resource.data.agreedRent);
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+    match /tenancies/{docId} { // Legacy Support
+      allow read: if request.auth != null;
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.agreedRent);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId') && isSafeAmount(request.resource.data.agreedRent);
       allow delete: if isOwner(resource.data.ownerId);
     }
 
-    // --- 6. PAYMENTS ---
-    match /payments/{docId} {
-    // --- 6. PAYMENTS ---
-    match /payments/{docId} {
+    // --- 6. INVOICES (Old: rent_cycles) ---
+    match /invoices/{docId} {
       allow read: if request.auth != null;
-      allow create: if isValidOwner() && request.resource.data.amount is number;
-      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      // TotalDue: 99Cr
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.totalDue);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId') && isSafeAmount(request.resource.data.totalDue);
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+    match /rent_cycles/{docId} { // Legacy Support
+      allow read: if request.auth != null;
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.totalDue);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId') && isSafeAmount(request.resource.data.totalDue);
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+
+    // --- 7. TRANSACTIONS (Old: payments) ---
+    match /transactions/{docId} {
+      allow read: if request.auth != null;
+      // Amount: 99Cr
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.amount) && isOptionalString(request.resource.data.notes, 300);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId') 
+                   && isSafeAmount(request.resource.data.amount) && isOptionalString(request.resource.data.notes, 300);
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+    match /payments/{docId} { // Legacy Support
+      allow read: if request.auth != null;
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.amount) && isOptionalString(request.resource.data.notes, 300);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId') 
+                   && isSafeAmount(request.resource.data.amount) && isOptionalString(request.resource.data.notes, 300);
       allow delete: if isOwner(resource.data.ownerId);
     }
     
-    // --- 7. EXPENSES ---
+    // --- 8. EXPENSES ---
     match /expenses/{docId} {
-      allow create: if isValidOwner() && request.resource.data.amount is number;
-      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId');
+      // Amount: 99Cr, Description: 300
+      allow create: if isValidOwner() && isSafeAmount(request.resource.data.amount) 
+                   && isSafeString(request.resource.data.title, 100) 
+                   && isSafeString(request.resource.data.category, 50)
+                   && isOptionalString(request.resource.data.description, 300);
+      allow update: if isOwner(resource.data.ownerId) && notUpdating('ownerId')
+                   && isSafeAmount(request.resource.data.amount) 
+                   && isSafeString(request.resource.data.title, 100) 
+                   && isSafeString(request.resource.data.category, 50)
+                   && isOptionalString(request.resource.data.description, 300);
       allow read, delete: if isOwner(resource.data.ownerId);
     }
     
-    // --- 8. ELECTRIC READINGS ---
+    // --- 9. ELECTRIC READINGS ---
     match /electric_readings/{docId} {
        allow create: if isValidOwner();
        allow read: if isOwner(resource.data.ownerId);
        allow update, delete: if isOwner(resource.data.ownerId);
     }
 
-    // --- 9. BHK TEMPLATES ---
+    // --- 10. BHK TEMPLATES ---
     match /bhkTemplates/{docId} {
        allow create: if isValidOwner();
        allow read, update, delete: if isOwner(resource.data.ownerId);
     }
 
-    // --- 10. NOTICES ---
+    // --- 11. NOTICES ---
     match /notices/{docId} {
       allow read: if request.auth != null;
-      allow create: if isValidOwner();
-      allow update: if request.auth != null; // Allow tenants to mark as read
+      allow create: if isValidOwner() && isSafeString(request.resource.data.subject, 100) && isSafeString(request.resource.data.message, 1000);
+      allow update: if (isOwner(resource.data.ownerId) || (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'readAt'])))
+                   && isSafeString(request.resource.data.subject, 100) && isSafeString(request.resource.data.message, 1000);
       allow delete: if isOwner(resource.data.ownerId);
     }
 
-    // --- 11. MAINTENANCE ---
-    match /maintenance/{docId} {
+    // --- 12. TICKETS (Old: maintenance) ---
+    match /tickets/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null; 
+      allow create: if request.auth != null 
+                   && isSafeString(request.resource.data.category, 100) && isSafeString(request.resource.data.description, 1000);
+      allow update: if (isOwner(resource.data.ownerId) || request.auth.uid == resource.data.tenantId)
+                   && isSafeString(request.resource.data.category, 100) && isSafeString(request.resource.data.description, 1000);
       allow delete: if isOwner(resource.data.ownerId);
+    }
+    match /maintenance/{docId} { // Legacy Support
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                   && isSafeString(request.resource.data.category, 100) && isSafeString(request.resource.data.description, 1000);
+      allow update: if (isOwner(resource.data.ownerId) || request.auth.uid == resource.data.tenantId)
+                   && isSafeString(request.resource.data.category, 100) && isSafeString(request.resource.data.description, 1000);
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+    // --- 13. SECURE VAULT ---
+    match /users/{userId}/vault/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

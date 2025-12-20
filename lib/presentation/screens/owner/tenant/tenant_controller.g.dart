@@ -6,7 +6,7 @@ part of 'tenant_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$activeTenancyHash() => r'6901be231873fcf714eb0de04dd8da874e5ff0e1';
+String _$activeTenancyHash() => r'f33167ba4bed5f9f212a2bd15382b2e5d51f9173';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -72,7 +72,7 @@ class ActiveTenancyFamily extends Family<AsyncValue<Tenancy?>> {
 }
 
 /// See also [activeTenancy].
-class ActiveTenancyProvider extends AutoDisposeFutureProvider<Tenancy?> {
+class ActiveTenancyProvider extends AutoDisposeStreamProvider<Tenancy?> {
   /// See also [activeTenancy].
   ActiveTenancyProvider(
     String tenantId,
@@ -107,7 +107,7 @@ class ActiveTenancyProvider extends AutoDisposeFutureProvider<Tenancy?> {
 
   @override
   Override overrideWith(
-    FutureOr<Tenancy?> Function(ActiveTenancyRef provider) create,
+    Stream<Tenancy?> Function(ActiveTenancyRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
@@ -124,7 +124,7 @@ class ActiveTenancyProvider extends AutoDisposeFutureProvider<Tenancy?> {
   }
 
   @override
-  AutoDisposeFutureProviderElement<Tenancy?> createElement() {
+  AutoDisposeStreamProviderElement<Tenancy?> createElement() {
     return _ActiveTenancyProviderElement(this);
   }
 
@@ -144,20 +144,192 @@ class ActiveTenancyProvider extends AutoDisposeFutureProvider<Tenancy?> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ActiveTenancyRef on AutoDisposeFutureProviderRef<Tenancy?> {
+mixin ActiveTenancyRef on AutoDisposeStreamProviderRef<Tenancy?> {
   /// The parameter `tenantId` of this provider.
   String get tenantId;
 }
 
 class _ActiveTenancyProviderElement
-    extends AutoDisposeFutureProviderElement<Tenancy?> with ActiveTenancyRef {
+    extends AutoDisposeStreamProviderElement<Tenancy?> with ActiveTenancyRef {
   _ActiveTenancyProviderElement(super.provider);
 
   @override
   String get tenantId => (origin as ActiveTenancyProvider).tenantId;
 }
 
-String _$tenantControllerHash() => r'bd515506413c542466f7d38634c317fc48d4ded7';
+String _$activeTenancyForTenantAccessHash() =>
+    r'3f855d670491beeea13e242469ca4c53bb0ce722';
+
+/// For TENANT-SIDE ACCESS: Uses ownerId from tenant profile
+/// because tenants log in with their own Firebase Auth credentials, not the owner's.
+///
+/// Copied from [activeTenancyForTenantAccess].
+@ProviderFor(activeTenancyForTenantAccess)
+const activeTenancyForTenantAccessProvider =
+    ActiveTenancyForTenantAccessFamily();
+
+/// For TENANT-SIDE ACCESS: Uses ownerId from tenant profile
+/// because tenants log in with their own Firebase Auth credentials, not the owner's.
+///
+/// Copied from [activeTenancyForTenantAccess].
+class ActiveTenancyForTenantAccessFamily extends Family<AsyncValue<Tenancy?>> {
+  /// For TENANT-SIDE ACCESS: Uses ownerId from tenant profile
+  /// because tenants log in with their own Firebase Auth credentials, not the owner's.
+  ///
+  /// Copied from [activeTenancyForTenantAccess].
+  const ActiveTenancyForTenantAccessFamily();
+
+  /// For TENANT-SIDE ACCESS: Uses ownerId from tenant profile
+  /// because tenants log in with their own Firebase Auth credentials, not the owner's.
+  ///
+  /// Copied from [activeTenancyForTenantAccess].
+  ActiveTenancyForTenantAccessProvider call(
+    String tenantId,
+    String ownerId,
+  ) {
+    return ActiveTenancyForTenantAccessProvider(
+      tenantId,
+      ownerId,
+    );
+  }
+
+  @override
+  ActiveTenancyForTenantAccessProvider getProviderOverride(
+    covariant ActiveTenancyForTenantAccessProvider provider,
+  ) {
+    return call(
+      provider.tenantId,
+      provider.ownerId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'activeTenancyForTenantAccessProvider';
+}
+
+/// For TENANT-SIDE ACCESS: Uses ownerId from tenant profile
+/// because tenants log in with their own Firebase Auth credentials, not the owner's.
+///
+/// Copied from [activeTenancyForTenantAccess].
+class ActiveTenancyForTenantAccessProvider
+    extends AutoDisposeStreamProvider<Tenancy?> {
+  /// For TENANT-SIDE ACCESS: Uses ownerId from tenant profile
+  /// because tenants log in with their own Firebase Auth credentials, not the owner's.
+  ///
+  /// Copied from [activeTenancyForTenantAccess].
+  ActiveTenancyForTenantAccessProvider(
+    String tenantId,
+    String ownerId,
+  ) : this._internal(
+          (ref) => activeTenancyForTenantAccess(
+            ref as ActiveTenancyForTenantAccessRef,
+            tenantId,
+            ownerId,
+          ),
+          from: activeTenancyForTenantAccessProvider,
+          name: r'activeTenancyForTenantAccessProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$activeTenancyForTenantAccessHash,
+          dependencies: ActiveTenancyForTenantAccessFamily._dependencies,
+          allTransitiveDependencies:
+              ActiveTenancyForTenantAccessFamily._allTransitiveDependencies,
+          tenantId: tenantId,
+          ownerId: ownerId,
+        );
+
+  ActiveTenancyForTenantAccessProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.tenantId,
+    required this.ownerId,
+  }) : super.internal();
+
+  final String tenantId;
+  final String ownerId;
+
+  @override
+  Override overrideWith(
+    Stream<Tenancy?> Function(ActiveTenancyForTenantAccessRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: ActiveTenancyForTenantAccessProvider._internal(
+        (ref) => create(ref as ActiveTenancyForTenantAccessRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        tenantId: tenantId,
+        ownerId: ownerId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeStreamProviderElement<Tenancy?> createElement() {
+    return _ActiveTenancyForTenantAccessProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ActiveTenancyForTenantAccessProvider &&
+        other.tenantId == tenantId &&
+        other.ownerId == ownerId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, tenantId.hashCode);
+    hash = _SystemHash.combine(hash, ownerId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ActiveTenancyForTenantAccessRef
+    on AutoDisposeStreamProviderRef<Tenancy?> {
+  /// The parameter `tenantId` of this provider.
+  String get tenantId;
+
+  /// The parameter `ownerId` of this provider.
+  String get ownerId;
+}
+
+class _ActiveTenancyForTenantAccessProviderElement
+    extends AutoDisposeStreamProviderElement<Tenancy?>
+    with ActiveTenancyForTenantAccessRef {
+  _ActiveTenancyForTenantAccessProviderElement(super.provider);
+
+  @override
+  String get tenantId =>
+      (origin as ActiveTenancyForTenantAccessProvider).tenantId;
+  @override
+  String get ownerId =>
+      (origin as ActiveTenancyForTenantAccessProvider).ownerId;
+}
+
+String _$tenantControllerHash() => r'de4043536f262cd6cd19cfa1969f8f010fe6613b';
 
 /// See also [TenantController].
 @ProviderFor(TenantController)

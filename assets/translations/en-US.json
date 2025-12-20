@@ -65,13 +65,18 @@
         "empty_title": "No tenants found",
         "active": "Active",
         "inactive": "Inactive",
-        "delete": "Delete"
+        "delete": "Delete",
+        "scan_id": "Scan ID Card",
+        "scan_success": "ID Scanned Successfully!",
+        "scan_fail": "Could not detect ID details clearly. Please try again or enter manually.",
+        "scan_tip": "💡 Tip: Click the icon to scan Aadhaar/ID automatically"
     },
     "reports": {
         "title": "Reports & Analytics",
         "financial_overview": "Financial Overview",
         "this_month": "This Month",
         "collected": "Collected",
+        "pending": "Pending",
         "total": "Total",
         "expenses": "Expenses",
         "net_profit": "NET PROFIT",
@@ -111,6 +116,8 @@
         "help_center": "Help Center",
         "contact_us": "Contact Us",
         "terms": "Terms & Privacy",
+        "timezone": "Timezone",
+        "tekirayabook": "About KirayaBook",
         "danger_zone": "Danger Zone",
         "danger_warning": "These actions are irreversible. Please be certain.",
         "reset_data": "Reset All Data",

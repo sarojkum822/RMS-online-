@@ -23,8 +23,13 @@ class AdService {
   }
 
   Future<void> initialize() async {
-    await MobileAds.instance.initialize();
-    loadRewardedAd(); // Preload Rewarded Ad
+    try {
+      await MobileAds.instance.initialize();
+      loadRewardedAd(); // Preload Rewarded Ad
+    } catch (e) {
+      debugPrint('AdService: Failed to initialize ads: $e');
+      // Continue without ads - don't crash the app
+    }
   }
 
   BannerAd createBannerAd({required Function() onLoaded, Function(LoadAdError)? onFail, AdSize size = AdSize.banner}) {

@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
 import 'house_controller.dart';
@@ -19,13 +22,15 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
   late TextEditingController _floorCtrl;
   late TextEditingController _baseRentCtrl;
   
-  int? _selectedBhkTemplateId;
+  String? _selectedBhkTemplateId;
   String? _selectedBhkType;
   
   late TextEditingController _carpetAreaCtrl;
   late TextEditingController _parkingCtrl;
   late TextEditingController _meterCtrl;
+  late TextEditingController _defaultDueDayCtrl;
   String? _furnishingStatus;
+  List<String> _imagesBase64 = []; // NEW: Unit images
 
   @override
   void initState() {
@@ -39,7 +44,9 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
     _carpetAreaCtrl = TextEditingController(text: widget.unit.carpetArea?.toString() ?? '');
     _parkingCtrl = TextEditingController(text: widget.unit.parkingSlot ?? '');
     _meterCtrl = TextEditingController(text: widget.unit.meterNumber ?? '');
+    _defaultDueDayCtrl = TextEditingController(text: widget.unit.defaultDueDay.toString());
     _furnishingStatus = widget.unit.furnishingStatus;
+    _imagesBase64 = List.from(widget.unit.imagesBase64); // NEW: Load existing images
   }
 
   @override
@@ -50,6 +57,7 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
     _carpetAreaCtrl.dispose();
     _parkingCtrl.dispose();
     _meterCtrl.dispose();
+    _defaultDueDayCtrl.dispose(); // NEW
     super.dispose();
   }
 
@@ -99,14 +107,14 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
                    );
                  }
                  
-                 return DropdownButtonFormField<int>(
-                   initialValue: _selectedBhkTemplateId,
+                 return DropdownButtonFormField<String>(
+                   value: _selectedBhkTemplateId,
                    decoration: const InputDecoration(
                      labelText: 'Select BHK Type',
                      border: OutlineInputBorder(),
                    ),
                    items: templates.map((t) {
-                     return DropdownMenuItem(
+                     return DropdownMenuItem<String>(
                        value: t.id,
                        child: Text('${t.bhkType} - ₹${t.defaultRent}'),
                      );
@@ -175,6 +183,77 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
               controller: _meterCtrl,
               decoration: const InputDecoration(labelText: 'Electric Meter #', border: OutlineInputBorder()),
             ),
+            const SizedBox(height: 12),
+            // Default Due Day
+            TextFormField(
+              controller: _defaultDueDayCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Default Due Day',
+                helperText: 'Day of month when rent is due (1-28)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            // Unit Photos Section (NEW)
+            const SizedBox(height: 24),
+            Text('Unit Photos', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+            const SizedBox(height: 8),
+            Text('Add up to 4 photos of this unit', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ..._imagesBase64.asMap().entries.map((entry) {
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(
+                          base64Decode(entry.value),
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: -8,
+                        right: -8,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          color: Colors.red,
+                          onPressed: () {
+                            setState(() => _imagesBase64.removeAt(entry.key));
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+                if (_imagesBase64.length < 4)
+                  InkWell(
+                    onTap: () async {
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 600, maxHeight: 600);
+                      if (picked != null) {
+                        final bytes = await File(picked.path).readAsBytes();
+                        final base64 = base64Encode(bytes);
+                        setState(() => _imagesBase64.add(base64));
+                      }
+                    },
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.add_a_photo, color: Colors.grey.shade400, size: 28),
+                    ),
+                  ),
+              ],
+            ),
 
             const SizedBox(height: 32),
             ElevatedButton(
@@ -206,6 +285,8 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
       carpetArea: double.tryParse(_carpetAreaCtrl.text),
       parkingSlot: _parkingCtrl.text.isEmpty ? null : _parkingCtrl.text,
       meterNumber: _meterCtrl.text.isEmpty ? null : _meterCtrl.text,
+      defaultDueDay: int.tryParse(_defaultDueDayCtrl.text) ?? 1,
+      imagesBase64: _imagesBase64, // NEW
     );
     
     await repo.updateUnit(updatedUnit);

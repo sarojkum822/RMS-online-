@@ -28,11 +28,19 @@ mixin _$Tenant {
   String get ownerId =>
       throw _privateConstructorUsedError; // NEW: Needed for fetching payments
   bool get isActive => throw _privateConstructorUsedError;
-  String? get password => throw _privateConstructorUsedError;
   String? get imageUrl => throw _privateConstructorUsedError;
   String? get imageBase64 =>
       throw _privateConstructorUsedError; // NEW: Base64 Storage
-  String? get authId => throw _privateConstructorUsedError;
+  String? get authId =>
+      throw _privateConstructorUsedError; // Firebase Auth UID for secure login
+  double get advanceAmount => throw _privateConstructorUsedError;
+  bool get policeVerification => throw _privateConstructorUsedError;
+  String? get idProof => throw _privateConstructorUsedError;
+  String? get address => throw _privateConstructorUsedError;
+  String? get dob => throw _privateConstructorUsedError; // NEW
+  String? get gender => throw _privateConstructorUsedError; // NEW
+  int get memberCount => throw _privateConstructorUsedError;
+  String? get notes => throw _privateConstructorUsedError;
 
   /// Serializes this Tenant to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -56,10 +64,17 @@ abstract class $TenantCopyWith<$Res> {
       String? email,
       String ownerId,
       bool isActive,
-      String? password,
       String? imageUrl,
       String? imageBase64,
-      String? authId});
+      String? authId,
+      double advanceAmount,
+      bool policeVerification,
+      String? idProof,
+      String? address,
+      String? dob,
+      String? gender,
+      int memberCount,
+      String? notes});
 }
 
 /// @nodoc
@@ -84,10 +99,17 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
     Object? email = freezed,
     Object? ownerId = null,
     Object? isActive = null,
-    Object? password = freezed,
     Object? imageUrl = freezed,
     Object? imageBase64 = freezed,
     Object? authId = freezed,
+    Object? advanceAmount = null,
+    Object? policeVerification = null,
+    Object? idProof = freezed,
+    Object? address = freezed,
+    Object? dob = freezed,
+    Object? gender = freezed,
+    Object? memberCount = null,
+    Object? notes = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -118,10 +140,6 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
               as bool,
-      password: freezed == password
-          ? _value.password
-          : password // ignore: cast_nullable_to_non_nullable
-              as String?,
       imageUrl: freezed == imageUrl
           ? _value.imageUrl
           : imageUrl // ignore: cast_nullable_to_non_nullable
@@ -133,6 +151,38 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
       authId: freezed == authId
           ? _value.authId
           : authId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      advanceAmount: null == advanceAmount
+          ? _value.advanceAmount
+          : advanceAmount // ignore: cast_nullable_to_non_nullable
+              as double,
+      policeVerification: null == policeVerification
+          ? _value.policeVerification
+          : policeVerification // ignore: cast_nullable_to_non_nullable
+              as bool,
+      idProof: freezed == idProof
+          ? _value.idProof
+          : idProof // ignore: cast_nullable_to_non_nullable
+              as String?,
+      address: freezed == address
+          ? _value.address
+          : address // ignore: cast_nullable_to_non_nullable
+              as String?,
+      dob: freezed == dob
+          ? _value.dob
+          : dob // ignore: cast_nullable_to_non_nullable
+              as String?,
+      gender: freezed == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
+              as String?,
+      memberCount: null == memberCount
+          ? _value.memberCount
+          : memberCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
               as String?,
     ) as $Val);
   }
@@ -153,10 +203,17 @@ abstract class _$$TenantImplCopyWith<$Res> implements $TenantCopyWith<$Res> {
       String? email,
       String ownerId,
       bool isActive,
-      String? password,
       String? imageUrl,
       String? imageBase64,
-      String? authId});
+      String? authId,
+      double advanceAmount,
+      bool policeVerification,
+      String? idProof,
+      String? address,
+      String? dob,
+      String? gender,
+      int memberCount,
+      String? notes});
 }
 
 /// @nodoc
@@ -179,10 +236,17 @@ class __$$TenantImplCopyWithImpl<$Res>
     Object? email = freezed,
     Object? ownerId = null,
     Object? isActive = null,
-    Object? password = freezed,
     Object? imageUrl = freezed,
     Object? imageBase64 = freezed,
     Object? authId = freezed,
+    Object? advanceAmount = null,
+    Object? policeVerification = null,
+    Object? idProof = freezed,
+    Object? address = freezed,
+    Object? dob = freezed,
+    Object? gender = freezed,
+    Object? memberCount = null,
+    Object? notes = freezed,
   }) {
     return _then(_$TenantImpl(
       id: null == id
@@ -213,10 +277,6 @@ class __$$TenantImplCopyWithImpl<$Res>
           ? _value.isActive
           : isActive // ignore: cast_nullable_to_non_nullable
               as bool,
-      password: freezed == password
-          ? _value.password
-          : password // ignore: cast_nullable_to_non_nullable
-              as String?,
       imageUrl: freezed == imageUrl
           ? _value.imageUrl
           : imageUrl // ignore: cast_nullable_to_non_nullable
@@ -228,6 +288,38 @@ class __$$TenantImplCopyWithImpl<$Res>
       authId: freezed == authId
           ? _value.authId
           : authId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      advanceAmount: null == advanceAmount
+          ? _value.advanceAmount
+          : advanceAmount // ignore: cast_nullable_to_non_nullable
+              as double,
+      policeVerification: null == policeVerification
+          ? _value.policeVerification
+          : policeVerification // ignore: cast_nullable_to_non_nullable
+              as bool,
+      idProof: freezed == idProof
+          ? _value.idProof
+          : idProof // ignore: cast_nullable_to_non_nullable
+              as String?,
+      address: freezed == address
+          ? _value.address
+          : address // ignore: cast_nullable_to_non_nullable
+              as String?,
+      dob: freezed == dob
+          ? _value.dob
+          : dob // ignore: cast_nullable_to_non_nullable
+              as String?,
+      gender: freezed == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
+              as String?,
+      memberCount: null == memberCount
+          ? _value.memberCount
+          : memberCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
   }
@@ -244,10 +336,17 @@ class _$TenantImpl implements _Tenant {
       this.email,
       required this.ownerId,
       this.isActive = true,
-      this.password,
       this.imageUrl,
       this.imageBase64,
-      this.authId});
+      this.authId,
+      this.advanceAmount = 0.0,
+      this.policeVerification = false,
+      this.idProof,
+      this.address,
+      this.dob,
+      this.gender,
+      this.memberCount = 1,
+      this.notes});
 
   factory _$TenantImpl.fromJson(Map<String, dynamic> json) =>
       _$$TenantImplFromJson(json);
@@ -270,18 +369,38 @@ class _$TenantImpl implements _Tenant {
   @JsonKey()
   final bool isActive;
   @override
-  final String? password;
-  @override
   final String? imageUrl;
   @override
   final String? imageBase64;
 // NEW: Base64 Storage
   @override
   final String? authId;
+// Firebase Auth UID for secure login
+  @override
+  @JsonKey()
+  final double advanceAmount;
+  @override
+  @JsonKey()
+  final bool policeVerification;
+  @override
+  final String? idProof;
+  @override
+  final String? address;
+  @override
+  final String? dob;
+// NEW
+  @override
+  final String? gender;
+// NEW
+  @override
+  @JsonKey()
+  final int memberCount;
+  @override
+  final String? notes;
 
   @override
   String toString() {
-    return 'Tenant(id: $id, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, ownerId: $ownerId, isActive: $isActive, password: $password, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId)';
+    return 'Tenant(id: $id, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, ownerId: $ownerId, isActive: $isActive, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId, advanceAmount: $advanceAmount, policeVerification: $policeVerification, idProof: $idProof, address: $address, dob: $dob, gender: $gender, memberCount: $memberCount, notes: $notes)';
   }
 
   @override
@@ -298,19 +417,46 @@ class _$TenantImpl implements _Tenant {
             (identical(other.ownerId, ownerId) || other.ownerId == ownerId) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
-            (identical(other.password, password) ||
-                other.password == password) &&
             (identical(other.imageUrl, imageUrl) ||
                 other.imageUrl == imageUrl) &&
             (identical(other.imageBase64, imageBase64) ||
                 other.imageBase64 == imageBase64) &&
-            (identical(other.authId, authId) || other.authId == authId));
+            (identical(other.authId, authId) || other.authId == authId) &&
+            (identical(other.advanceAmount, advanceAmount) ||
+                other.advanceAmount == advanceAmount) &&
+            (identical(other.policeVerification, policeVerification) ||
+                other.policeVerification == policeVerification) &&
+            (identical(other.idProof, idProof) || other.idProof == idProof) &&
+            (identical(other.address, address) || other.address == address) &&
+            (identical(other.dob, dob) || other.dob == dob) &&
+            (identical(other.gender, gender) || other.gender == gender) &&
+            (identical(other.memberCount, memberCount) ||
+                other.memberCount == memberCount) &&
+            (identical(other.notes, notes) || other.notes == notes));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, tenantCode, name, phone,
-      email, ownerId, isActive, password, imageUrl, imageBase64, authId);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      tenantCode,
+      name,
+      phone,
+      email,
+      ownerId,
+      isActive,
+      imageUrl,
+      imageBase64,
+      authId,
+      advanceAmount,
+      policeVerification,
+      idProof,
+      address,
+      dob,
+      gender,
+      memberCount,
+      notes);
 
   /// Create a copy of Tenant
   /// with the given fields replaced by the non-null parameter values.
@@ -337,10 +483,17 @@ abstract class _Tenant implements Tenant {
       final String? email,
       required final String ownerId,
       final bool isActive,
-      final String? password,
       final String? imageUrl,
       final String? imageBase64,
-      final String? authId}) = _$TenantImpl;
+      final String? authId,
+      final double advanceAmount,
+      final bool policeVerification,
+      final String? idProof,
+      final String? address,
+      final String? dob,
+      final String? gender,
+      final int memberCount,
+      final String? notes}) = _$TenantImpl;
 
   factory _Tenant.fromJson(Map<String, dynamic> json) = _$TenantImpl.fromJson;
 
@@ -359,13 +512,27 @@ abstract class _Tenant implements Tenant {
   @override
   bool get isActive;
   @override
-  String? get password;
-  @override
   String? get imageUrl;
   @override
   String? get imageBase64; // NEW: Base64 Storage
   @override
-  String? get authId;
+  String? get authId; // Firebase Auth UID for secure login
+  @override
+  double get advanceAmount;
+  @override
+  bool get policeVerification;
+  @override
+  String? get idProof;
+  @override
+  String? get address;
+  @override
+  String? get dob; // NEW
+  @override
+  String? get gender; // NEW
+  @override
+  int get memberCount;
+  @override
+  String? get notes;
 
   /// Create a copy of Tenant
   /// with the given fields replaced by the non-null parameter values.

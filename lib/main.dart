@@ -11,10 +11,8 @@ import 'core/services/notification_service.dart';
 // Corrected path
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'core/services/user_session_service.dart';
-import 'domain/entities/tenant.dart';
 
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // NEW IMPORT
+// NEW IMPORT
 import 'presentation/providers/data_providers.dart'; // NEW import
 import 'core/theme/theme_provider.dart';
 
@@ -35,7 +33,10 @@ void main() async {
     notificationService.initialize().catchError((e) => debugPrint('Notif Init Error: $e'));
 
     // Initialize Ads
-    MobileAds.instance.initialize().catchError((e) => debugPrint('AdMob Init Error: $e'));
+    MobileAds.instance.initialize().catchError((e) {
+      debugPrint('AdMob Init Error: $e');
+      return InitializationStatus({}); // Return dummy status on error
+    });
 
     // 1. Global Error Handling
     FlutterError.onError = (FlutterErrorDetails details) {

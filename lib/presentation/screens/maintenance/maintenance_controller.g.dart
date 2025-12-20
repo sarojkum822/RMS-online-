@@ -7,7 +7,7 @@ part of 'maintenance_controller.dart';
 // **************************************************************************
 
 String _$maintenanceControllerHash() =>
-    r'3af7d9baf39009659934cd93cfb326dac6a46eb9';
+    r'f039b9d71b331573275dd905c48f35acc152f12d';
 
 /// See also [MaintenanceController].
 @ProviderFor(MaintenanceController)

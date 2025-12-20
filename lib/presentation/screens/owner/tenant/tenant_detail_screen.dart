@@ -14,7 +14,7 @@ import 'package:in_app_review/in_app_review.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import 'package:printing/printing.dart'; // NEW
 import '../../../../core/services/pdf_service.dart'; // NEW
-import 'package:rentpilotpro/presentation/screens/owner/settings/owner_controller.dart'; // NEW
+import 'package:kirayabook/presentation/screens/owner/settings/owner_controller.dart'; // NEW
 import 'tenant_form_screen.dart'; // NEW
 import 'tenant_controller.dart';
 
@@ -100,7 +100,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (value) {
-                if (value == 'move_out') _confirmMoveOut(context, ref, currentTenant);
+                if (value == 'move_out') _confirmMoveOut(context, ref, currentTenant, currentTenancy?.id);
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -121,30 +121,27 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         child: Column(
           children: [
             // Compact Gradient Header
-            Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
+            Column(
               children: [
-                  Container(
-                    height: headerHeight * 0.6, 
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                           Color(0xFF2C2C2C), // Matte Black Top
-                           Color(0xFF000000), // Pure Black Bottom
-                        ],
-                      ),
-                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1), // White border
+                // Dynamic Gradient Header Container
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                         Color(0xFF2C2C2C), // Matte Black Top
+                         Color(0xFF000000), // Pure Black Bottom
+                      ],
                     ),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                    border: Border(
+                      bottom: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
+                    ), 
                   ),
-                  
-                  // Content
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 80, 20, 0), // Removed bottom padding to fill space better
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 100, 20, 60), 
                     child: Column(
                       children: [
                         // Avatar and Basic Info Row
@@ -154,7 +151,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                               padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                               ),
                               child: CircleAvatar(
                                 radius: 32, 
@@ -190,177 +187,437 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  Row(
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        // Phone with Copy
+                                        InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: currentTenant.phone));
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Phone number copied to clipboard'), duration: Duration(seconds: 1)),
+                                            );
+                                          },
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.phone, size: 12, color: Colors.greenAccent),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  currentTenant.phone,
+                                                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                const Icon(Icons.copy, size: 10, color: Colors.white54),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // ID with Copy
+                                        InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: currentTenant.id.toString()));
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('ID copied to clipboard'), duration: Duration(seconds: 1)),
+                                            );
+                                          },
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'ID: ${currentTenant.id.length > 12 ? '${currentTenant.id.substring(0, 12)}...' : currentTenant.id}',
+                                                  style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                const Icon(Icons.copy, size: 10, color: Colors.white54),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  
+                                  // NEW FIELDS DISPLAY
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
                                     children: [
-                                      // Phone with Copy
-                                      InkWell(
-                                        onTap: () {
-                                          Clipboard.setData(ClipboardData(text: currentTenant.phone));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Phone number copied to clipboard'), duration: Duration(seconds: 1)),
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                       if(currentTenant.policeVerification)
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                         decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.blue.withValues(alpha: 0.5))),
+                                         child: Row(
+                                           mainAxisSize: MainAxisSize.min,
+                                           children: [
+                                             const Icon(Icons.verified_user, color: Colors.blueAccent, size: 12),
+                                             const SizedBox(width: 4),
+                                             Text('Police Verified', style: GoogleFonts.outfit(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                           ],
+                                         ),
+                                       ),
+
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                         decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                         child: Row(
+                                           mainAxisSize: MainAxisSize.min,
+                                           children: [
+                                             const Icon(Icons.people, color: Colors.white70, size: 12),
+                                             const SizedBox(width: 4),
+                                             Text('${currentTenant.memberCount} Mbrs', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11)),
+                                           ],
+                                         ),
+                                       ),
+                                       
+                                       if(currentTenant.idProof != null && currentTenant.idProof!.isNotEmpty)
+                                       InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: currentTenant.idProof!));
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID Proof Copied')));
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                            child: Text('ID: ${currentTenant.idProof}', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11)),
                                           ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.phone, size: 12, color: Colors.greenAccent),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                currentTenant.phone,
-                                                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(Icons.copy, size: 10, color: Colors.white54),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // ID with Copy
-                                      InkWell(
-                                        onTap: () {
-                                          Clipboard.setData(ClipboardData(text: currentTenant.id.toString()));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('ID copied to clipboard'), duration: Duration(seconds: 1)),
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                'ID: ${currentTenant.id}',
-                                                style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
-                                              ),
-                                               const SizedBox(width: 4),
-                                              const Icon(Icons.copy, size: 10, color: Colors.white54),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
+                                       ),
                                     ],
                                   ),
+                                  
+                                  if(currentTenant.address != null && currentTenant.address!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.location_on, color: Colors.white54, size: 12),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            currentTenant.address!, 
+                                            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12),
+                                            maxLines: 1, 
+                                            overflow: TextOverflow.ellipsis
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
                                 ],
                               ),
                             ),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Unit & Reading Card (Overlapping)
+                Transform.translate(
+                  offset: const Offset(0, -40), // Move Up to Overlap
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor, // Adapts to Dark Mode
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Unit Info
+                          Expanded(
+                              child: Consumer(
+                              builder: (context, ref, _) {
+                                if (unitId == null) return const Text('No Unit Assigned');
+                                final unitValue = ref.watch(unitDetailsProvider(unitId));
+                                return Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? Colors.blue.withValues(alpha: 0.1) : Colors.blue.shade50, 
+                                        borderRadius: BorderRadius.circular(8)
+                                      ),
+                                      child: const Icon(Icons.apartment, color: Colors.blue, size: 20),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Unit Details', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                                          Text(
+                                            unitValue.when(
+                                              data: (u) => '${u?.nameOrNumber ?? '-'} • ₹${u?.editableRent?.toInt() ?? 0}',
+                                              error: (_,__) => 'Error',
+                                              loading: () => '...',
+                                            ),
+                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                          Container(width: 1, height: 40, color: Colors.grey.shade200), // Divider
+                          // Initial Reading
+                          Expanded(
+                            child: Consumer(
+                              builder: (context, ref, _) {
+                                if (unitId == null) return const Center(child: Text('-'));
+                                final readingValue = ref.watch(initialReadingProvider(unitId));
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text('Initial Reading', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
+                                        Text(
+                                          readingValue.when(
+                                            data: (r) => r?.toString() ?? 'N/A',
+                                            error: (_,__) => '-',
+                                            loading: () => '...',
+                                          ),
+                                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange.shade800),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 12),
+                                     Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                                      child: const Icon(Icons.flash_on, color: Colors.orange, size: 20),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+            const SizedBox(height: 20),
+            
+            // Meter Readings Expandable Section
+            if (unitId != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final readingsAsync = ref.watch(electricReadingsProvider(unitId));
+                  final lastReadingAsync = ref.watch(latestReadingProvider(unitId));
+                  
+                  return readingsAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (readings) {
+                      if (readings.isEmpty) return const SizedBox.shrink();
                       
-                      const SizedBox(height: 20),
+                      final currentReading = lastReadingAsync.valueOrNull ?? 0.0;
                       
-                      // Unit & Reading Card (Compact)
-                      Container(
+                      return Theme(
+                        data: theme.copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: EdgeInsets.zero,
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.electric_bolt, color: Colors.amber.shade700, size: 20),
+                          ),
+                          title: Row(
+                            children: [
+                              Text('Meter Readings', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text('${readings.length}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber.shade800)),
+                              ),
+                            ],
+                          ),
+                          subtitle: Row(
+                            children: [
+                              Text('Current Reading', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                              const SizedBox(width: 8),
+                              Text('${currentReading.toStringAsFixed(1)} ⏱', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange)),
+                            ],
+                          ),
+                          children: [
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: readings.length,
+                              itemBuilder: (context, index) {
+                                final reading = readings[index];
+                                final readingValue = reading['reading'] as double;
+                                final date = reading['date'] as DateTime;
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 16, bottom: 12),
+                                  child: Row(
+                                    children: [
+                                      // Timeline indicator
+                                      Column(
+                                        children: [
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: index == 0 ? Colors.green : Colors.grey.shade300,
+                                              border: Border.all(color: index == 0 ? Colors.green : Colors.grey.shade400, width: 2),
+                                            ),
+                                          ),
+                                          if (index < readings.length - 1)
+                                            Container(width: 2, height: 24, color: Colors.grey.shade300),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 16),
+                                      // Reading info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('${readingValue.toStringAsFixed(1)} units', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                                            Text(DateFormat('dd MMM yyyy').format(date), style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                                          ],
+                                        ),
+                                      ),
+                                      // Checkmark
+                                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Total Outstanding Card
+            if (tenancyId != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  return ref.watch(rentCyclesForTenancyProvider(tenancyId)).when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (cycles) {
+                      final totalOutstanding = cycles
+                          .where((c) => c.status != RentStatus.paid)
+                          .fold(0.0, (sum, c) => sum + (c.totalDue - c.totalPaid));
+                      
+                      if (totalOutstanding <= 0) return const SizedBox.shrink();
+                      
+                      return Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.cardColor, // Adapts to Dark Mode
+                          gradient: LinearGradient(
+                            colors: [Colors.orange.shade400, Colors.red.shade400],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: isDark ? Colors.transparent : Colors.black.withOpacity(0.1),
+                              color: Colors.red.withValues(alpha: 0.2),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Unit Info
-                            Expanded(
-                                child: Consumer(
-                                builder: (context, ref, _) {
-                                  if (unitId == null) return const Text('No Unit Assigned');
-                                  final unitValue = ref.watch(unitDetailsProvider(unitId));
-                                  return Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? Colors.blue.withOpacity(0.1) : Colors.blue.shade50, 
-                                          borderRadius: BorderRadius.circular(8)
-                                        ),
-                                        child: const Icon(Icons.apartment, color: Colors.blue, size: 20),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Unit Details', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
-                                          Text(
-                                            unitValue.when(
-                                              data: (u) => '${u?.nameOrNumber ?? '-'} • ${u?.editableRent?.toInt() ?? 0}',
-                                              error: (_,__) => 'Error',
-                                              loading: () => '...',
-                                            ),
-                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  );
-                                },
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 24),
                             ),
-                            Container(width: 1, height: 40, color: Colors.grey.shade200), // Divider
-                            // Initial Reading
+                            const SizedBox(width: 16),
                             Expanded(
-                              child: Consumer(
-                                builder: (context, ref, _) {
-                                  if (unitId == null) return const Center(child: Text('-'));
-                                  final readingValue = ref.watch(initialReadingProvider(unitId));
-                                  return Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text('Initial Reading', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
-                                          Text(
-                                            readingValue.when(
-                                              data: (r) => r?.toString() ?? 'N/A',
-                                              error: (_,__) => '-',
-                                              loading: () => '...',
-                                            ),
-                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange.shade800),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 12),
-                                       Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
-                                        child: const Icon(Icons.flash_on, color: Colors.orange, size: 20),
-                                      ),
-                                    ],
-                                  );
-                                },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Total Outstanding', style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.9), fontSize: 12)),
+                                  Text(
+                                    '₹${totalOutstanding.toStringAsFixed(0)}',
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-
-            const SizedBox(height: 20),
 
             // "Bill History" Header
             Padding(
@@ -397,6 +654,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
             ),
             
             const SizedBox(height: 10),
+
 
             // List
             if (tenancyId != null) 
@@ -440,13 +698,13 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                         borderRadius: BorderRadius.circular(16), // Smaller radius
                         boxShadow: isDark ? [] : [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04), 
+                            color: Colors.black.withValues(alpha: 0.04), 
                             blurRadius: 8, // Reduced blur
                             offset: const Offset(0, 2),
                           ),
                         ],
                         border: !isPaid 
-                            ? Border.all(color: Colors.red.withOpacity(0.6), width: 1.5)
+                            ? Border.all(color: Colors.red.withValues(alpha: 0.6), width: 1.5)
                             : (isDark ? Border.all(color: Colors.white10) : null),
                       ),
                       child: Padding(
@@ -504,7 +762,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                       height: 30,
                                       child: PopupMenuButton<String>(
                                         padding: EdgeInsets.zero,
-                                        icon: Icon(Icons.more_vert, size: 18, color: theme.iconTheme.color?.withOpacity(0.5)),
+                                        icon: Icon(Icons.more_vert, size: 18, color: theme.iconTheme.color?.withValues(alpha: 0.5)),
                                         color: theme.cardColor,
                                         onSelected: (value) async {
                                           if (value == 'delete') {
@@ -560,6 +818,107 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                               child: Text(
                                 'Bill #: ${cycle.billNumber ?? "N/A"}',
                                 style: GoogleFonts.outfit(fontSize: 11, color: theme.textTheme.bodySmall?.color),
+                              ),
+                            ),
+                            
+                            // Electric Split Breakdown
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                children: [
+                                  // Base Rent Row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.home_outlined, size: 14, color: theme.hintColor),
+                                          const SizedBox(width: 6),
+                                          Text('Base Rent', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                        ],
+                                      ),
+                                      Text('₹${cycle.baseRent.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
+                                    ],
+                                  ),
+                                  
+                                  // Electricity Row (only if > 0)
+                                  if (cycle.electricAmount > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.electric_bolt, size: 14, color: Colors.amber.shade600),
+                                            const SizedBox(width: 6),
+                                            Text('Electricity', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('₹${cycle.electricAmount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amber.shade700)),
+                                      ],
+                                    ),
+                                  ],
+                                  
+                                  // Other Charges Row (only if > 0)
+                                  if (cycle.otherCharges > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.add_circle_outline, size: 14, color: Colors.blue.shade400),
+                                            const SizedBox(width: 6),
+                                            Text('Other Charges', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('₹${cycle.otherCharges.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue.shade600)),
+                                      ],
+                                    ),
+                                  ],
+                                  
+                                  // Late Fee Row (only if > 0)
+                                  if (cycle.lateFee > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red.shade400),
+                                            const SizedBox(width: 6),
+                                            Text('Late Fee', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('₹${cycle.lateFee.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red.shade600)),
+                                      ],
+                                    ),
+                                  ],
+                                  
+                                  // Discount Row (only if > 0)
+                                  if (cycle.discount > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.discount_outlined, size: 14, color: Colors.green.shade400),
+                                            const SizedBox(width: 6),
+                                            Text('Discount', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('-₹${cycle.discount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green.shade600)),
+                                      ],
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                             
@@ -664,10 +1023,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                        ),
                                      ),
                                    ),
-                                 ],
-                               )
-                            ]
-                          ],
+                                 ], // children
+                               ),
+                            ], // spread if
+                          ], // Column children
                         ),
                       ),
                     );
@@ -682,7 +1041,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
-  void _confirmMoveOut(BuildContext context, WidgetRef ref, Tenant tenant) async {
+  void _confirmMoveOut(BuildContext context, WidgetRef ref, Tenant tenant, String? tenancyId) async {
+    if (tenancyId == null) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No active tenancy found to end.')));
+       return;
+    }
     double totalDue = 0.0;
     try {
        // We need tenancyId
@@ -715,9 +1078,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withOpacity(0.3))
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3))
                 ),
                 child: Column(
                   children: [
@@ -735,9 +1098,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3))
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3))
                 ),
                 child: const Column(
                   children: [
@@ -768,7 +1131,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 // Use the OUTER 'context' here, which is the Screen context
                 await DialogUtils.runWithLoading(context, () async {
                    // This now calls endTenancy
-                   await ref.read(tenantControllerProvider.notifier).endTenancy(tenancy!.id);
+                   await ref.read(tenantControllerProvider.notifier).endTenancy(tenancyId);
                 });
                 
                 // On success, go back
@@ -1007,7 +1370,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Edit Bill'),
         content: Column(
-          mainAxisSize: MainAxisSize.in,
+          mainAxisSize: MainAxisSize.min,
           children: [
              TextField(
                controller: amountCtrl,
@@ -1277,7 +1640,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                        try {
                          await ref.read(rentControllerProvider.notifier).recordPayment(
                            rentCycleId: cycle.id,
-                           tenancyId: cycle.tenancyId,
+                           tenantId: widget.tenant.id,
                            amount: amount,
                            date: selectedDate,
                            method: selectedMethod,

@@ -16,6 +16,7 @@ class Owners extends Table with SyncableTable {
   TextColumn get subscriptionPlan => text().withDefault(const Constant('free'))();
   TextColumn get currency => text().withDefault(const Constant('INR'))();
   TextColumn get timezone => text().nullable()();
+  TextColumn get upiId => text().nullable()(); // ADDED
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   
   @override
@@ -28,6 +29,9 @@ class Houses extends Table with SyncableTable {
   TextColumn get name => text()();
   TextColumn get address => text()();
   TextColumn get notes => text().nullable()();
+  TextColumn get imageUrl => text().nullable()(); // ADDED
+  TextColumn get imageBase64 => text().nullable()(); // ADDED
+  IntColumn get unitCount => integer().withDefault(const Constant(0))(); // ADDED
   
   @override
   Set<Column> get primaryKey => {id};
@@ -72,6 +76,10 @@ class Units extends Table with SyncableTable {
   IntColumn get defaultDueDay => integer().withDefault(const Constant(1))();
   BoolColumn get isOccupied => boolean().withDefault(const Constant(false))();
   
+  // NEW: Image storage (using comma separated strings or JSON if needed, but for simplicity text)
+  TextColumn get imageUrls => text().nullable()(); // ADDED
+  TextColumn get imagesBase64 => text().nullable()(); // ADDED
+  
   // Current Tenant Association (Optional optimization)
   TextColumn get currentTenancyId => text().nullable()();
 
@@ -88,6 +96,15 @@ class Tenants extends Table with SyncableTable {
   TextColumn get email => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get password => text().nullable()(); // For Tenant Login
+  TextColumn get imageUrl => text().nullable()(); // ADDED
+  TextColumn get imageBase64 => text().nullable()(); // ADDED
+  TextColumn get authId => text().nullable()(); // ADDED
+  RealColumn get advanceAmount => real().withDefault(const Constant(0.0))(); // ADDED
+  BoolColumn get policeVerification => boolean().withDefault(const Constant(false))(); // ADDED
+  TextColumn get idProof => text().nullable()(); // ADDED
+  TextColumn get address => text().nullable()(); // ADDED
+  IntColumn get memberCount => integer().withDefault(const Constant(1))(); // ADDED
+  TextColumn get notes => text().nullable()(); // ADDED
 
   @override
   Set<Column> get primaryKey => {id};
@@ -188,6 +205,7 @@ class Expenses extends Table with SyncableTable {
   RealColumn get amount => real()();
   TextColumn get category => text()();
   TextColumn get description => text().nullable()();
+  TextColumn get receiptPath => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

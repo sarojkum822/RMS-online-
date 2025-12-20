@@ -1,27 +1,31 @@
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:flutter/foundation.dart'; // for debugPrint
 
 class BiometricService {
   final LocalAuthentication auth = LocalAuthentication();
 
   Future<bool> isBiometricAvailable() async {
-    final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-    final bool canAuthenticate =
-        canAuthenticateWithBiometrics || await auth.isDeviceSupported();
-    return canAuthenticate;
+    try {
+      final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+      final bool canAuthenticate =
+          canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+      return canAuthenticate;
+    } catch (e) {
+      // Gracefully handle errors (e.g., missing biometric hardware)
+      return false;
+    }
   }
 
   Future<bool> authenticate() async {
     try {
       return await auth.authenticate(
-        localizedReason: 'Please authenticate to access RentPilot Pro',
-        // options parameter removed to resolve build error with local_auth 3.0.0?
-        // If stickyAuth/biometricOnly are needed, check correct API usage for this version.
+        localizedReason: 'Please authenticate to access KirayaBook Pro',
       );
-    } on PlatformException catch (e) {
-      if (e.code == 'NotAvailable') {
-         return false;
-      }
+    } catch (e) {
+      // Catch all exceptions including LocalAuthException (noCredentialsSet)
+      // which might not be caught by PlatformException depending on version
+      debugPrint('Biometric Auth Error: $e');
       return false;
     }
   }

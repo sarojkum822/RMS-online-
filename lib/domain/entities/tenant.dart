@@ -15,10 +15,17 @@ class Tenant with _$Tenant {
     String? email,
     required String ownerId, // NEW: Needed for fetching payments
     @Default(true) bool isActive,
-    String? password,
     String? imageUrl,
     String? imageBase64, // NEW: Base64 Storage
     String? authId, // Firebase Auth UID for secure login
+    @Default(0.0) double advanceAmount,
+    @Default(false) bool policeVerification,
+    String? idProof,
+    String? address,
+    String? dob, // NEW
+    String? gender, // NEW
+    @Default(1) int memberCount,
+    String? notes,
   }) = _Tenant;
 
   factory Tenant.fromJson(Map<String, dynamic> json) => _$TenantFromJson(json);

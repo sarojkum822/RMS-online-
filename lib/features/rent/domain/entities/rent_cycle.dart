@@ -4,7 +4,6 @@ part 'rent_cycle.freezed.dart';
 part 'rent_cycle.g.dart';
 
 @freezed
-@freezed
 class RentCycle with _$RentCycle {
   const factory RentCycle({
     required String id, // UUID
@@ -25,7 +24,10 @@ class RentCycle with _$RentCycle {
     @Default(RentStatus.pending) RentStatus status,
     DateTime? dueDate,
     String? notes,
+    @Default(false) bool isDeleted,
   }) = _RentCycle;
+
+
 
   factory RentCycle.fromJson(Map<String, dynamic> json) => _$RentCycleFromJson(json);
 }
@@ -35,7 +37,8 @@ class Payment with _$Payment {
   const factory Payment({
     required String id,
     required String rentCycleId,
-    required String tenantId, // Or tenancyId? Keeping tenantId generic 'String' for now.
+    required String tenancyId, 
+    required String tenantId, 
     required double amount,
     required DateTime date,
     required String method, // e.g., 'Cash', 'UPI'
@@ -43,7 +46,10 @@ class Payment with _$Payment {
     String? referenceId,
     String? collectedBy,
     String? notes,
+    @Default(false) bool isDeleted,
   }) = _Payment;
+
+
 
   factory Payment.fromJson(Map<String, dynamic> json) => _$PaymentFromJson(json);
 }
@@ -57,6 +63,8 @@ class OtherCharge with _$OtherCharge {
     required String category,
     String? notes,
   }) = _OtherCharge;
+
+
 
   factory OtherCharge.fromJson(Map<String, dynamic> json) => _$OtherChargeFromJson(json);
 }

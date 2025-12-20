@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
-import '../../../../core/services/user_session_service.dart';
 import '../../../providers/data_providers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -22,10 +19,16 @@ class SettingsScreen extends ConsumerWidget {
     final ownerAsync = ref.watch(ownerControllerProvider);
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: isDark ? const Color(0xFF000000) : Colors.white,
       appBar: AppBar(
-        title: Text('Settings', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
-        backgroundColor: theme.appBarTheme.backgroundColor,
+        title: Text('Settings', 
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold, 
+            fontSize: 24,
+            color: theme.textTheme.titleLarge?.color
+          )
+        ),
+        backgroundColor: isDark ? Colors.black : Colors.white,
         elevation: 0,
         iconTheme: theme.iconTheme,
       ),
@@ -40,91 +43,143 @@ class SettingsScreen extends ConsumerWidget {
               data: (owner) {
                 final name = owner?.name ?? 'Owner';
                 final email = owner?.email ?? 'No Email';
-                return Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 24),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: isDark ? Border.all(color: Colors.white10) : null,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.dividerColor),
-                        ),
-                        child: CircleAvatar(
-                          radius: 28,
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : 'O',
-                            style: GoogleFonts.outfit(
-                              fontSize: 24, 
-                              fontWeight: FontWeight.bold, 
-                              color: theme.colorScheme.primary
-                            )
+                final plan = owner?.subscriptionPlan ?? 'free';
+                final planColor = plan == 'power' ? Colors.purple : (plan == 'pro' ? const Color(0xFFF59E0B) : Colors.grey);
+
+                return InkWell(
+                  onTap: () => context.push('/owner/settings/profile'),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: double.infinity,
+                    // margin: const EdgeInsets.only(bottom: 24), // Moved margin to padding of column or keep if it's the only one
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        )
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: planColor.withValues(alpha: 0.5)),
+                          ),
+                          child: CircleAvatar(
+                            radius: 28,
+                            backgroundColor: planColor.withValues(alpha: 0.1),
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : 'O',
+                              style: GoogleFonts.outfit(
+                                fontSize: 24, 
+                                fontWeight: FontWeight.bold, 
+                                color: planColor
+                              )
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    name,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 18, 
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.textTheme.titleLarge?.color
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                    Flexible(
+                                      child: Text(
+                                        name,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 20, 
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark ? Colors.white : const Color(0xFF0F172A)
+                                        ),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: planColor.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: planColor.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Text(plan.toUpperCase(), style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: planColor, letterSpacing: 1)),
+                                    )
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(6)
-                                  ),
-                                  child: Text('Admin', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: theme.hintColor)),
-                                )
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              email,
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                color: theme.hintColor
+                              const SizedBox(height: 4),
+                              Text(
+                                email,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13,
+                                  color: theme.hintColor
+                                ),
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        Icon(Icons.chevron_right, size: 20, color: theme.hintColor),
+                      ],
+                    ),
                   ),
                 );
               },
               loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
-              error: (_,__) => const SizedBox(),
+              error: (e, s) {
+                  final errorStr = e.toString();
+                  if (errorStr.contains('permission-denied') || errorStr.contains('missing-permissions')) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.lock_person, size: 40, color: Colors.red.shade300),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Access Denied',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Session expired or permission missing.',
+                            style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color),
+                          ),
+                          const SizedBox(height: 16),
+                           ElevatedButton.icon(
+                              icon: const Icon(Icons.logout, size: 16),
+                              label: const Text('Logout'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () async {
+                                 await ref.read(userSessionServiceProvider).clearSession();
+                                 await FirebaseAuth.instance.signOut();
+                                 if (context.mounted) context.go('/');
+                              },
+                           )
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox();
+              },
             ),
+            const SizedBox(height: 24),
 
             // --- 2. Plan & Billing ---
             _buildSectionHeader(context, 'PLAN & BILLING'),
@@ -135,12 +190,24 @@ class SettingsScreen extends ConsumerWidget {
                   context,
                   icon: Icons.star_border_rounded,
                   title: 'Manage Subscription',
-                  subtitle: 'Pro Plan starting @ ₹99/mo',
+                  subtitle: ownerAsync.value?.subscriptionPlan == 'free' ? 'Upgrade to Pro @ ₹199/mo' : 'View plan details',
                   onTap: () => context.push('/owner/settings/subscription'),
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(12)),
-                    child: Text('PRO', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.black)),
+                    decoration: BoxDecoration(
+                      color: (ownerAsync.value?.subscriptionPlan == 'power' ? Colors.purple : 
+                              (ownerAsync.value?.subscriptionPlan == 'pro' ? const Color(0xFFF59E0B) : Colors.grey)).withValues(alpha: 0.2), 
+                      borderRadius: BorderRadius.circular(12)
+                    ),
+                    child: Text(
+                      (ownerAsync.value?.subscriptionPlan ?? 'free').toUpperCase(), 
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 10, 
+                        color: ownerAsync.value?.subscriptionPlan == 'power' ? Colors.purple : 
+                               (ownerAsync.value?.subscriptionPlan == 'pro' ? const Color(0xFFF59E0B) : Colors.grey)
+                      )
+                    ),
                   )
                 ),
               ]
@@ -216,6 +283,12 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'settings.currency'.tr(), // Currency & Format
                   onTap: () => context.push('/owner/settings/currency'),
                 ),
+                 _buildSettingRow(
+                  context,
+                  icon: Icons.public,
+                  title: 'settings.timezone'.tr(), 
+                  onTap: () => context.push('/owner/settings/timezone'),
+                ),
               ]
             ),
 
@@ -242,9 +315,9 @@ class SettingsScreen extends ConsumerWidget {
                  _buildDivider(theme),
                  _buildSettingRow(
                     context,
-                    icon: Icons.vpn_key_outlined,
-                    title: 'settings.tenant_access'.tr(),
-                    subtitle: 'View credentials & Share',
+                    icon: Icons.person_add_alt_1_outlined, // Changed Icon to person_add
+                    title: 'Invite Tenants', // Renamed from Tenant Access
+                    subtitle: 'Share login credentials',
                     onTap: () => context.push('/owner/settings/tenant-access'),
                  ),
                ]
@@ -257,20 +330,7 @@ class SettingsScreen extends ConsumerWidget {
              _buildSectionCard(
                context,
                children: [
-                 _buildSettingRow(
-                    context,
-                    icon: Icons.cloud_upload_outlined, // Backup
-                    title: 'settings.backup'.tr(), // Backup & Restore
-                    onTap: () => context.push('/owner/settings/backup'),
-                 ),
-                 _buildDivider(theme),
-                 _buildSettingRow(
-                    context,
-                    icon: Icons.download_outlined, 
-                    title: 'Data Export, Import, and Repair',
-                    onTap: () {}, // Placeholder or link to same backup page if it handles import
-                 ),
-                 _buildDivider(theme),
+                 // Backup & Repair REMOVED for public launch
                  _buildSettingRow(
                     context,
                     icon: Icons.print_outlined,
@@ -320,7 +380,7 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () async {
                          final Uri emailLaunchUri = Uri(
                            scheme: 'mailto',
-                           path: 'support@rentpilotpro.com',
+                           path: 'support@kirayabookpro.com',
                            queryParameters: {'subject': 'Support Request'},
                          );
                          if (await canLaunchUrl(emailLaunchUri)) {
@@ -336,8 +396,8 @@ class SettingsScreen extends ConsumerWidget {
                  _buildSettingRow(
                     context,
                     icon: Icons.description_outlined,
-                    title: 'settings.terms'.tr(), // Terms & Privacy
-                    onTap: () => context.push('/owner/settings/terms'),
+                    title: 'settings.tekirayabook'.tr(), // Tekirayabook & Privacy
+                    onTap: () => context.push('/owner/settings/tekirayabook'),
                  ),
               ]
             ),
@@ -365,9 +425,9 @@ class SettingsScreen extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(vertical: 8),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(isDark ? 0.1 : 0.05),
+                color: Colors.red.withValues(alpha: isDark ? 0.1 : 0.05),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.red.withOpacity(0.2)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,7 +463,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
 
             const SizedBox(height: 32),
-            Divider(color: theme.dividerColor.withOpacity(0.5)),
+            Divider(color: theme.dividerColor.withValues(alpha: 0.5)),
             const SizedBox(height: 20),
             
             // Logout
@@ -415,7 +475,7 @@ class SettingsScreen extends ConsumerWidget {
                 border: isDark ? Border.all(color: Colors.white10) : null,
                 boxShadow: [
                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 2)
                    )
@@ -430,6 +490,12 @@ class SettingsScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 onPressed: () async {
+                  // Invalidate ALL providers FIRST to clear cached data
+                  ref.invalidate(ownerControllerProvider);
+                  ref.invalidate(tenantRepositoryProvider);
+                  ref.invalidate(propertyRepositoryProvider);
+                  ref.invalidate(allUnitsProvider);
+                  
                   await ref.read(userSessionServiceProvider).clearSession();
                   await FirebaseAuth.instance.signOut();
                   if (context.mounted) context.go('/'); 
@@ -448,15 +514,16 @@ class SettingsScreen extends ConsumerWidget {
   // --- Helper Widgets ---
 
   Widget _buildSectionHeader(BuildContext context, String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(left: 12, bottom: 8, top: 4),
       child: Text(
         title, 
         style: GoogleFonts.outfit(
-          fontSize: 12, 
+          fontSize: 11, 
           fontWeight: FontWeight.bold, 
-          letterSpacing: 1.2,
-          color: Theme.of(context).hintColor
+          letterSpacing: 2,
+          color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.5)
         ),
       ),
     );
@@ -467,14 +534,14 @@ class SettingsScreen extends ConsumerWidget {
      final isDark = theme.brightness == Brightness.dark;
      return Container(
        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: isDark ? Border.all(color: Colors.white10) : null,
+          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           boxShadow: [
              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2)
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 8)
              )
           ],
        ),
@@ -485,7 +552,7 @@ class SettingsScreen extends ConsumerWidget {
   }
   
   Widget _buildDivider(ThemeData theme) {
-    return Divider(height: 1, thickness: 1, color: theme.dividerColor.withOpacity(0.1));
+    return Divider(height: 1, thickness: 1, color: theme.dividerColor.withValues(alpha: 0.1));
   }
 
   Widget _buildSettingRow(BuildContext context, {
@@ -612,5 +679,108 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Repairs contract-tenant ID mismatches
+  Future<void> _runDataRepair(BuildContext context, WidgetRef ref) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not logged in')));
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Repair Data?'),
+        content: const Text('This will scan all contracts and fix any tenant ID mismatches. This is safe and won\'t delete any data.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Run Repair')),
+        ],
+      ),
+    );
+
+    if (confirm != true || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Running repair...')));
+
+    try {
+      final firestore = ref.read(firestoreProvider);
+      int fixed = 0;
+
+      // 1. Get all tenants
+      final tenantsSnap = await firestore.collection('tenants')
+        .where('ownerId', isEqualTo: uid)
+        .where('isDeleted', isEqualTo: false)
+        .get();
+      
+      // 2. Get all contracts
+      final contractsSnap = await firestore.collection('contracts')
+        .where('ownerId', isEqualTo: uid)
+        .where('isDeleted', isEqualTo: false)
+        .get();
+      
+      // 3. Get all units
+      final unitsSnap = await firestore.collection('units')
+        .where('ownerId', isEqualTo: uid)
+        .get();
+      
+      // Build maps
+      final tenantsById = <String, Map<String, dynamic>>{};
+      for (final doc in tenantsSnap.docs) {
+        final data = doc.data();
+        final id = (data['id'] ?? doc.id).toString();
+        tenantsById[id] = data;
+      }
+      
+      final unitsById = <String, Map<String, dynamic>>{};
+      for (final doc in unitsSnap.docs) {
+        final data = doc.data();
+        final id = (data['id'] ?? doc.id).toString();
+        unitsById[id] = data;
+      }
+      
+      // 4. For each contract, check if tenantId is valid
+      final batch = firestore.batch();
+      
+      for (final contractDoc in contractsSnap.docs) {
+        final contract = contractDoc.data();
+        final currentTenantId = contract['tenantId']?.toString() ?? '';
+        
+        // Check if tenant exists
+        if (tenantsById.containsKey(currentTenantId)) {
+          continue; // OK
+        }
+        
+        // Try to find correct tenant via unit
+        final unitId = contract['unitId']?.toString() ?? '';
+        final unit = unitsById[unitId];
+        if (unit != null) {
+          final unitTenantId = unit['tenantId']?.toString() ?? '';
+          if (unitTenantId.isNotEmpty && tenantsById.containsKey(unitTenantId)) {
+            batch.update(contractDoc.reference, {'tenantId': unitTenantId});
+            fixed++;
+          }
+        }
+      }
+      
+      if (fixed > 0) {
+        await batch.commit();
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Repair complete! Fixed $fixed contracts.')),
+        );
+        // Invalidate providers to refresh data
+        ref.invalidate(allUnitsProvider);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Repair failed: $e')));
+      }
+    }
   }
 }

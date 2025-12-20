@@ -7,12 +7,15 @@ part 'expense.g.dart';
 class Expense with _$Expense {
   const factory Expense({
     required String id,
+    required String ownerId,
     required String title,
     required double amount,
     required DateTime date,
     required String category, // 'Repair', 'Bill', 'Salary', 'Other'
     String? notes,
+    String? receiptPath,
   }) = _Expense;
 
   factory Expense.fromJson(Map<String, dynamic> json) => _$ExpenseFromJson(json);
 }
+
