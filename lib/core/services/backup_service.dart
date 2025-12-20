@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import '../constants/firebase_collections.dart';
 
 class BackupService {
   final FirebaseFirestore _firestore;
@@ -19,13 +20,15 @@ class BackupService {
   }) async {
     try {
       // 1. Fetch All Data for Owner
-      final houses = await _fetchCollection('houses', uid);
-      final units = await _fetchCollection('units', uid);
-      final tenants = await _fetchCollection('tenants', uid);
-      final rentCycles = await _fetchCollection('rent_cycles', uid);
-      final payments = await _fetchCollection('payments', uid);
-      final expenses = await _fetchCollection('expenses', uid);
-      final electricReadings = await _fetchCollection('electric_readings', uid);
+      final houses = await _fetchCollection(FirebaseCollections.properties, uid);
+      final units = await _fetchCollection(FirebaseCollections.units, uid);
+      final tenants = await _fetchCollection(FirebaseCollections.tenants, uid);
+      final contracts = await _fetchCollection(FirebaseCollections.contracts, uid); // NEW
+      final rentCycles = await _fetchCollection(FirebaseCollections.invoices, uid);
+      final payments = await _fetchCollection(FirebaseCollections.transactions, uid);
+      final expenses = await _fetchCollection(FirebaseCollections.expenses, uid);
+      final tickets = await _fetchCollection(FirebaseCollections.tickets, uid); // NEW
+      final electricReadings = await _fetchCollection(FirebaseCollections.electricReadings, uid);
 
       // 2. Structure Data with Metadata
       final backupData = {
@@ -40,9 +43,11 @@ class BackupService {
           'houses': houses,
           'units': units,
           'tenants': tenants,
+          'contracts': contracts,
           'rentCycles': rentCycles,
           'payments': payments,
           'expenses': expenses,
+          'tickets': tickets, // NEW
           'electricReadings': electricReadings,
         }
       };
@@ -50,7 +55,7 @@ class BackupService {
       // 3. Serialize
       final jsonString = jsonEncode(backupData);
       final bytes = utf8.encode(jsonString);
-      final fileName = 'rentpilot_backup_${DateTime.now().millisecondsSinceEpoch}';
+      final fileName = 'kirayabook_backup_${DateTime.now().millisecondsSinceEpoch}';
 
       // 4. Save/Share
       if (kIsWeb) {
@@ -67,7 +72,7 @@ class BackupService {
           await file.writeAsString(jsonString);
           await Share.shareXFiles(
             [XFile(file.path, mimeType: 'application/json')],
-            text: 'RentPilot Pro Backup',
+            text: 'KirayaBook Pro Backup',
           );
         } else {
           await FileSaver.instance.saveFile(
@@ -102,13 +107,15 @@ class BackupService {
 
   Future<Map<String, dynamic>> fetchAllDataAsMap(String uid) async {
       // 1. Fetch All Data for Owner
-      final houses = await _fetchCollection('houses', uid);
-      final units = await _fetchCollection('units', uid);
-      final tenants = await _fetchCollection('tenants', uid);
-      final rentCycles = await _fetchCollection('rent_cycles', uid);
-      final payments = await _fetchCollection('payments', uid);
-      final expenses = await _fetchCollection('expenses', uid);
-      final electricReadings = await _fetchCollection('electric_readings', uid);
+      final houses = await _fetchCollection(FirebaseCollections.properties, uid);
+      final units = await _fetchCollection(FirebaseCollections.units, uid);
+      final tenants = await _fetchCollection(FirebaseCollections.tenants, uid);
+      final contracts = await _fetchCollection(FirebaseCollections.contracts, uid); // NEW
+      final rentCycles = await _fetchCollection(FirebaseCollections.invoices, uid);
+      final payments = await _fetchCollection(FirebaseCollections.transactions, uid);
+      final expenses = await _fetchCollection(FirebaseCollections.expenses, uid);
+      final tickets = await _fetchCollection(FirebaseCollections.tickets, uid); // NEW
+      final electricReadings = await _fetchCollection(FirebaseCollections.electricReadings, uid);
 
       return {
         'metadata': {
@@ -121,9 +128,11 @@ class BackupService {
           'houses': houses,
           'units': units,
           'tenants': tenants,
+          'contracts': contracts,
           'rentCycles': rentCycles,
           'payments': payments,
           'expenses': expenses,
+          'tickets': tickets, // NEW
           'electricReadings': electricReadings,
         }
       };

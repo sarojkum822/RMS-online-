@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
@@ -24,13 +26,49 @@ class AuthService {
     }
   }
 
+  Future<UserCredential> signInAnonymously() async {
+    try {
+      return await _auth.signInAnonymously();
+    } catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) throw Exception('Google Sign-In canceled');
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      return await _auth.signInWithCredential(credential);
+    } catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
   Future<void> signOut() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
     await _auth.signOut();
+  }
+
+  /// Send a password reset email to the given email address.
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw _handleAuthException(e);
+    }
   }
 
   Future<void> updateEmail(String email) async {
     try {
-      // Using verifyBeforeUpdateEmail as updateEmail is deprecated/removed in newer SDKs
       await _auth.currentUser?.verifyBeforeUpdateEmail(email);
     } catch (e) {
       throw _handleAuthException(e);
@@ -50,16 +88,9 @@ class AuthService {
       final user = _auth.currentUser;
       if (user == null) throw Exception('No user logged in');
 
-      // 1. Delete User Data from Firestore
-      // Note: In a real production app, use Cloud Functions for recursive delete.
-      // Here we do a best-effort client-side delete of the main profile.
-      // The Security Rules allow owners to delete their own data.
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
-      
-      // 2. Delete the Authentication User
+      await FirebaseFirestore.instance.collection('owners').doc(user.uid).delete();
       await user.delete();
     } catch (e) {
-      // Re-authentication might be required if sensitive action
       if (e is FirebaseAuthException && e.code == 'requires-recent-login') {
          throw Exception('Please log out and log in again to delete your account.');
       }
@@ -78,13 +109,19 @@ class AuthService {
           return Exception('The account already exists for that email.');
         case 'invalid-email':
           return Exception('The email address is not valid.');
+        case 'credential-already-in-use':
+          return Exception('This credential is already associated with a different user account.');
+        case 'operation-not-allowed':
+          return Exception('This operation is not allowed. Contact support.');
         case 'invalid-credential':
-          return Exception('Invalid email or password. If you haven\'t created an account, please Sign Up.');
+          return Exception('Invalid authentication credentials.');
+        case 'sign_in_failed':
+          return Exception('Sign in failed. Check your connection.');
         default:
           return Exception(e.message ?? 'An unknown authentication error occurred.');
       }
     }
-    return Exception('An unknown error occurred: $e');
+    return Exception(e.toString().replaceAll('Exception: ', ''));
   }
 }
 

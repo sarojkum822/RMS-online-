@@ -7,10 +7,13 @@ class RoleSelectionScreen extends StatelessWidget {
 
   @override
   @override
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: isDark ? const Color(0xFF000000) : Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
@@ -20,74 +23,94 @@ class RoleSelectionScreen extends StatelessWidget {
               ),
               child: IntrinsicHeight(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 64),
+                      // Header Section
                       RichText(
                         text: TextSpan(
-                          style: GoogleFonts.outfit(
-                            fontSize: 32,
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 42,
                             fontWeight: FontWeight.bold,
-                            color: theme.textTheme.headlineMedium?.color,
-                            height: 1.2,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            height: 1.1,
+                            letterSpacing: -1,
                           ),
                           children: [
                             const TextSpan(text: 'Welcome to\n'),
                             TextSpan(
                               text: 'KirayaBook',
-                              style: GoogleFonts.outfit(
-                                color: theme.colorScheme.primary, // Primary Blue
+                              style: GoogleFonts.playfairDisplay(
+                                color: isDark ? Colors.white : const Color(0xFF2563EB),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       Text(
-                        'Please select who you are to continue',
+                         'Elevating your estate management experience.',
                         style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          color: theme.textTheme.bodyMedium?.color,
+                          fontSize: 15,
+                          color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                          letterSpacing: 0.2,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 48),
                       
-                      // Cards Section
-                      // We remove Expanded here and let them take natural space
-                      // Use spacing to distribute slightly
-                      _buildRoleCard(
+                      Text(
+                        'Continue as',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.5),
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Aura Cards Section
+                      _buildAuraRoleCard(
                         context,
-                        title: 'Makaan Malik',
-                        subtitle: 'Owner / Landlord',
-                        color: const Color(0xFF4F46E5), // Indigo
+                        title: 'Property Owner',
+                        subtitle: 'Manage units, leases & finances',
+                        color: const Color(0xFF2563EB),
                         icon: Icons.admin_panel_settings_rounded,
                         role: 'owner',
                       ),
-                      const SizedBox(height: 20),
-                      _buildRoleCard(
+                      const SizedBox(height: 16),
+                      _buildAuraRoleCard(
                         context,
-                        title: 'Kirayedar',
-                        subtitle: 'Tenant',
-                        color: const Color(0xFF059669), // Emerald
+                        title: 'Resident Tenant',
+                        subtitle: 'Pay rent & track requests',
+                        color: const Color(0xFF10B981),
                         icon: Icons.person_rounded,
                         role: 'tenant',
                       ),
                       
-                      const Spacer(), // Pushes footer down if space exists
-                      const SizedBox(height: 20),
+                      const Spacer(),
+                      const SizedBox(height: 40),
                       
                       Center(
-                        child: Text(
-                          'Made with ❤️ in India',
-                          style: GoogleFonts.outfit(
-                            color: theme.disabledColor,
-                            fontSize: 12,
-                          ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Designed for Excellence',
+                              style: GoogleFonts.outfit(
+                                color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Icon(Icons.favorite_rounded, color: Colors.red, size: 14),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -99,7 +122,7 @@ class RoleSelectionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRoleCard(
+  Widget _buildAuraRoleCard(
     BuildContext context, {
     required String title,
     required String subtitle,
@@ -107,102 +130,61 @@ class RoleSelectionScreen extends StatelessWidget {
     required IconData icon,
     required String role,
   }) {
-    // Removed Expanded. Using a Container with fixed height ensures it looks good on all screens.
-    // If screen is small, user scrolls.
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return GestureDetector(
-      onTap: () {
-        context.push('/login', extra: role);
-      },
+      onTap: () => context.push('/login', extra: role),
       child: Container(
         width: double.infinity,
-        height: 260, // Increased height to prevent overflow
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color,
-              color.withOpacity(0.8),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
+          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
               blurRadius: 20,
-              offset: const Offset(0, 10),
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Stack(
+        child: Row(
           children: [
-            // Background Pattern/Decoration
-            Positioned(
-              right: -20,
-              bottom: -20,
-              child: Icon(
-                icon,
-                size: 150,
-                color: Colors.white.withOpacity(0.1),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
+              child: Icon(icon, color: color, size: 32),
             ),
-            
-            Padding(
-              padding: const EdgeInsets.all(24.0),
+            const SizedBox(width: 20),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 32),
-                  ),
-                  const Spacer(),
                   Text(
                     title,
                     style: GoogleFonts.outfit(
-                      fontSize: 28,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Continue',
-                          style: GoogleFonts.outfit(
-                            color: color,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_rounded, color: color, size: 16),
-                      ],
+                      fontSize: 13,
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
                     ),
                   ),
                 ],
               ),
             ),
+            Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3)),
           ],
         ),
       ),

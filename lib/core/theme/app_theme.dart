@@ -7,8 +7,8 @@ class AppTheme {
   static const Color primaryContainer = Color(0xFFDBEAFE); // Blue 100
   
   // Minimal Palette
-  static const Color lightBackground = Color(0xFFF8FAFC); // Slate 50
-  static const Color darkBackground = Color(0xFF000000);  // True Black
+  static const Color lightBackground = Color(0xFFFFFFFF); // Pure White as requested for "white ui"
+  static const Color darkBackground = Color(0xFF000000);  // True Black remains for high contrast
   
   static const Color lightSurface = Colors.white;
   static const Color darkSurface = Color(0xFF1C1C1E);     // iOS System Gray 6

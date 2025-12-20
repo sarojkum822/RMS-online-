@@ -25,7 +25,7 @@ class PrintService {
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('RentPilot Pro Backup', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('KirayaBook Pro Backup', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
                   pw.Text(DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())),
                 ]
               )
@@ -37,12 +37,11 @@ class PrintService {
             pw.Table.fromTextArray(
               context: context,
               headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-              headers: ['Name', 'Phone', 'Unit', 'Status'],
+              headers: ['Name', 'Phone', 'Status'],
               data: tenants.map((t) => [
                 t.name,
                 t.phone,
-                t.unitId.toString(),
-                t.status.toString().split('.').last.toUpperCase()
+                t.isActive ? 'ACTIVE' : 'INACTIVE'
               ]).toList(),
             ),
             pw.SizedBox(height: 20),
@@ -88,7 +87,7 @@ class PrintService {
     // 3. Print / Share
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'RentPilot_Backup_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'KirayaBook_Backup_${DateTime.now().millisecondsSinceEpoch}',
     );
   }
   Future<void> printRentReceipt({
@@ -384,5 +383,3 @@ class PrintService {
     );
   }
 }
-
-

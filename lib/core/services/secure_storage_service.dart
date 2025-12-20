@@ -7,8 +7,9 @@ class SecureStorageService {
   static const _kBiometricEnabledKey = 'k_biometric_enabled';
   
   // Hardcoded key for MVP (In prod, use Keystore/Keychain)
-  final _key = Key.fromUtf8('RentPilotProSecretKey2024Secure!'); // 32 chars
-  final _iv = IV.fromLength(16);
+  final _key = Key.fromUtf8('KirayaBookProSecretKey2024Secure'); // 32 chars exactly
+  // FIX: Use a constant IV so we can decrypt after restart
+  final _iv = IV.fromUtf8('KirayaBookProIV2'); // 16 chars
   late Encrypter _encrypter;
 
   SecureStorageService() {
@@ -16,12 +17,16 @@ class SecureStorageService {
   }
 
   Future<void> saveCredentials(String email, String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    final encryptedEmail = _encrypter.encrypt(email, iv: _iv);
-    final encryptedPassword = _encrypter.encrypt(password, iv: _iv);
-    
-    await prefs.setString(_kEmailKey, encryptedEmail.base64);
-    await prefs.setString(_kPasswordKey, encryptedPassword.base64);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encryptedEmail = _encrypter.encrypt(email, iv: _iv);
+      final encryptedPassword = _encrypter.encrypt(password, iv: _iv);
+      
+      await prefs.setString(_kEmailKey, encryptedEmail.base64);
+      await prefs.setString(_kPasswordKey, encryptedPassword.base64);
+    } catch (e) {
+      // Handle error cleanly or log to crashlytics
+    }
   }
 
   Future<Map<String, String>?> getCredentials() async {

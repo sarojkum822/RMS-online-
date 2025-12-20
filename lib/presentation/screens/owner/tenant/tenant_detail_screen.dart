@@ -14,7 +14,7 @@ import 'package:in_app_review/in_app_review.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import 'package:printing/printing.dart'; // NEW
 import '../../../../core/services/pdf_service.dart'; // NEW
-import 'package:rentpilotpro/presentation/screens/owner/settings/owner_controller.dart'; // NEW
+import 'package:kirayabook/presentation/screens/owner/settings/owner_controller.dart'; // NEW
 import 'tenant_form_screen.dart'; // NEW
 import 'tenant_controller.dart';
 
@@ -41,15 +41,34 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
       orElse: () => widget.tenant,
     ) ?? widget.tenant;
 
+    // Fetch Active Tenancy
+    final tenancyAsync = ref.watch(activeTenancyProvider(widget.tenant.id));
+    final currentTenancy = tenancyAsync.valueOrNull;
+
+    // Resolve details ONLY if Tenancy exists
+    final unitId = currentTenancy?.unitId;
+    final tenancyId = currentTenancy?.id;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true, 
       appBar: AppBar(
         title: Consumer(
           builder: (context, ref, _) {
-            final houseVal = ref.watch(houseDetailsProvider(currentTenant.houseId));
-            return houseVal.when(
-              data: (house) => Text(house?.name ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+            if (unitId == null) return const Text('No Associated Property');
+            final unitVal = ref.watch(unitDetailsProvider(unitId));
+            
+            return unitVal.when(
+              data: (unit) {
+                  if (unit == null) return const Text('Unknown Property');
+                  // Fetch House Name for Unit
+                  final houseVal = ref.watch(houseDetailsProvider(unit.houseId));
+                  return houseVal.when(
+                     data: (h) => Text(h?.name ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white)),
+                     error: (_,__) => const SizedBox(),
+                     loading: () => const SizedBox(),
+                  );
+              }, 
               error: (_,__) => const SizedBox(),
               loading: () => const SizedBox(),
             );
@@ -81,7 +100,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (value) {
-                if (value == 'move_out') _confirmMoveOut(context, ref, currentTenant);
+                if (value == 'move_out') _confirmMoveOut(context, ref, currentTenant, currentTenancy?.id);
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -102,30 +121,27 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         child: Column(
           children: [
             // Compact Gradient Header
-            Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
+            Column(
               children: [
-                  Container(
-                    height: headerHeight * 0.6, 
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                           Color(0xFF2C2C2C), // Matte Black Top
-                           Color(0xFF000000), // Pure Black Bottom
-                        ],
-                      ),
-                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1), // White border
+                // Dynamic Gradient Header Container
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                         Color(0xFF2C2C2C), // Matte Black Top
+                         Color(0xFF000000), // Pure Black Bottom
+                      ],
                     ),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                    border: Border(
+                      bottom: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
+                    ), 
                   ),
-                  
-                  // Content
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 80, 20, 0), // Removed bottom padding to fill space better
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 100, 20, 60), 
                     child: Column(
                       children: [
                         // Avatar and Basic Info Row
@@ -135,7 +151,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                               padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                               ),
                               child: CircleAvatar(
                                 radius: 32, 
@@ -171,175 +187,437 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  Row(
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        // Phone with Copy
+                                        InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: currentTenant.phone));
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Phone number copied to clipboard'), duration: Duration(seconds: 1)),
+                                            );
+                                          },
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.phone, size: 12, color: Colors.greenAccent),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  currentTenant.phone,
+                                                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                const Icon(Icons.copy, size: 10, color: Colors.white54),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // ID with Copy
+                                        InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: currentTenant.id.toString()));
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('ID copied to clipboard'), duration: Duration(seconds: 1)),
+                                            );
+                                          },
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'ID: ${currentTenant.id.length > 12 ? '${currentTenant.id.substring(0, 12)}...' : currentTenant.id}',
+                                                  style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                const Icon(Icons.copy, size: 10, color: Colors.white54),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  
+                                  // NEW FIELDS DISPLAY
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
                                     children: [
-                                      // Phone with Copy
-                                      InkWell(
-                                        onTap: () {
-                                          Clipboard.setData(ClipboardData(text: currentTenant.phone));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Phone number copied to clipboard'), duration: Duration(seconds: 1)),
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                       if(currentTenant.policeVerification)
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                         decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.blue.withValues(alpha: 0.5))),
+                                         child: Row(
+                                           mainAxisSize: MainAxisSize.min,
+                                           children: [
+                                             const Icon(Icons.verified_user, color: Colors.blueAccent, size: 12),
+                                             const SizedBox(width: 4),
+                                             Text('Police Verified', style: GoogleFonts.outfit(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                           ],
+                                         ),
+                                       ),
+
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                         decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                         child: Row(
+                                           mainAxisSize: MainAxisSize.min,
+                                           children: [
+                                             const Icon(Icons.people, color: Colors.white70, size: 12),
+                                             const SizedBox(width: 4),
+                                             Text('${currentTenant.memberCount} Mbrs', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11)),
+                                           ],
+                                         ),
+                                       ),
+                                       
+                                       if(currentTenant.idProof != null && currentTenant.idProof!.isNotEmpty)
+                                       InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: currentTenant.idProof!));
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID Proof Copied')));
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                            child: Text('ID: ${currentTenant.idProof}', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11)),
                                           ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.phone, size: 12, color: Colors.greenAccent),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                currentTenant.phone,
-                                                style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(Icons.copy, size: 10, color: Colors.white54),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // ID with Copy
-                                      InkWell(
-                                        onTap: () {
-                                          Clipboard.setData(ClipboardData(text: currentTenant.id.toString()));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('ID copied to clipboard'), duration: Duration(seconds: 1)),
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                'ID: ${currentTenant.id}',
-                                                style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
-                                              ),
-                                               const SizedBox(width: 4),
-                                              const Icon(Icons.copy, size: 10, color: Colors.white54),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
+                                       ),
                                     ],
                                   ),
+                                  
+                                  if(currentTenant.address != null && currentTenant.address!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.location_on, color: Colors.white54, size: 12),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            currentTenant.address!, 
+                                            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12),
+                                            maxLines: 1, 
+                                            overflow: TextOverflow.ellipsis
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
                                 ],
                               ),
                             ),
                           ],
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Unit & Reading Card (Overlapping)
+                Transform.translate(
+                  offset: const Offset(0, -40), // Move Up to Overlap
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor, // Adapts to Dark Mode
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Unit Info
+                          Expanded(
+                              child: Consumer(
+                              builder: (context, ref, _) {
+                                if (unitId == null) return const Text('No Unit Assigned');
+                                final unitValue = ref.watch(unitDetailsProvider(unitId));
+                                return Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? Colors.blue.withValues(alpha: 0.1) : Colors.blue.shade50, 
+                                        borderRadius: BorderRadius.circular(8)
+                                      ),
+                                      child: const Icon(Icons.apartment, color: Colors.blue, size: 20),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Unit Details', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                                          Text(
+                                            unitValue.when(
+                                              data: (u) => '${u?.nameOrNumber ?? '-'} • ₹${u?.editableRent?.toInt() ?? 0}',
+                                              error: (_,__) => 'Error',
+                                              loading: () => '...',
+                                            ),
+                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                          Container(width: 1, height: 40, color: Colors.grey.shade200), // Divider
+                          // Initial Reading
+                          Expanded(
+                            child: Consumer(
+                              builder: (context, ref, _) {
+                                if (unitId == null) return const Center(child: Text('-'));
+                                final readingValue = ref.watch(initialReadingProvider(unitId));
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text('Initial Reading', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
+                                        Text(
+                                          readingValue.when(
+                                            data: (r) => r?.toString() ?? 'N/A',
+                                            error: (_,__) => '-',
+                                            loading: () => '...',
+                                          ),
+                                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange.shade800),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 12),
+                                     Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                                      child: const Icon(Icons.flash_on, color: Colors.orange, size: 20),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+            const SizedBox(height: 20),
+            
+            // Meter Readings Expandable Section
+            if (unitId != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final readingsAsync = ref.watch(electricReadingsProvider(unitId));
+                  final lastReadingAsync = ref.watch(latestReadingProvider(unitId));
+                  
+                  return readingsAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (readings) {
+                      if (readings.isEmpty) return const SizedBox.shrink();
                       
-                      const SizedBox(height: 20),
+                      final currentReading = lastReadingAsync.valueOrNull ?? 0.0;
                       
-                      // Unit & Reading Card (Compact)
-                      Container(
+                      return Theme(
+                        data: theme.copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: EdgeInsets.zero,
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.electric_bolt, color: Colors.amber.shade700, size: 20),
+                          ),
+                          title: Row(
+                            children: [
+                              Text('Meter Readings', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text('${readings.length}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber.shade800)),
+                              ),
+                            ],
+                          ),
+                          subtitle: Row(
+                            children: [
+                              Text('Current Reading', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                              const SizedBox(width: 8),
+                              Text('${currentReading.toStringAsFixed(1)} ⏱', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange)),
+                            ],
+                          ),
+                          children: [
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: readings.length,
+                              itemBuilder: (context, index) {
+                                final reading = readings[index];
+                                final readingValue = reading['reading'] as double;
+                                final date = reading['date'] as DateTime;
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 16, bottom: 12),
+                                  child: Row(
+                                    children: [
+                                      // Timeline indicator
+                                      Column(
+                                        children: [
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: index == 0 ? Colors.green : Colors.grey.shade300,
+                                              border: Border.all(color: index == 0 ? Colors.green : Colors.grey.shade400, width: 2),
+                                            ),
+                                          ),
+                                          if (index < readings.length - 1)
+                                            Container(width: 2, height: 24, color: Colors.grey.shade300),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 16),
+                                      // Reading info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('${readingValue.toStringAsFixed(1)} units', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                                            Text(DateFormat('dd MMM yyyy').format(date), style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                                          ],
+                                        ),
+                                      ),
+                                      // Checkmark
+                                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Total Outstanding Card
+            if (tenancyId != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  return ref.watch(rentCyclesForTenancyProvider(tenancyId)).when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (cycles) {
+                      final totalOutstanding = cycles
+                          .where((c) => c.status != RentStatus.paid)
+                          .fold(0.0, (sum, c) => sum + (c.totalDue - c.totalPaid));
+                      
+                      if (totalOutstanding <= 0) return const SizedBox.shrink();
+                      
+                      return Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.cardColor, // Adapts to Dark Mode
+                          gradient: LinearGradient(
+                            colors: [Colors.orange.shade400, Colors.red.shade400],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: isDark ? Colors.transparent : Colors.black.withOpacity(0.1),
+                              color: Colors.red.withValues(alpha: 0.2),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Unit Info
-                            Expanded(
-                              child: Consumer(
-                                builder: (context, ref, _) {
-                                  final unitValue = ref.watch(unitDetailsProvider(widget.tenant.unitId));
-                                  return Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? Colors.blue.withOpacity(0.1) : Colors.blue.shade50, 
-                                          borderRadius: BorderRadius.circular(8)
-                                        ),
-                                        child: const Icon(Icons.apartment, color: Colors.blue, size: 20),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Unit Details', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
-                                          Text(
-                                            unitValue.when(
-                                              data: (u) => '${u?.nameOrNumber ?? '-'} • ${u?.editableRent?.toInt() ?? 0}',
-                                              error: (_,__) => 'Error',
-                                              loading: () => '...',
-                                            ),
-                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  );
-                                },
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 24),
                             ),
-                            Container(width: 1, height: 40, color: Colors.grey.shade200), // Divider
-                            // Initial Reading
+                            const SizedBox(width: 16),
                             Expanded(
-                              child: Consumer(
-                                builder: (context, ref, _) {
-                                  final readingValue = ref.watch(initialReadingProvider(widget.tenant.unitId));
-                                  return Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text('Initial Reading', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
-                                          Text(
-                                            readingValue.when(
-                                              data: (r) => r?.toString() ?? 'N/A',
-                                              error: (_,__) => '-',
-                                              loading: () => '...',
-                                            ),
-                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange.shade800),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 12),
-                                       Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
-                                        child: const Icon(Icons.flash_on, color: Colors.orange, size: 20),
-                                      ),
-                                    ],
-                                  );
-                                },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Total Outstanding', style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.9), fontSize: 12)),
+                                  Text(
+                                    '₹${totalOutstanding.toStringAsFixed(0)}',
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-
-            const SizedBox(height: 20),
 
             // "Bill History" Header
             Padding(
@@ -377,8 +655,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
             
             const SizedBox(height: 10),
 
+
             // List
-            ref.watch(rentCyclesForTenantProvider(widget.tenant.id)).when(
+            if (tenancyId != null) 
+            ref.watch(rentCyclesForTenancyProvider(tenancyId)).when(
               loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
               error: (e, s) => Center(child: Text('Error: $e')),
               data: (data) {
@@ -418,13 +698,13 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                         borderRadius: BorderRadius.circular(16), // Smaller radius
                         boxShadow: isDark ? [] : [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04), 
+                            color: Colors.black.withValues(alpha: 0.04), 
                             blurRadius: 8, // Reduced blur
                             offset: const Offset(0, 2),
                           ),
                         ],
                         border: !isPaid 
-                            ? Border.all(color: Colors.red.withOpacity(0.6), width: 1.5)
+                            ? Border.all(color: Colors.red.withValues(alpha: 0.6), width: 1.5)
                             : (isDark ? Border.all(color: Colors.white10) : null),
                       ),
                       child: Padding(
@@ -482,11 +762,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                       height: 30,
                                       child: PopupMenuButton<String>(
                                         padding: EdgeInsets.zero,
-                                        icon: Icon(Icons.more_vert, size: 18, color: theme.iconTheme.color?.withOpacity(0.5)),
+                                        icon: Icon(Icons.more_vert, size: 18, color: theme.iconTheme.color?.withValues(alpha: 0.5)),
                                         color: theme.cardColor,
                                         onSelected: (value) async {
                                           if (value == 'delete') {
-                                             _confirmDeleteBill(context, ref, cycle, currentTenant.id);
+                                             _confirmDeleteBill(context, ref, cycle, tenancyId);
                                           } else if (value == 'print') {
                                              await _handlePrintReceipt(context, ref, cycle, currentTenant);
                                           } else if (value == 'edit') {
@@ -538,6 +818,107 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                               child: Text(
                                 'Bill #: ${cycle.billNumber ?? "N/A"}',
                                 style: GoogleFonts.outfit(fontSize: 11, color: theme.textTheme.bodySmall?.color),
+                              ),
+                            ),
+                            
+                            // Electric Split Breakdown
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                children: [
+                                  // Base Rent Row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.home_outlined, size: 14, color: theme.hintColor),
+                                          const SizedBox(width: 6),
+                                          Text('Base Rent', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                        ],
+                                      ),
+                                      Text('₹${cycle.baseRent.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
+                                    ],
+                                  ),
+                                  
+                                  // Electricity Row (only if > 0)
+                                  if (cycle.electricAmount > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.electric_bolt, size: 14, color: Colors.amber.shade600),
+                                            const SizedBox(width: 6),
+                                            Text('Electricity', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('₹${cycle.electricAmount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amber.shade700)),
+                                      ],
+                                    ),
+                                  ],
+                                  
+                                  // Other Charges Row (only if > 0)
+                                  if (cycle.otherCharges > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.add_circle_outline, size: 14, color: Colors.blue.shade400),
+                                            const SizedBox(width: 6),
+                                            Text('Other Charges', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('₹${cycle.otherCharges.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue.shade600)),
+                                      ],
+                                    ),
+                                  ],
+                                  
+                                  // Late Fee Row (only if > 0)
+                                  if (cycle.lateFee > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red.shade400),
+                                            const SizedBox(width: 6),
+                                            Text('Late Fee', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('₹${cycle.lateFee.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red.shade600)),
+                                      ],
+                                    ),
+                                  ],
+                                  
+                                  // Discount Row (only if > 0)
+                                  if (cycle.discount > 0) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.discount_outlined, size: 14, color: Colors.green.shade400),
+                                            const SizedBox(width: 6),
+                                            Text('Discount', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                                          ],
+                                        ),
+                                        Text('-₹${cycle.discount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green.shade600)),
+                                      ],
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                             
@@ -642,10 +1023,10 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                        ),
                                      ),
                                    ),
-                                 ],
-                               )
-                            ]
-                          ],
+                                 ], // children
+                               ),
+                            ], // spread if
+                          ], // Column children
                         ),
                       ),
                     );
@@ -660,11 +1041,18 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
-  void _confirmMoveOut(BuildContext context, WidgetRef ref, Tenant tenant) async {
-    // 1. Calculate Outstanding Balance
+  void _confirmMoveOut(BuildContext context, WidgetRef ref, Tenant tenant, String? tenancyId) async {
+    if (tenancyId == null) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No active tenancy found to end.')));
+       return;
+    }
     double totalDue = 0.0;
     try {
-      final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(tenant.id);
+       // We need tenancyId
+       final tenancy = await ref.read(activeTenancyProvider(tenant.id).future);
+       if (tenancy == null) return; // Already inactive?
+
+      final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenancy(tenancy.id);
       for (var c in cycles) {
          if(c.status != RentStatus.paid) {
            totalDue += (c.totalDue - c.totalPaid);
@@ -690,9 +1078,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withOpacity(0.3))
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3))
                 ),
                 child: Column(
                   children: [
@@ -710,9 +1098,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3))
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3))
                 ),
                 child: const Column(
                   children: [
@@ -742,7 +1130,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               try {
                 // Use the OUTER 'context' here, which is the Screen context
                 await DialogUtils.runWithLoading(context, () async {
-                   await ref.read(tenantControllerProvider.notifier).moveOutTenant(tenant);
+                   // This now calls endTenancy
+                   await ref.read(tenantControllerProvider.notifier).endTenancy(tenancyId);
                 });
                 
                 // On success, go back
@@ -825,15 +1214,19 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                       Navigator.pop(context); // Close dialog first to avoid multiple overlays
                       
                       try {
-                        await DialogUtils.runWithLoading(context, () async {
-                          await ref.read(rentControllerProvider.notifier).addPastRentCycle(
-                            tenantId: widget.tenant.id,
-                            month: monthStr,
-                            totalDue: amt,
-                            totalPaid: paid,
-                            date: DateTime.now(),
-                          );
-                        });
+                          await DialogUtils.runWithLoading(context, () async {
+                            final t = await ref.read(activeTenancyProvider(widget.tenant.id).future);
+                            if (t == null) throw Exception("No Active Tenancy");
+                            
+                            await ref.read(rentControllerProvider.notifier).addPastRentCycle(
+                              tenancyId: t.id,
+                              ownerId: t.ownerId, 
+                              month: monthStr,
+                              totalDue: amt,
+                              totalPaid: paid,
+                              date: DateTime.now(),
+                            );
+                          });
                         if (context.mounted) {
                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record Added Successfully')));
                         }
@@ -842,10 +1235,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                          if (e.toString().contains('already exists')) {
                             // Fetch existing cycle to redirect
                             RentCycle? existingCycle;
-                            try {
-                               final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(widget.tenant.id);
-                               existingCycle = cycles.cast<RentCycle?>().firstWhere((c) => c?.month == monthStr, orElse: () => null);
-                            } catch (_) {}
+                             try {
+                                 final t = await ref.read(activeTenancyProvider(widget.tenant.id).future);
+                                final cycles = await ref.read(rentRepositoryProvider).getRentCyclesForTenancy(t!.id);
+                                existingCycle = cycles.cast<RentCycle?>().firstWhere((c) => c?.month == monthStr, orElse: () => null);
+                             } catch (_) {}
 
                             if (context.mounted && existingCycle != null) {
                                 showDialog(
@@ -889,9 +1283,9 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
-  // --- Deletion Dialogs ---
-
-  void _confirmDeleteBill(BuildContext context, WidgetRef ref, RentCycle cycle, int tenantId) {
+   // --- Deletion Dialogs ---
+   
+   void _confirmDeleteBill(BuildContext context, WidgetRef ref, RentCycle cycle, String tenancyId) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -1079,7 +1473,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                             Navigator.pop(ctx); // Close Alert
                                             
                                             await DialogUtils.runWithLoading(context, () async {
-                                               await ref.read(rentControllerProvider.notifier).deletePayment(p.id, cycle.id, widget.tenant.id);
+                                               await ref.read(rentControllerProvider.notifier).deletePayment(p.id, cycle.id, cycle.tenancyId);
                                             });
                                             
                                             // Refresh Sheet
@@ -1116,7 +1510,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           owner = await ref.read(ownerControllerProvider.future);
         }
         if (owner == null) throw Exception('Owner profile not found. Please go to Settings > Profile to set it up.');
-        final cyclesAsync = await ref.read(rentRepositoryProvider).getRentCyclesForTenant(tenant.id);
+        
+        final t = await ref.read(activeTenancyProvider(tenant.id).future);
+        if (t == null) throw Exception('No active tenancy found');
+
+        final cyclesAsync = await ref.read(rentRepositoryProvider).getRentCyclesForTenancy(t.id);
         
         final pdfData = await ref.read(pdfServiceProvider).generateStatement(
           tenant: tenant,
@@ -1242,7 +1640,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                        try {
                          await ref.read(rentControllerProvider.notifier).recordPayment(
                            rentCycleId: cycle.id,
-                           tenantId: cycle.tenantId,
+                           tenantId: widget.tenant.id,
                            amount: amount,
                            date: selectedDate,
                            method: selectedMethod,
@@ -1298,24 +1696,33 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     double? lastRate;
     
     try {
-      final readingData = await ref.read(rentControllerProvider.notifier).getLastElectricReading(tenant.unitId);
+      final t = await ref.read(activeTenancyProvider(tenant.id).future);
+      if (t == null) return;
+      
+      final readingData = await ref.read(rentControllerProvider.notifier).getLastElectricReading(t.unitId);
       if (readingData != null) {
         lastReading = readingData['currentReading'];
         lastRate = readingData['rate'];
       } else {
         // Fallback: If no "Last" reading (e.g. first month), try "Initial Reading"
-        final initial = await ref.read(initialReadingProvider(tenant.unitId).future);
-        if (initial != null) {
-          lastReading = initial;
+        final t = await ref.read(activeTenancyProvider(tenant.id).future);
+        if (t != null) {
+          final initial = await ref.read(initialReadingProvider(t.unitId).future);
+          if (initial != null) {
+            lastReading = initial;
+          }
         }
       }
     } catch (e) {
       debugPrint('Error auto-filling readings: $e');
       // If error (e.g. index missing for "Last" query), try "Initial" query as backup
-      try {
-         final initial = await ref.read(initialReadingProvider(tenant.unitId).future);
-         if(initial != null) lastReading = initial;
-      } catch (_) {}
+       try {
+          final t = await ref.read(activeTenancyProvider(tenant.id).future);
+          if (t != null) {
+            final initial = await ref.read(initialReadingProvider(t.unitId).future);
+            if(initial != null) lastReading = initial;
+          }
+       } catch (_) {}
     }
 
     if (lastReading != null) {
@@ -1475,19 +1882,22 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
         final houseRepo = ref.read(propertyRepositoryProvider);
         final rentRepo = ref.read(rentRepositoryProvider);
         
-        // 1. Fetch House
-        final house = await houseRepo.getHouse(tenant.houseId);
-        if (house == null) throw Exception('House not found');
-        
-        // 2. Fetch Unit
-        final unitDetails = await houseRepo.getUnit(tenant.unitId);
+        final tenancy = await ref.read(activeTenancyProvider(tenant.id).future);
+        if (tenancy == null) throw Exception('Tenancy not found');
+
+        // 1. Fetch House (via Unit check inside HouseRepo or implicitly known? We need House entity)
+        // We have tenancy.unitId. 
+        final unitDetails = await houseRepo.getUnit(tenancy.unitId);
         if (unitDetails == null) throw Exception('Unit not found');
+        
+        final house = await houseRepo.getHouse(unitDetails.houseId);
+        if (house == null) throw Exception('House not found');
         
         // 3. Fetch Payments
         final payments = await rentRepo.getPaymentsForRentCycle(cycle.id);
         
         // 4. Fetch Readings
-        final allReadings = await rentRepo.getElectricReadingsWithDetails(tenant.unitId);
+        final allReadings = await rentRepo.getElectricReadingsWithDetails(tenancy.unitId);
         
         Map<String, dynamic>? currentReading;
         Map<String, dynamic>? previousReading;

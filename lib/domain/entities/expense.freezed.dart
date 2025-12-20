@@ -20,13 +20,15 @@ Expense _$ExpenseFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Expense {
-  int get id => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
+  String get ownerId => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
   double get amount => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
   String get category =>
       throw _privateConstructorUsedError; // 'Repair', 'Bill', 'Salary', 'Other'
   String? get notes => throw _privateConstructorUsedError;
+  String? get receiptPath => throw _privateConstructorUsedError;
 
   /// Serializes this Expense to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -43,12 +45,14 @@ abstract class $ExpenseCopyWith<$Res> {
       _$ExpenseCopyWithImpl<$Res, Expense>;
   @useResult
   $Res call(
-      {int id,
+      {String id,
+      String ownerId,
       String title,
       double amount,
       DateTime date,
       String category,
-      String? notes});
+      String? notes,
+      String? receiptPath});
 }
 
 /// @nodoc
@@ -67,17 +71,23 @@ class _$ExpenseCopyWithImpl<$Res, $Val extends Expense>
   @override
   $Res call({
     Object? id = null,
+    Object? ownerId = null,
     Object? title = null,
     Object? amount = null,
     Object? date = null,
     Object? category = null,
     Object? notes = freezed,
+    Object? receiptPath = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
@@ -98,6 +108,10 @@ class _$ExpenseCopyWithImpl<$Res, $Val extends Expense>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      receiptPath: freezed == receiptPath
+          ? _value.receiptPath
+          : receiptPath // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -110,12 +124,14 @@ abstract class _$$ExpenseImplCopyWith<$Res> implements $ExpenseCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id,
+      {String id,
+      String ownerId,
       String title,
       double amount,
       DateTime date,
       String category,
-      String? notes});
+      String? notes,
+      String? receiptPath});
 }
 
 /// @nodoc
@@ -132,17 +148,23 @@ class __$$ExpenseImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? ownerId = null,
     Object? title = null,
     Object? amount = null,
     Object? date = null,
     Object? category = null,
     Object? notes = freezed,
+    Object? receiptPath = freezed,
   }) {
     return _then(_$ExpenseImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
@@ -163,6 +185,10 @@ class __$$ExpenseImplCopyWithImpl<$Res>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      receiptPath: freezed == receiptPath
+          ? _value.receiptPath
+          : receiptPath // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -172,17 +198,21 @@ class __$$ExpenseImplCopyWithImpl<$Res>
 class _$ExpenseImpl implements _Expense {
   const _$ExpenseImpl(
       {required this.id,
+      required this.ownerId,
       required this.title,
       required this.amount,
       required this.date,
       required this.category,
-      this.notes});
+      this.notes,
+      this.receiptPath});
 
   factory _$ExpenseImpl.fromJson(Map<String, dynamic> json) =>
       _$$ExpenseImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
+  @override
+  final String ownerId;
   @override
   final String title;
   @override
@@ -194,10 +224,12 @@ class _$ExpenseImpl implements _Expense {
 // 'Repair', 'Bill', 'Salary', 'Other'
   @override
   final String? notes;
+  @override
+  final String? receiptPath;
 
   @override
   String toString() {
-    return 'Expense(id: $id, title: $title, amount: $amount, date: $date, category: $category, notes: $notes)';
+    return 'Expense(id: $id, ownerId: $ownerId, title: $title, amount: $amount, date: $date, category: $category, notes: $notes, receiptPath: $receiptPath)';
   }
 
   @override
@@ -206,18 +238,21 @@ class _$ExpenseImpl implements _Expense {
         (other.runtimeType == runtimeType &&
             other is _$ExpenseImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.ownerId, ownerId) || other.ownerId == ownerId) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.amount, amount) || other.amount == amount) &&
             (identical(other.date, date) || other.date == date) &&
             (identical(other.category, category) ||
                 other.category == category) &&
-            (identical(other.notes, notes) || other.notes == notes));
+            (identical(other.notes, notes) || other.notes == notes) &&
+            (identical(other.receiptPath, receiptPath) ||
+                other.receiptPath == receiptPath));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, title, amount, date, category, notes);
+  int get hashCode => Object.hash(runtimeType, id, ownerId, title, amount, date,
+      category, notes, receiptPath);
 
   /// Create a copy of Expense
   /// with the given fields replaced by the non-null parameter values.
@@ -237,17 +272,21 @@ class _$ExpenseImpl implements _Expense {
 
 abstract class _Expense implements Expense {
   const factory _Expense(
-      {required final int id,
+      {required final String id,
+      required final String ownerId,
       required final String title,
       required final double amount,
       required final DateTime date,
       required final String category,
-      final String? notes}) = _$ExpenseImpl;
+      final String? notes,
+      final String? receiptPath}) = _$ExpenseImpl;
 
   factory _Expense.fromJson(Map<String, dynamic> json) = _$ExpenseImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
+  @override
+  String get ownerId;
   @override
   String get title;
   @override
@@ -258,6 +297,8 @@ abstract class _Expense implements Expense {
   String get category; // 'Repair', 'Bill', 'Salary', 'Other'
   @override
   String? get notes;
+  @override
+  String? get receiptPath;
 
   /// Create a copy of Expense
   /// with the given fields replaced by the non-null parameter values.

@@ -15,6 +15,7 @@ class DataIntegrityValidator {
     final houses = (data['houses'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final units = (data['units'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final tenants = (data['tenants'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final contracts = (data['contracts'] as List?)?.cast<Map<String, dynamic>>() ?? []; // NEW
     final rentCycles = (data['rentCycles'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final payments = (data['payments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
@@ -28,19 +29,29 @@ class DataIntegrityValidator {
       }
     }
     
-    // Check Tenant -> Unit
+    // Check Contract -> Unit & Tenant
     final unitIds = units.map((u) => u['id']).toSet();
-    for (final tenant in tenants) {
-      if (!unitIds.contains(tenant['unitId'])) {
-        errors.add('Integrity Error: Tenant ${tenant['name']} points to missing Unit ID ${tenant['unitId']}');
-      }
+    final tenantIds = tenants.map((t) => t['id']).toSet();
+    
+    for (final contract in contracts) {
+       if (!unitIds.contains(contract['unitId'])) {
+         errors.add('Integrity Error: Contract ${contract['id']} points to missing Unit ID ${contract['unitId']}');
+       }
+       if (!tenantIds.contains(contract['tenantId'])) {
+         errors.add('Integrity Error: Contract ${contract['id']} points to missing Tenant ID ${contract['tenantId']}');
+       }
     }
     
-    // Check RentCycle -> Tenant
-    final tenantIds = tenants.map((t) => t['id']).toSet();
+    // Check RentCycle -> Contract (Tenancy)
+    final contractIds = contracts.map((c) => c['id']).toSet();
     for (final cycle in rentCycles) {
-      if (!tenantIds.contains(cycle['tenantId'])) {
-        errors.add('Integrity Error: RentCycle ${cycle['id']} points to missing Tenant ID ${cycle['tenantId']}');
+      if (!contractIds.contains(cycle['tenancyId'])) {
+        // Fallback: Check tenantId if tenancyId is missing (Legacy)
+        if (cycle['tenancyId'] == null && !tenantIds.contains(cycle['tenantId'])) {
+           errors.add('Integrity Error: RentCycle ${cycle['id']} has no valid Tenancy or Tenant link.');
+        } else if (cycle['tenancyId'] != null) {
+           errors.add('Integrity Error: RentCycle ${cycle['id']} points to missing Contract ID ${cycle['tenancyId']}');
+        }
       }
     }
 

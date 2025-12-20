@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'owner_controller.dart';
-import '../../../../domain/entities/owner.dart';
 
 class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
@@ -52,7 +50,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     var options = {
       'key': keyId, 
       'amount': amountInPaise, 
-      'name': 'RentPilot Pro',
+      'name': 'KirayaBook Pro',
       'description': '${planId.toUpperCase()} Subscription',
       'prefill': {
         'contact': '9876543210', // Get from User Profile
@@ -186,14 +184,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             _buildPlanCard(
               context, 
               title: 'Pro Owner', 
-              price: _isYearly ? '₹1,999' : '₹199', 
+              price: _isYearly ? '₹1,199' : '₹149', 
               period: _isYearly ? '/year' : '/month',
               description: 'For serious landlords',
-              features: ['Up to 20 Tenants', 'Multi-device Sync', 'Rent Due Reminders', 'Monthly PDF Reports', 'Payment Tracking'],
+              features: ['Up to 20 Tenants', 'Multi-device Sync', 'Rent Due Reminders', 'Monthly PDF Reports', 'Reduced Ads'],
               color: const Color(0xFF2563EB), // Blue
               isRecommended: true,
               isCurrent: currentPlan == 'pro',
-              onTap: () => _initiatePayment('pro', _isYearly ? 199900 : 19900),
+              onTap: () => _initiatePayment('pro', _isYearly ? 119900 : 14900),
               buttonText: currentPlan == 'pro' ? 'Current Plan' : 'Upgrade to Pro'
             ),
 
@@ -203,13 +201,13 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             _buildPlanCard(
               context, 
               title: 'Power Owner', 
-              price: _isYearly ? '₹4,999' : '₹499', 
+              price: _isYearly ? '₹3,499' : '₹399', 
               period: _isYearly ? '/year' : '/month',
               description: 'For societies & complexes',
-              features: ['Unlimited Tenants', 'Multiple Properties', 'Advanced Analytics', 'Priority Support', 'Data Backup Guarantee'],
+              features: ['Unlimited Tenants', 'Multiple Properties', 'Advanced Analytics', 'Priority Support', 'No Ads'],
               color: const Color(0xFF7C3AED), // Purple
               isCurrent: currentPlan == 'power',
-              onTap: () => _initiatePayment('power', _isYearly ? 499900 : 49900),
+              onTap: () => _initiatePayment('power', _isYearly ? 349900 : 39900),
               buttonText: currentPlan == 'power' ? 'Current Plan' : 'Get Power'
             ),
             
@@ -265,7 +263,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(isRecommended ? 0.2 : 0.05),
+                color: color.withValues(alpha: isRecommended ? 0.2 : 0.05),
                 blurRadius: 16,
                 offset: const Offset(0, 4)
               )

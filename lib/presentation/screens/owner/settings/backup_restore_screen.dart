@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 import '../../../providers/data_providers.dart';
-import '../../../routes/app_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/data_integrity_validator.dart';
 
@@ -73,6 +72,16 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   color: Colors.orange,
                   onTap: _handleVerifyData,
                 ),
+                const SizedBox(height: 16),
+                _buildActionCard(
+                  context,
+                  theme,
+                  title: 'Migrate Database Schema',
+                  description: 'Update your database structure to the new naming convention.',
+                  icon: Icons.system_update_alt,
+                  color: Colors.purple,
+                  onTap: _handleMigrateDatabase,
+                ),
               ],
             ),
           ),
@@ -115,7 +124,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: isDark ? Border.all(color: Colors.white10) : null,
-        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Material(
         color: Colors.transparent,
@@ -129,7 +138,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 28),
@@ -295,6 +304,79 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
      } finally {
        if (mounted) setState(() => _isLoading = false);
      }
+  }
+
+  Future<void> _handleMigrateDatabase() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final migrationService = ref.read(databaseMigrationServiceProvider);
+      
+      // 1. Check if needed
+      final needsMigration = await migrationService.checkIfMigrationNeeded(uid);
+      
+      if (!mounted) return;
+      
+      if (!needsMigration) {
+        setState(() => _isLoading = false);
+        _showErrorDialog('Up to Date', 'Your database structure is already using the latest schema.');
+        return;
+      }
+      
+      setState(() => _isLoading = false); // Stop loading to show dialog
+      
+      // 2. Confirm
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Migrate Database?'),
+          content: const Text(
+            'This will move your data to the new collection names (Contracts, Invoices, etc.).\n\nPlease ensure you have a stable internet connection.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Start Migration'),
+            ),
+          ],
+        ),
+      );
+      
+      if (confirm != true) return;
+      
+      setState(() => _isLoading = true);
+
+      // 3. Perform Migration with Progress Dialog
+      // We can't easily update a dialog from here without Stream, so we just show Loading and block.
+      // But we can use a simpler approach: Just run it.
+      
+      await migrationService.performMigration(uid, (status) {
+         // Optional: Update status if we had a detailed loader
+         debugPrint(status);
+      });
+      
+      if (mounted) {
+         showDialog(
+           context: context,
+           builder: (c) => AlertDialog(
+             title: const Row(children: [Icon(Icons.check_circle, color: Colors.green), SizedBox(width: 8), Text('Migration Successful')]),
+             content: const Text('Your database has been successfully upgraded.'),
+             actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK'))],
+           )
+         );
+      }
+
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('Migration Failed', e.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _showErrorDialog(String title, String message) {

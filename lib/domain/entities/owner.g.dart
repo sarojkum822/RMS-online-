@@ -15,6 +15,7 @@ _$OwnerImpl _$$OwnerImplFromJson(Map<String, dynamic> json) => _$OwnerImpl(
       subscriptionPlan: json['subscriptionPlan'] as String? ?? 'free',
       currency: json['currency'] as String? ?? 'INR',
       timezone: json['timezone'] as String?,
+      upiId: json['upiId'] as String?,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -30,27 +31,8 @@ Map<String, dynamic> _$$OwnerImplToJson(_$OwnerImpl instance) =>
       'subscriptionPlan': instance.subscriptionPlan,
       'currency': instance.currency,
       'timezone': instance.timezone,
+      'upiId': instance.upiId,
       'createdAt': instance.createdAt?.toIso8601String(),
-    };
-
-_$ExpenseImpl _$$ExpenseImplFromJson(Map<String, dynamic> json) =>
-    _$ExpenseImpl(
-      id: (json['id'] as num).toInt(),
-      ownerId: (json['ownerId'] as num).toInt(),
-      date: DateTime.parse(json['date'] as String),
-      amount: (json['amount'] as num).toDouble(),
-      category: json['category'] as String,
-      description: json['description'] as String?,
-    );
-
-Map<String, dynamic> _$$ExpenseImplToJson(_$ExpenseImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'ownerId': instance.ownerId,
-      'date': instance.date.toIso8601String(),
-      'amount': instance.amount,
-      'category': instance.category,
-      'description': instance.description,
     };
 
 _$ElectricReadingImpl _$$ElectricReadingImplFromJson(

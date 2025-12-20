@@ -4,5 +4,6 @@ abstract class IMaintenanceRepository {
   Future<void> submitRequest(MaintenanceRequest request);
   Stream<List<MaintenanceRequest>> watchRequestsForTenant(String tenantId, String ownerId);
   Stream<List<MaintenanceRequest>> watchRequestsForOwner(String ownerId, {bool pendingOnly = false});
-  Future<void> updateStatus(String requestId, MaintenanceStatus status, {double? cost, String? notes});
+  Future<void> updateStatus(String requestId, String ownerId, MaintenanceStatus status, {double? cost, String? notes});
+  Future<void> deleteRequest(String requestId, String ownerId);
 }

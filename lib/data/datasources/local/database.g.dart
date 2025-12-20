@@ -46,13 +46,9 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -90,6 +86,11 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
   late final GeneratedColumn<String> timezone = GeneratedColumn<String>(
       'timezone', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _upiIdMeta = const VerificationMeta('upiId');
+  @override
+  late final GeneratedColumn<String> upiId = GeneratedColumn<String>(
+      'upi_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -111,6 +112,7 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
         subscriptionPlan,
         currency,
         timezone,
+        upiId,
         createdAt
       ];
   @override
@@ -145,6 +147,8 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -174,6 +178,10 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
       context.handle(_timezoneMeta,
           timezone.isAcceptableOrUnknown(data['timezone']!, _timezoneMeta));
     }
+    if (data.containsKey('upi_id')) {
+      context.handle(
+          _upiIdMeta, upiId.isAcceptableOrUnknown(data['upi_id']!, _upiIdMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -196,7 +204,7 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       phone: attachedDatabase.typeMapping
@@ -209,6 +217,8 @@ class $OwnersTable extends Owners with TableInfo<$OwnersTable, Owner> {
           .read(DriftSqlType.string, data['${effectivePrefix}currency'])!,
       timezone: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}timezone']),
+      upiId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}upi_id']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
@@ -225,13 +235,14 @@ class Owner extends DataClass implements Insertable<Owner> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
+  final String id;
   final String name;
   final String? phone;
   final String? email;
   final String subscriptionPlan;
   final String currency;
   final String? timezone;
+  final String? upiId;
   final DateTime createdAt;
   const Owner(
       {this.firestoreId,
@@ -245,6 +256,7 @@ class Owner extends DataClass implements Insertable<Owner> {
       required this.subscriptionPlan,
       required this.currency,
       this.timezone,
+      this.upiId,
       required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -255,7 +267,7 @@ class Owner extends DataClass implements Insertable<Owner> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
+    map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || phone != null) {
       map['phone'] = Variable<String>(phone);
@@ -267,6 +279,9 @@ class Owner extends DataClass implements Insertable<Owner> {
     map['currency'] = Variable<String>(currency);
     if (!nullToAbsent || timezone != null) {
       map['timezone'] = Variable<String>(timezone);
+    }
+    if (!nullToAbsent || upiId != null) {
+      map['upi_id'] = Variable<String>(upiId);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -291,6 +306,8 @@ class Owner extends DataClass implements Insertable<Owner> {
       timezone: timezone == null && nullToAbsent
           ? const Value.absent()
           : Value(timezone),
+      upiId:
+          upiId == null && nullToAbsent ? const Value.absent() : Value(upiId),
       createdAt: Value(createdAt),
     );
   }
@@ -303,13 +320,14 @@ class Owner extends DataClass implements Insertable<Owner> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
+      id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String?>(json['phone']),
       email: serializer.fromJson<String?>(json['email']),
       subscriptionPlan: serializer.fromJson<String>(json['subscriptionPlan']),
       currency: serializer.fromJson<String>(json['currency']),
       timezone: serializer.fromJson<String?>(json['timezone']),
+      upiId: serializer.fromJson<String?>(json['upiId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -321,13 +339,14 @@ class Owner extends DataClass implements Insertable<Owner> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
+      'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String?>(phone),
       'email': serializer.toJson<String?>(email),
       'subscriptionPlan': serializer.toJson<String>(subscriptionPlan),
       'currency': serializer.toJson<String>(currency),
       'timezone': serializer.toJson<String?>(timezone),
+      'upiId': serializer.toJson<String?>(upiId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -337,13 +356,14 @@ class Owner extends DataClass implements Insertable<Owner> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
+          String? id,
           String? name,
           Value<String?> phone = const Value.absent(),
           Value<String?> email = const Value.absent(),
           String? subscriptionPlan,
           String? currency,
           Value<String?> timezone = const Value.absent(),
+          Value<String?> upiId = const Value.absent(),
           DateTime? createdAt}) =>
       Owner(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
@@ -357,6 +377,7 @@ class Owner extends DataClass implements Insertable<Owner> {
         subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
         currency: currency ?? this.currency,
         timezone: timezone.present ? timezone.value : this.timezone,
+        upiId: upiId.present ? upiId.value : this.upiId,
         createdAt: createdAt ?? this.createdAt,
       );
   Owner copyWithCompanion(OwnersCompanion data) {
@@ -376,6 +397,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           : this.subscriptionPlan,
       currency: data.currency.present ? data.currency.value : this.currency,
       timezone: data.timezone.present ? data.timezone.value : this.timezone,
+      upiId: data.upiId.present ? data.upiId.value : this.upiId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -394,14 +416,27 @@ class Owner extends DataClass implements Insertable<Owner> {
           ..write('subscriptionPlan: $subscriptionPlan, ')
           ..write('currency: $currency, ')
           ..write('timezone: $timezone, ')
+          ..write('upiId: $upiId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, name, phone, email, subscriptionPlan, currency, timezone, createdAt);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      name,
+      phone,
+      email,
+      subscriptionPlan,
+      currency,
+      timezone,
+      upiId,
+      createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -417,6 +452,7 @@ class Owner extends DataClass implements Insertable<Owner> {
           other.subscriptionPlan == this.subscriptionPlan &&
           other.currency == this.currency &&
           other.timezone == this.timezone &&
+          other.upiId == this.upiId &&
           other.createdAt == this.createdAt);
 }
 
@@ -425,14 +461,16 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
+  final Value<String> id;
   final Value<String> name;
   final Value<String?> phone;
   final Value<String?> email;
   final Value<String> subscriptionPlan;
   final Value<String> currency;
   final Value<String?> timezone;
+  final Value<String?> upiId;
   final Value<DateTime> createdAt;
+  final Value<int> rowid;
   const OwnersCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -445,35 +483,42 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     this.subscriptionPlan = const Value.absent(),
     this.currency = const Value.absent(),
     this.timezone = const Value.absent(),
+    this.upiId = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   OwnersCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
+    required String id,
     required String name,
     this.phone = const Value.absent(),
     this.email = const Value.absent(),
     this.subscriptionPlan = const Value.absent(),
     this.currency = const Value.absent(),
     this.timezone = const Value.absent(),
+    this.upiId = const Value.absent(),
     this.createdAt = const Value.absent(),
-  }) : name = Value(name);
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name);
   static Insertable<Owner> custom({
     Expression<String>? firestoreId,
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
+    Expression<String>? id,
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? email,
     Expression<String>? subscriptionPlan,
     Expression<String>? currency,
     Expression<String>? timezone,
+    Expression<String>? upiId,
     Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -487,7 +532,9 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       if (subscriptionPlan != null) 'subscription_plan': subscriptionPlan,
       if (currency != null) 'currency': currency,
       if (timezone != null) 'timezone': timezone,
+      if (upiId != null) 'upi_id': upiId,
       if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -496,14 +543,16 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
+      Value<String>? id,
       Value<String>? name,
       Value<String?>? phone,
       Value<String?>? email,
       Value<String>? subscriptionPlan,
       Value<String>? currency,
       Value<String?>? timezone,
-      Value<DateTime>? createdAt}) {
+      Value<String?>? upiId,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
     return OwnersCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -516,7 +565,9 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
       currency: currency ?? this.currency,
       timezone: timezone ?? this.timezone,
+      upiId: upiId ?? this.upiId,
       createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -536,7 +587,7 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -556,8 +607,14 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
     if (timezone.present) {
       map['timezone'] = Variable<String>(timezone.value);
     }
+    if (upiId.present) {
+      map['upi_id'] = Variable<String>(upiId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -576,7 +633,9 @@ class OwnersCompanion extends UpdateCompanion<Owner> {
           ..write('subscriptionPlan: $subscriptionPlan, ')
           ..write('currency: $currency, ')
           ..write('timezone: $timezone, ')
-          ..write('createdAt: $createdAt')
+          ..write('upiId: $upiId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -625,19 +684,15 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _ownerIdMeta =
       const VerificationMeta('ownerId');
   @override
-  late final GeneratedColumn<int> ownerId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
       'owner_id', aliasedName, false,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES owners (id) ON DELETE CASCADE'));
@@ -657,6 +712,26 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
       'notes', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageUrlMeta =
+      const VerificationMeta('imageUrl');
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+      'image_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageBase64Meta =
+      const VerificationMeta('imageBase64');
+  @override
+  late final GeneratedColumn<String> imageBase64 = GeneratedColumn<String>(
+      'image_base64', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _unitCountMeta =
+      const VerificationMeta('unitCount');
+  @override
+  late final GeneratedColumn<int> unitCount = GeneratedColumn<int>(
+      'unit_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -667,7 +742,10 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
         ownerId,
         name,
         address,
-        notes
+        notes,
+        imageUrl,
+        imageBase64,
+        unitCount
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -701,6 +779,8 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('owner_id')) {
       context.handle(_ownerIdMeta,
@@ -724,6 +804,20 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
+    if (data.containsKey('image_url')) {
+      context.handle(_imageUrlMeta,
+          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
+    }
+    if (data.containsKey('image_base64')) {
+      context.handle(
+          _imageBase64Meta,
+          imageBase64.isAcceptableOrUnknown(
+              data['image_base64']!, _imageBase64Meta));
+    }
+    if (data.containsKey('unit_count')) {
+      context.handle(_unitCountMeta,
+          unitCount.isAcceptableOrUnknown(data['unit_count']!, _unitCountMeta));
+    }
     return context;
   }
 
@@ -742,15 +836,21 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       ownerId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}owner_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       address: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}address'])!,
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
+      imageUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
+      imageBase64: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_base64']),
+      unitCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}unit_count'])!,
     );
   }
 
@@ -765,11 +865,14 @@ class House extends DataClass implements Insertable<House> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int ownerId;
+  final String id;
+  final String ownerId;
   final String name;
   final String address;
   final String? notes;
+  final String? imageUrl;
+  final String? imageBase64;
+  final int unitCount;
   const House(
       {this.firestoreId,
       required this.lastUpdated,
@@ -779,7 +882,10 @@ class House extends DataClass implements Insertable<House> {
       required this.ownerId,
       required this.name,
       required this.address,
-      this.notes});
+      this.notes,
+      this.imageUrl,
+      this.imageBase64,
+      required this.unitCount});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -789,13 +895,20 @@ class House extends DataClass implements Insertable<House> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['owner_id'] = Variable<int>(ownerId);
+    map['id'] = Variable<String>(id);
+    map['owner_id'] = Variable<String>(ownerId);
     map['name'] = Variable<String>(name);
     map['address'] = Variable<String>(address);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || imageBase64 != null) {
+      map['image_base64'] = Variable<String>(imageBase64);
+    }
+    map['unit_count'] = Variable<int>(unitCount);
     return map;
   }
 
@@ -813,6 +926,13 @@ class House extends DataClass implements Insertable<House> {
       address: Value(address),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      imageBase64: imageBase64 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageBase64),
+      unitCount: Value(unitCount),
     );
   }
 
@@ -824,11 +944,14 @@ class House extends DataClass implements Insertable<House> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      ownerId: serializer.fromJson<int>(json['ownerId']),
+      id: serializer.fromJson<String>(json['id']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
       name: serializer.fromJson<String>(json['name']),
       address: serializer.fromJson<String>(json['address']),
       notes: serializer.fromJson<String?>(json['notes']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      imageBase64: serializer.fromJson<String?>(json['imageBase64']),
+      unitCount: serializer.fromJson<int>(json['unitCount']),
     );
   }
   @override
@@ -839,11 +962,14 @@ class House extends DataClass implements Insertable<House> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'ownerId': serializer.toJson<int>(ownerId),
+      'id': serializer.toJson<String>(id),
+      'ownerId': serializer.toJson<String>(ownerId),
       'name': serializer.toJson<String>(name),
       'address': serializer.toJson<String>(address),
       'notes': serializer.toJson<String?>(notes),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'imageBase64': serializer.toJson<String?>(imageBase64),
+      'unitCount': serializer.toJson<int>(unitCount),
     };
   }
 
@@ -852,11 +978,14 @@ class House extends DataClass implements Insertable<House> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? ownerId,
+          String? id,
+          String? ownerId,
           String? name,
           String? address,
-          Value<String?> notes = const Value.absent()}) =>
+          Value<String?> notes = const Value.absent(),
+          Value<String?> imageUrl = const Value.absent(),
+          Value<String?> imageBase64 = const Value.absent(),
+          int? unitCount}) =>
       House(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -867,6 +996,9 @@ class House extends DataClass implements Insertable<House> {
         name: name ?? this.name,
         address: address ?? this.address,
         notes: notes.present ? notes.value : this.notes,
+        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+        imageBase64: imageBase64.present ? imageBase64.value : this.imageBase64,
+        unitCount: unitCount ?? this.unitCount,
       );
   House copyWithCompanion(HousesCompanion data) {
     return House(
@@ -881,6 +1013,10 @@ class House extends DataClass implements Insertable<House> {
       name: data.name.present ? data.name.value : this.name,
       address: data.address.present ? data.address.value : this.address,
       notes: data.notes.present ? data.notes.value : this.notes,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      imageBase64:
+          data.imageBase64.present ? data.imageBase64.value : this.imageBase64,
+      unitCount: data.unitCount.present ? data.unitCount.value : this.unitCount,
     );
   }
 
@@ -895,14 +1031,17 @@ class House extends DataClass implements Insertable<House> {
           ..write('ownerId: $ownerId, ')
           ..write('name: $name, ')
           ..write('address: $address, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('unitCount: $unitCount')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, ownerId, name, address, notes);
+      id, ownerId, name, address, notes, imageUrl, imageBase64, unitCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -915,7 +1054,10 @@ class House extends DataClass implements Insertable<House> {
           other.ownerId == this.ownerId &&
           other.name == this.name &&
           other.address == this.address &&
-          other.notes == this.notes);
+          other.notes == this.notes &&
+          other.imageUrl == this.imageUrl &&
+          other.imageBase64 == this.imageBase64 &&
+          other.unitCount == this.unitCount);
 }
 
 class HousesCompanion extends UpdateCompanion<House> {
@@ -923,11 +1065,15 @@ class HousesCompanion extends UpdateCompanion<House> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> ownerId;
+  final Value<String> id;
+  final Value<String> ownerId;
   final Value<String> name;
   final Value<String> address;
   final Value<String?> notes;
+  final Value<String?> imageUrl;
+  final Value<String?> imageBase64;
+  final Value<int> unitCount;
+  final Value<int> rowid;
   const HousesCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -938,18 +1084,27 @@ class HousesCompanion extends UpdateCompanion<House> {
     this.name = const Value.absent(),
     this.address = const Value.absent(),
     this.notes = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.unitCount = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   HousesCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int ownerId,
+    required String id,
+    required String ownerId,
     required String name,
     required String address,
     this.notes = const Value.absent(),
-  })  : ownerId = Value(ownerId),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.unitCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        ownerId = Value(ownerId),
         name = Value(name),
         address = Value(address);
   static Insertable<House> custom({
@@ -957,11 +1112,15 @@ class HousesCompanion extends UpdateCompanion<House> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? ownerId,
+    Expression<String>? id,
+    Expression<String>? ownerId,
     Expression<String>? name,
     Expression<String>? address,
     Expression<String>? notes,
+    Expression<String>? imageUrl,
+    Expression<String>? imageBase64,
+    Expression<int>? unitCount,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -973,6 +1132,10 @@ class HousesCompanion extends UpdateCompanion<House> {
       if (name != null) 'name': name,
       if (address != null) 'address': address,
       if (notes != null) 'notes': notes,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (imageBase64 != null) 'image_base64': imageBase64,
+      if (unitCount != null) 'unit_count': unitCount,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -981,11 +1144,15 @@ class HousesCompanion extends UpdateCompanion<House> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? ownerId,
+      Value<String>? id,
+      Value<String>? ownerId,
       Value<String>? name,
       Value<String>? address,
-      Value<String?>? notes}) {
+      Value<String?>? notes,
+      Value<String?>? imageUrl,
+      Value<String?>? imageBase64,
+      Value<int>? unitCount,
+      Value<int>? rowid}) {
     return HousesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -996,6 +1163,10 @@ class HousesCompanion extends UpdateCompanion<House> {
       name: name ?? this.name,
       address: address ?? this.address,
       notes: notes ?? this.notes,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageBase64: imageBase64 ?? this.imageBase64,
+      unitCount: unitCount ?? this.unitCount,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -1015,10 +1186,10 @@ class HousesCompanion extends UpdateCompanion<House> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (ownerId.present) {
-      map['owner_id'] = Variable<int>(ownerId.value);
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -1028,6 +1199,18 @@ class HousesCompanion extends UpdateCompanion<House> {
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
+    }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (imageBase64.present) {
+      map['image_base64'] = Variable<String>(imageBase64.value);
+    }
+    if (unitCount.present) {
+      map['unit_count'] = Variable<int>(unitCount.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -1043,7 +1226,11 @@ class HousesCompanion extends UpdateCompanion<House> {
           ..write('ownerId: $ownerId, ')
           ..write('name: $name, ')
           ..write('address: $address, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('unitCount: $unitCount, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1093,19 +1280,15 @@ class $BhkTemplatesTable extends BhkTemplates
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _houseIdMeta =
       const VerificationMeta('houseId');
   @override
-  late final GeneratedColumn<int> houseId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> houseId = GeneratedColumn<String>(
       'house_id', aliasedName, false,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES houses (id) ON DELETE CASCADE'));
@@ -1209,6 +1392,8 @@ class $BhkTemplatesTable extends BhkTemplates
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('house_id')) {
       context.handle(_houseIdMeta,
@@ -1274,9 +1459,9 @@ class $BhkTemplatesTable extends BhkTemplates
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       houseId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}house_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}house_id'])!,
       bhkType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}bhk_type'])!,
       defaultRent: attachedDatabase.typeMapping
@@ -1305,8 +1490,8 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int houseId;
+  final String id;
+  final String houseId;
   final String bhkType;
   final double defaultRent;
   final String? description;
@@ -1337,8 +1522,8 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['house_id'] = Variable<int>(houseId);
+    map['id'] = Variable<String>(id);
+    map['house_id'] = Variable<String>(houseId);
     map['bhk_type'] = Variable<String>(bhkType);
     map['default_rent'] = Variable<double>(defaultRent);
     if (!nullToAbsent || description != null) {
@@ -1381,8 +1566,8 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      houseId: serializer.fromJson<int>(json['houseId']),
+      id: serializer.fromJson<String>(json['id']),
+      houseId: serializer.fromJson<String>(json['houseId']),
       bhkType: serializer.fromJson<String>(json['bhkType']),
       defaultRent: serializer.fromJson<double>(json['defaultRent']),
       description: serializer.fromJson<String?>(json['description']),
@@ -1400,8 +1585,8 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'houseId': serializer.toJson<int>(houseId),
+      'id': serializer.toJson<String>(id),
+      'houseId': serializer.toJson<String>(houseId),
       'bhkType': serializer.toJson<String>(bhkType),
       'defaultRent': serializer.toJson<double>(defaultRent),
       'description': serializer.toJson<String?>(description),
@@ -1417,8 +1602,8 @@ class BhkTemplate extends DataClass implements Insertable<BhkTemplate> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? houseId,
+          String? id,
+          String? houseId,
           String? bhkType,
           double? defaultRent,
           Value<String?> description = const Value.absent(),
@@ -1525,8 +1710,8 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> houseId;
+  final Value<String> id;
+  final Value<String> houseId;
   final Value<String> bhkType;
   final Value<double> defaultRent;
   final Value<String?> description;
@@ -1534,6 +1719,7 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
   final Value<int> kitchenCount;
   final Value<int> hallCount;
   final Value<bool> hasBalcony;
+  final Value<int> rowid;
   const BhkTemplatesCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -1548,14 +1734,15 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     this.kitchenCount = const Value.absent(),
     this.hallCount = const Value.absent(),
     this.hasBalcony = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   BhkTemplatesCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int houseId,
+    required String id,
+    required String houseId,
     required String bhkType,
     required double defaultRent,
     this.description = const Value.absent(),
@@ -1563,7 +1750,9 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     this.kitchenCount = const Value.absent(),
     this.hallCount = const Value.absent(),
     this.hasBalcony = const Value.absent(),
-  })  : houseId = Value(houseId),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        houseId = Value(houseId),
         bhkType = Value(bhkType),
         defaultRent = Value(defaultRent);
   static Insertable<BhkTemplate> custom({
@@ -1571,8 +1760,8 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? houseId,
+    Expression<String>? id,
+    Expression<String>? houseId,
     Expression<String>? bhkType,
     Expression<double>? defaultRent,
     Expression<String>? description,
@@ -1580,6 +1769,7 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     Expression<int>? kitchenCount,
     Expression<int>? hallCount,
     Expression<bool>? hasBalcony,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -1595,6 +1785,7 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
       if (kitchenCount != null) 'kitchen_count': kitchenCount,
       if (hallCount != null) 'hall_count': hallCount,
       if (hasBalcony != null) 'has_balcony': hasBalcony,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -1603,15 +1794,16 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? houseId,
+      Value<String>? id,
+      Value<String>? houseId,
       Value<String>? bhkType,
       Value<double>? defaultRent,
       Value<String?>? description,
       Value<int>? roomCount,
       Value<int>? kitchenCount,
       Value<int>? hallCount,
-      Value<bool>? hasBalcony}) {
+      Value<bool>? hasBalcony,
+      Value<int>? rowid}) {
     return BhkTemplatesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -1626,6 +1818,7 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
       kitchenCount: kitchenCount ?? this.kitchenCount,
       hallCount: hallCount ?? this.hallCount,
       hasBalcony: hasBalcony ?? this.hasBalcony,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -1645,10 +1838,10 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (houseId.present) {
-      map['house_id'] = Variable<int>(houseId.value);
+      map['house_id'] = Variable<String>(houseId.value);
     }
     if (bhkType.present) {
       map['bhk_type'] = Variable<String>(bhkType.value);
@@ -1671,6 +1864,9 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
     if (hasBalcony.present) {
       map['has_balcony'] = Variable<bool>(hasBalcony.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -1689,7 +1885,8 @@ class BhkTemplatesCompanion extends UpdateCompanion<BhkTemplate> {
           ..write('roomCount: $roomCount, ')
           ..write('kitchenCount: $kitchenCount, ')
           ..write('hallCount: $hallCount, ')
-          ..write('hasBalcony: $hasBalcony')
+          ..write('hasBalcony: $hasBalcony, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1738,22 +1935,27 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _houseIdMeta =
       const VerificationMeta('houseId');
   @override
-  late final GeneratedColumn<int> houseId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> houseId = GeneratedColumn<String>(
       'house_id', aliasedName, false,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES houses (id) ON DELETE CASCADE'));
+  static const VerificationMeta _ownerIdMeta =
+      const VerificationMeta('ownerId');
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+      'owner_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES owners (id) ON DELETE CASCADE'));
   static const VerificationMeta _nameOrNumberMeta =
       const VerificationMeta('nameOrNumber');
   @override
@@ -1768,9 +1970,9 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
   static const VerificationMeta _bhkTemplateIdMeta =
       const VerificationMeta('bhkTemplateId');
   @override
-  late final GeneratedColumn<int> bhkTemplateId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> bhkTemplateId = GeneratedColumn<String>(
       'bhk_template_id', aliasedName, true,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('REFERENCES bhk_templates (id)'));
@@ -1834,12 +2036,24 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_occupied" IN (0, 1))'),
       defaultValue: const Constant(false));
-  static const VerificationMeta _tenantIdMeta =
-      const VerificationMeta('tenantId');
+  static const VerificationMeta _imageUrlsMeta =
+      const VerificationMeta('imageUrls');
   @override
-  late final GeneratedColumn<int> tenantId = GeneratedColumn<int>(
-      'tenant_id', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
+  late final GeneratedColumn<String> imageUrls = GeneratedColumn<String>(
+      'image_urls', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imagesBase64Meta =
+      const VerificationMeta('imagesBase64');
+  @override
+  late final GeneratedColumn<String> imagesBase64 = GeneratedColumn<String>(
+      'images_base64', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _currentTenancyIdMeta =
+      const VerificationMeta('currentTenancyId');
+  @override
+  late final GeneratedColumn<String> currentTenancyId = GeneratedColumn<String>(
+      'current_tenancy_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -1848,6 +2062,7 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
         isDeleted,
         id,
         houseId,
+        ownerId,
         nameOrNumber,
         floor,
         bhkTemplateId,
@@ -1860,7 +2075,9 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
         meterNumber,
         defaultDueDay,
         isOccupied,
-        tenantId
+        imageUrls,
+        imagesBase64,
+        currentTenancyId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1894,12 +2111,20 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('house_id')) {
       context.handle(_houseIdMeta,
           houseId.isAcceptableOrUnknown(data['house_id']!, _houseIdMeta));
     } else if (isInserting) {
       context.missing(_houseIdMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(_ownerIdMeta,
+          ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta));
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
     }
     if (data.containsKey('name_or_number')) {
       context.handle(
@@ -1971,9 +2196,21 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
           isOccupied.isAcceptableOrUnknown(
               data['is_occupied']!, _isOccupiedMeta));
     }
-    if (data.containsKey('tenant_id')) {
-      context.handle(_tenantIdMeta,
-          tenantId.isAcceptableOrUnknown(data['tenant_id']!, _tenantIdMeta));
+    if (data.containsKey('image_urls')) {
+      context.handle(_imageUrlsMeta,
+          imageUrls.isAcceptableOrUnknown(data['image_urls']!, _imageUrlsMeta));
+    }
+    if (data.containsKey('images_base64')) {
+      context.handle(
+          _imagesBase64Meta,
+          imagesBase64.isAcceptableOrUnknown(
+              data['images_base64']!, _imagesBase64Meta));
+    }
+    if (data.containsKey('current_tenancy_id')) {
+      context.handle(
+          _currentTenancyIdMeta,
+          currentTenancyId.isAcceptableOrUnknown(
+              data['current_tenancy_id']!, _currentTenancyIdMeta));
     }
     return context;
   }
@@ -1993,15 +2230,17 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       houseId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}house_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}house_id'])!,
+      ownerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
       nameOrNumber: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name_or_number'])!,
       floor: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}floor']),
       bhkTemplateId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}bhk_template_id']),
+          .read(DriftSqlType.string, data['${effectivePrefix}bhk_template_id']),
       bhkType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}bhk_type']),
       baseRent: attachedDatabase.typeMapping
@@ -2020,8 +2259,12 @@ class $UnitsTable extends Units with TableInfo<$UnitsTable, Unit> {
           .read(DriftSqlType.int, data['${effectivePrefix}default_due_day'])!,
       isOccupied: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_occupied'])!,
-      tenantId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}tenant_id']),
+      imageUrls: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_urls']),
+      imagesBase64: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}images_base64']),
+      currentTenancyId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}current_tenancy_id']),
     );
   }
 
@@ -2036,11 +2279,12 @@ class Unit extends DataClass implements Insertable<Unit> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int houseId;
+  final String id;
+  final String houseId;
+  final String ownerId;
   final String nameOrNumber;
   final int? floor;
-  final int? bhkTemplateId;
+  final String? bhkTemplateId;
   final String? bhkType;
   final double baseRent;
   final double? editableRent;
@@ -2050,7 +2294,9 @@ class Unit extends DataClass implements Insertable<Unit> {
   final String? meterNumber;
   final int defaultDueDay;
   final bool isOccupied;
-  final int? tenantId;
+  final String? imageUrls;
+  final String? imagesBase64;
+  final String? currentTenancyId;
   const Unit(
       {this.firestoreId,
       required this.lastUpdated,
@@ -2058,6 +2304,7 @@ class Unit extends DataClass implements Insertable<Unit> {
       required this.isDeleted,
       required this.id,
       required this.houseId,
+      required this.ownerId,
       required this.nameOrNumber,
       this.floor,
       this.bhkTemplateId,
@@ -2070,7 +2317,9 @@ class Unit extends DataClass implements Insertable<Unit> {
       this.meterNumber,
       required this.defaultDueDay,
       required this.isOccupied,
-      this.tenantId});
+      this.imageUrls,
+      this.imagesBase64,
+      this.currentTenancyId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2080,14 +2329,15 @@ class Unit extends DataClass implements Insertable<Unit> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['house_id'] = Variable<int>(houseId);
+    map['id'] = Variable<String>(id);
+    map['house_id'] = Variable<String>(houseId);
+    map['owner_id'] = Variable<String>(ownerId);
     map['name_or_number'] = Variable<String>(nameOrNumber);
     if (!nullToAbsent || floor != null) {
       map['floor'] = Variable<int>(floor);
     }
     if (!nullToAbsent || bhkTemplateId != null) {
-      map['bhk_template_id'] = Variable<int>(bhkTemplateId);
+      map['bhk_template_id'] = Variable<String>(bhkTemplateId);
     }
     if (!nullToAbsent || bhkType != null) {
       map['bhk_type'] = Variable<String>(bhkType);
@@ -2110,8 +2360,14 @@ class Unit extends DataClass implements Insertable<Unit> {
     }
     map['default_due_day'] = Variable<int>(defaultDueDay);
     map['is_occupied'] = Variable<bool>(isOccupied);
-    if (!nullToAbsent || tenantId != null) {
-      map['tenant_id'] = Variable<int>(tenantId);
+    if (!nullToAbsent || imageUrls != null) {
+      map['image_urls'] = Variable<String>(imageUrls);
+    }
+    if (!nullToAbsent || imagesBase64 != null) {
+      map['images_base64'] = Variable<String>(imagesBase64);
+    }
+    if (!nullToAbsent || currentTenancyId != null) {
+      map['current_tenancy_id'] = Variable<String>(currentTenancyId);
     }
     return map;
   }
@@ -2126,6 +2382,7 @@ class Unit extends DataClass implements Insertable<Unit> {
       isDeleted: Value(isDeleted),
       id: Value(id),
       houseId: Value(houseId),
+      ownerId: Value(ownerId),
       nameOrNumber: Value(nameOrNumber),
       floor:
           floor == null && nullToAbsent ? const Value.absent() : Value(floor),
@@ -2153,9 +2410,15 @@ class Unit extends DataClass implements Insertable<Unit> {
           : Value(meterNumber),
       defaultDueDay: Value(defaultDueDay),
       isOccupied: Value(isOccupied),
-      tenantId: tenantId == null && nullToAbsent
+      imageUrls: imageUrls == null && nullToAbsent
           ? const Value.absent()
-          : Value(tenantId),
+          : Value(imageUrls),
+      imagesBase64: imagesBase64 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imagesBase64),
+      currentTenancyId: currentTenancyId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentTenancyId),
     );
   }
 
@@ -2167,11 +2430,12 @@ class Unit extends DataClass implements Insertable<Unit> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      houseId: serializer.fromJson<int>(json['houseId']),
+      id: serializer.fromJson<String>(json['id']),
+      houseId: serializer.fromJson<String>(json['houseId']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
       nameOrNumber: serializer.fromJson<String>(json['nameOrNumber']),
       floor: serializer.fromJson<int?>(json['floor']),
-      bhkTemplateId: serializer.fromJson<int?>(json['bhkTemplateId']),
+      bhkTemplateId: serializer.fromJson<String?>(json['bhkTemplateId']),
       bhkType: serializer.fromJson<String?>(json['bhkType']),
       baseRent: serializer.fromJson<double>(json['baseRent']),
       editableRent: serializer.fromJson<double?>(json['editableRent']),
@@ -2181,7 +2445,9 @@ class Unit extends DataClass implements Insertable<Unit> {
       meterNumber: serializer.fromJson<String?>(json['meterNumber']),
       defaultDueDay: serializer.fromJson<int>(json['defaultDueDay']),
       isOccupied: serializer.fromJson<bool>(json['isOccupied']),
-      tenantId: serializer.fromJson<int?>(json['tenantId']),
+      imageUrls: serializer.fromJson<String?>(json['imageUrls']),
+      imagesBase64: serializer.fromJson<String?>(json['imagesBase64']),
+      currentTenancyId: serializer.fromJson<String?>(json['currentTenancyId']),
     );
   }
   @override
@@ -2192,11 +2458,12 @@ class Unit extends DataClass implements Insertable<Unit> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'houseId': serializer.toJson<int>(houseId),
+      'id': serializer.toJson<String>(id),
+      'houseId': serializer.toJson<String>(houseId),
+      'ownerId': serializer.toJson<String>(ownerId),
       'nameOrNumber': serializer.toJson<String>(nameOrNumber),
       'floor': serializer.toJson<int?>(floor),
-      'bhkTemplateId': serializer.toJson<int?>(bhkTemplateId),
+      'bhkTemplateId': serializer.toJson<String?>(bhkTemplateId),
       'bhkType': serializer.toJson<String?>(bhkType),
       'baseRent': serializer.toJson<double>(baseRent),
       'editableRent': serializer.toJson<double?>(editableRent),
@@ -2206,7 +2473,9 @@ class Unit extends DataClass implements Insertable<Unit> {
       'meterNumber': serializer.toJson<String?>(meterNumber),
       'defaultDueDay': serializer.toJson<int>(defaultDueDay),
       'isOccupied': serializer.toJson<bool>(isOccupied),
-      'tenantId': serializer.toJson<int?>(tenantId),
+      'imageUrls': serializer.toJson<String?>(imageUrls),
+      'imagesBase64': serializer.toJson<String?>(imagesBase64),
+      'currentTenancyId': serializer.toJson<String?>(currentTenancyId),
     };
   }
 
@@ -2215,11 +2484,12 @@ class Unit extends DataClass implements Insertable<Unit> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? houseId,
+          String? id,
+          String? houseId,
+          String? ownerId,
           String? nameOrNumber,
           Value<int?> floor = const Value.absent(),
-          Value<int?> bhkTemplateId = const Value.absent(),
+          Value<String?> bhkTemplateId = const Value.absent(),
           Value<String?> bhkType = const Value.absent(),
           double? baseRent,
           Value<double?> editableRent = const Value.absent(),
@@ -2229,7 +2499,9 @@ class Unit extends DataClass implements Insertable<Unit> {
           Value<String?> meterNumber = const Value.absent(),
           int? defaultDueDay,
           bool? isOccupied,
-          Value<int?> tenantId = const Value.absent()}) =>
+          Value<String?> imageUrls = const Value.absent(),
+          Value<String?> imagesBase64 = const Value.absent(),
+          Value<String?> currentTenancyId = const Value.absent()}) =>
       Unit(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -2237,6 +2509,7 @@ class Unit extends DataClass implements Insertable<Unit> {
         isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         houseId: houseId ?? this.houseId,
+        ownerId: ownerId ?? this.ownerId,
         nameOrNumber: nameOrNumber ?? this.nameOrNumber,
         floor: floor.present ? floor.value : this.floor,
         bhkTemplateId:
@@ -2253,7 +2526,12 @@ class Unit extends DataClass implements Insertable<Unit> {
         meterNumber: meterNumber.present ? meterNumber.value : this.meterNumber,
         defaultDueDay: defaultDueDay ?? this.defaultDueDay,
         isOccupied: isOccupied ?? this.isOccupied,
-        tenantId: tenantId.present ? tenantId.value : this.tenantId,
+        imageUrls: imageUrls.present ? imageUrls.value : this.imageUrls,
+        imagesBase64:
+            imagesBase64.present ? imagesBase64.value : this.imagesBase64,
+        currentTenancyId: currentTenancyId.present
+            ? currentTenancyId.value
+            : this.currentTenancyId,
       );
   Unit copyWithCompanion(UnitsCompanion data) {
     return Unit(
@@ -2265,6 +2543,7 @@ class Unit extends DataClass implements Insertable<Unit> {
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       houseId: data.houseId.present ? data.houseId.value : this.houseId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       nameOrNumber: data.nameOrNumber.present
           ? data.nameOrNumber.value
           : this.nameOrNumber,
@@ -2291,7 +2570,13 @@ class Unit extends DataClass implements Insertable<Unit> {
           : this.defaultDueDay,
       isOccupied:
           data.isOccupied.present ? data.isOccupied.value : this.isOccupied,
-      tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
+      imageUrls: data.imageUrls.present ? data.imageUrls.value : this.imageUrls,
+      imagesBase64: data.imagesBase64.present
+          ? data.imagesBase64.value
+          : this.imagesBase64,
+      currentTenancyId: data.currentTenancyId.present
+          ? data.currentTenancyId.value
+          : this.currentTenancyId,
     );
   }
 
@@ -2304,6 +2589,7 @@ class Unit extends DataClass implements Insertable<Unit> {
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('houseId: $houseId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('nameOrNumber: $nameOrNumber, ')
           ..write('floor: $floor, ')
           ..write('bhkTemplateId: $bhkTemplateId, ')
@@ -2316,32 +2602,38 @@ class Unit extends DataClass implements Insertable<Unit> {
           ..write('meterNumber: $meterNumber, ')
           ..write('defaultDueDay: $defaultDueDay, ')
           ..write('isOccupied: $isOccupied, ')
-          ..write('tenantId: $tenantId')
+          ..write('imageUrls: $imageUrls, ')
+          ..write('imagesBase64: $imagesBase64, ')
+          ..write('currentTenancyId: $currentTenancyId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      firestoreId,
-      lastUpdated,
-      isSynced,
-      isDeleted,
-      id,
-      houseId,
-      nameOrNumber,
-      floor,
-      bhkTemplateId,
-      bhkType,
-      baseRent,
-      editableRent,
-      furnishingStatus,
-      carpetArea,
-      parkingSlot,
-      meterNumber,
-      defaultDueDay,
-      isOccupied,
-      tenantId);
+  int get hashCode => Object.hashAll([
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        houseId,
+        ownerId,
+        nameOrNumber,
+        floor,
+        bhkTemplateId,
+        bhkType,
+        baseRent,
+        editableRent,
+        furnishingStatus,
+        carpetArea,
+        parkingSlot,
+        meterNumber,
+        defaultDueDay,
+        isOccupied,
+        imageUrls,
+        imagesBase64,
+        currentTenancyId
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2352,6 +2644,7 @@ class Unit extends DataClass implements Insertable<Unit> {
           other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.houseId == this.houseId &&
+          other.ownerId == this.ownerId &&
           other.nameOrNumber == this.nameOrNumber &&
           other.floor == this.floor &&
           other.bhkTemplateId == this.bhkTemplateId &&
@@ -2364,7 +2657,9 @@ class Unit extends DataClass implements Insertable<Unit> {
           other.meterNumber == this.meterNumber &&
           other.defaultDueDay == this.defaultDueDay &&
           other.isOccupied == this.isOccupied &&
-          other.tenantId == this.tenantId);
+          other.imageUrls == this.imageUrls &&
+          other.imagesBase64 == this.imagesBase64 &&
+          other.currentTenancyId == this.currentTenancyId);
 }
 
 class UnitsCompanion extends UpdateCompanion<Unit> {
@@ -2372,11 +2667,12 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> houseId;
+  final Value<String> id;
+  final Value<String> houseId;
+  final Value<String> ownerId;
   final Value<String> nameOrNumber;
   final Value<int?> floor;
-  final Value<int?> bhkTemplateId;
+  final Value<String?> bhkTemplateId;
   final Value<String?> bhkType;
   final Value<double> baseRent;
   final Value<double?> editableRent;
@@ -2386,7 +2682,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
   final Value<String?> meterNumber;
   final Value<int> defaultDueDay;
   final Value<bool> isOccupied;
-  final Value<int?> tenantId;
+  final Value<String?> imageUrls;
+  final Value<String?> imagesBase64;
+  final Value<String?> currentTenancyId;
+  final Value<int> rowid;
   const UnitsCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -2394,6 +2693,7 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.houseId = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.nameOrNumber = const Value.absent(),
     this.floor = const Value.absent(),
     this.bhkTemplateId = const Value.absent(),
@@ -2406,15 +2706,19 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     this.meterNumber = const Value.absent(),
     this.defaultDueDay = const Value.absent(),
     this.isOccupied = const Value.absent(),
-    this.tenantId = const Value.absent(),
+    this.imageUrls = const Value.absent(),
+    this.imagesBase64 = const Value.absent(),
+    this.currentTenancyId = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   UnitsCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int houseId,
+    required String id,
+    required String houseId,
+    required String ownerId,
     required String nameOrNumber,
     this.floor = const Value.absent(),
     this.bhkTemplateId = const Value.absent(),
@@ -2427,8 +2731,13 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     this.meterNumber = const Value.absent(),
     this.defaultDueDay = const Value.absent(),
     this.isOccupied = const Value.absent(),
-    this.tenantId = const Value.absent(),
-  })  : houseId = Value(houseId),
+    this.imageUrls = const Value.absent(),
+    this.imagesBase64 = const Value.absent(),
+    this.currentTenancyId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        houseId = Value(houseId),
+        ownerId = Value(ownerId),
         nameOrNumber = Value(nameOrNumber),
         baseRent = Value(baseRent);
   static Insertable<Unit> custom({
@@ -2436,11 +2745,12 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? houseId,
+    Expression<String>? id,
+    Expression<String>? houseId,
+    Expression<String>? ownerId,
     Expression<String>? nameOrNumber,
     Expression<int>? floor,
-    Expression<int>? bhkTemplateId,
+    Expression<String>? bhkTemplateId,
     Expression<String>? bhkType,
     Expression<double>? baseRent,
     Expression<double>? editableRent,
@@ -2450,7 +2760,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     Expression<String>? meterNumber,
     Expression<int>? defaultDueDay,
     Expression<bool>? isOccupied,
-    Expression<int>? tenantId,
+    Expression<String>? imageUrls,
+    Expression<String>? imagesBase64,
+    Expression<String>? currentTenancyId,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -2459,6 +2772,7 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (houseId != null) 'house_id': houseId,
+      if (ownerId != null) 'owner_id': ownerId,
       if (nameOrNumber != null) 'name_or_number': nameOrNumber,
       if (floor != null) 'floor': floor,
       if (bhkTemplateId != null) 'bhk_template_id': bhkTemplateId,
@@ -2471,7 +2785,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       if (meterNumber != null) 'meter_number': meterNumber,
       if (defaultDueDay != null) 'default_due_day': defaultDueDay,
       if (isOccupied != null) 'is_occupied': isOccupied,
-      if (tenantId != null) 'tenant_id': tenantId,
+      if (imageUrls != null) 'image_urls': imageUrls,
+      if (imagesBase64 != null) 'images_base64': imagesBase64,
+      if (currentTenancyId != null) 'current_tenancy_id': currentTenancyId,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -2480,11 +2797,12 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? houseId,
+      Value<String>? id,
+      Value<String>? houseId,
+      Value<String>? ownerId,
       Value<String>? nameOrNumber,
       Value<int?>? floor,
-      Value<int?>? bhkTemplateId,
+      Value<String?>? bhkTemplateId,
       Value<String?>? bhkType,
       Value<double>? baseRent,
       Value<double?>? editableRent,
@@ -2494,7 +2812,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       Value<String?>? meterNumber,
       Value<int>? defaultDueDay,
       Value<bool>? isOccupied,
-      Value<int?>? tenantId}) {
+      Value<String?>? imageUrls,
+      Value<String?>? imagesBase64,
+      Value<String?>? currentTenancyId,
+      Value<int>? rowid}) {
     return UnitsCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -2502,6 +2823,7 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       houseId: houseId ?? this.houseId,
+      ownerId: ownerId ?? this.ownerId,
       nameOrNumber: nameOrNumber ?? this.nameOrNumber,
       floor: floor ?? this.floor,
       bhkTemplateId: bhkTemplateId ?? this.bhkTemplateId,
@@ -2514,7 +2836,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       meterNumber: meterNumber ?? this.meterNumber,
       defaultDueDay: defaultDueDay ?? this.defaultDueDay,
       isOccupied: isOccupied ?? this.isOccupied,
-      tenantId: tenantId ?? this.tenantId,
+      imageUrls: imageUrls ?? this.imageUrls,
+      imagesBase64: imagesBase64 ?? this.imagesBase64,
+      currentTenancyId: currentTenancyId ?? this.currentTenancyId,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -2534,10 +2859,13 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (houseId.present) {
-      map['house_id'] = Variable<int>(houseId.value);
+      map['house_id'] = Variable<String>(houseId.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (nameOrNumber.present) {
       map['name_or_number'] = Variable<String>(nameOrNumber.value);
@@ -2546,7 +2874,7 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
       map['floor'] = Variable<int>(floor.value);
     }
     if (bhkTemplateId.present) {
-      map['bhk_template_id'] = Variable<int>(bhkTemplateId.value);
+      map['bhk_template_id'] = Variable<String>(bhkTemplateId.value);
     }
     if (bhkType.present) {
       map['bhk_type'] = Variable<String>(bhkType.value);
@@ -2575,8 +2903,17 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
     if (isOccupied.present) {
       map['is_occupied'] = Variable<bool>(isOccupied.value);
     }
-    if (tenantId.present) {
-      map['tenant_id'] = Variable<int>(tenantId.value);
+    if (imageUrls.present) {
+      map['image_urls'] = Variable<String>(imageUrls.value);
+    }
+    if (imagesBase64.present) {
+      map['images_base64'] = Variable<String>(imagesBase64.value);
+    }
+    if (currentTenancyId.present) {
+      map['current_tenancy_id'] = Variable<String>(currentTenancyId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -2590,6 +2927,7 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('houseId: $houseId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('nameOrNumber: $nameOrNumber, ')
           ..write('floor: $floor, ')
           ..write('bhkTemplateId: $bhkTemplateId, ')
@@ -2602,7 +2940,10 @@ class UnitsCompanion extends UpdateCompanion<Unit> {
           ..write('meterNumber: $meterNumber, ')
           ..write('defaultDueDay: $defaultDueDay, ')
           ..write('isOccupied: $isOccupied, ')
-          ..write('tenantId: $tenantId')
+          ..write('imageUrls: $imageUrls, ')
+          ..write('imagesBase64: $imagesBase64, ')
+          ..write('currentTenancyId: $currentTenancyId, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -2651,30 +2992,18 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
-  static const VerificationMeta _houseIdMeta =
-      const VerificationMeta('houseId');
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _ownerIdMeta =
+      const VerificationMeta('ownerId');
   @override
-  late final GeneratedColumn<int> houseId = GeneratedColumn<int>(
-      'house_id', aliasedName, false,
-      type: DriftSqlType.int,
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+      'owner_id', aliasedName, false,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('REFERENCES houses (id)'));
-  static const VerificationMeta _unitIdMeta = const VerificationMeta('unitId');
-  @override
-  late final GeneratedColumn<int> unitId = GeneratedColumn<int>(
-      'unit_id', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: true,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('REFERENCES units (id)'));
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES owners (id) ON DELETE CASCADE'));
   static const VerificationMeta _tenantCodeMeta =
       const VerificationMeta('tenantCode');
   @override
@@ -2698,12 +3027,6 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
   late final GeneratedColumn<String> email = GeneratedColumn<String>(
       'email', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _startDateMeta =
-      const VerificationMeta('startDate');
-  @override
-  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
-      'start_date', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   static const VerificationMeta _isActiveMeta =
       const VerificationMeta('isActive');
   @override
@@ -2714,25 +3037,71 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
       defaultValue: const Constant(true));
-  static const VerificationMeta _openingBalanceMeta =
-      const VerificationMeta('openingBalance');
-  @override
-  late final GeneratedColumn<double> openingBalance = GeneratedColumn<double>(
-      'opening_balance', aliasedName, false,
-      type: DriftSqlType.double,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(0.0));
-  static const VerificationMeta _agreedRentMeta =
-      const VerificationMeta('agreedRent');
-  @override
-  late final GeneratedColumn<double> agreedRent = GeneratedColumn<double>(
-      'agreed_rent', aliasedName, true,
-      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _passwordMeta =
       const VerificationMeta('password');
   @override
   late final GeneratedColumn<String> password = GeneratedColumn<String>(
       'password', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageUrlMeta =
+      const VerificationMeta('imageUrl');
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+      'image_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _imageBase64Meta =
+      const VerificationMeta('imageBase64');
+  @override
+  late final GeneratedColumn<String> imageBase64 = GeneratedColumn<String>(
+      'image_base64', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _authIdMeta = const VerificationMeta('authId');
+  @override
+  late final GeneratedColumn<String> authId = GeneratedColumn<String>(
+      'auth_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _advanceAmountMeta =
+      const VerificationMeta('advanceAmount');
+  @override
+  late final GeneratedColumn<double> advanceAmount = GeneratedColumn<double>(
+      'advance_amount', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _policeVerificationMeta =
+      const VerificationMeta('policeVerification');
+  @override
+  late final GeneratedColumn<bool> policeVerification = GeneratedColumn<bool>(
+      'police_verification', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("police_verification" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _idProofMeta =
+      const VerificationMeta('idProof');
+  @override
+  late final GeneratedColumn<String> idProof = GeneratedColumn<String>(
+      'id_proof', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _addressMeta =
+      const VerificationMeta('address');
+  @override
+  late final GeneratedColumn<String> address = GeneratedColumn<String>(
+      'address', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _memberCountMeta =
+      const VerificationMeta('memberCount');
+  @override
+  late final GeneratedColumn<int> memberCount = GeneratedColumn<int>(
+      'member_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
@@ -2741,17 +3110,22 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
         isSynced,
         isDeleted,
         id,
-        houseId,
-        unitId,
+        ownerId,
         tenantCode,
         name,
         phone,
         email,
-        startDate,
         isActive,
-        openingBalance,
-        agreedRent,
-        password
+        password,
+        imageUrl,
+        imageBase64,
+        authId,
+        advanceAmount,
+        policeVerification,
+        idProof,
+        address,
+        memberCount,
+        notes
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2785,18 +3159,14 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('house_id')) {
-      context.handle(_houseIdMeta,
-          houseId.isAcceptableOrUnknown(data['house_id']!, _houseIdMeta));
     } else if (isInserting) {
-      context.missing(_houseIdMeta);
+      context.missing(_idMeta);
     }
-    if (data.containsKey('unit_id')) {
-      context.handle(_unitIdMeta,
-          unitId.isAcceptableOrUnknown(data['unit_id']!, _unitIdMeta));
+    if (data.containsKey('owner_id')) {
+      context.handle(_ownerIdMeta,
+          ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta));
     } else if (isInserting) {
-      context.missing(_unitIdMeta);
+      context.missing(_ownerIdMeta);
     }
     if (data.containsKey('tenant_code')) {
       context.handle(
@@ -2822,31 +3192,57 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
       context.handle(
           _emailMeta, email.isAcceptableOrUnknown(data['email']!, _emailMeta));
     }
-    if (data.containsKey('start_date')) {
-      context.handle(_startDateMeta,
-          startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta));
-    } else if (isInserting) {
-      context.missing(_startDateMeta);
-    }
     if (data.containsKey('is_active')) {
       context.handle(_isActiveMeta,
           isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
     }
-    if (data.containsKey('opening_balance')) {
-      context.handle(
-          _openingBalanceMeta,
-          openingBalance.isAcceptableOrUnknown(
-              data['opening_balance']!, _openingBalanceMeta));
-    }
-    if (data.containsKey('agreed_rent')) {
-      context.handle(
-          _agreedRentMeta,
-          agreedRent.isAcceptableOrUnknown(
-              data['agreed_rent']!, _agreedRentMeta));
-    }
     if (data.containsKey('password')) {
       context.handle(_passwordMeta,
           password.isAcceptableOrUnknown(data['password']!, _passwordMeta));
+    }
+    if (data.containsKey('image_url')) {
+      context.handle(_imageUrlMeta,
+          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
+    }
+    if (data.containsKey('image_base64')) {
+      context.handle(
+          _imageBase64Meta,
+          imageBase64.isAcceptableOrUnknown(
+              data['image_base64']!, _imageBase64Meta));
+    }
+    if (data.containsKey('auth_id')) {
+      context.handle(_authIdMeta,
+          authId.isAcceptableOrUnknown(data['auth_id']!, _authIdMeta));
+    }
+    if (data.containsKey('advance_amount')) {
+      context.handle(
+          _advanceAmountMeta,
+          advanceAmount.isAcceptableOrUnknown(
+              data['advance_amount']!, _advanceAmountMeta));
+    }
+    if (data.containsKey('police_verification')) {
+      context.handle(
+          _policeVerificationMeta,
+          policeVerification.isAcceptableOrUnknown(
+              data['police_verification']!, _policeVerificationMeta));
+    }
+    if (data.containsKey('id_proof')) {
+      context.handle(_idProofMeta,
+          idProof.isAcceptableOrUnknown(data['id_proof']!, _idProofMeta));
+    }
+    if (data.containsKey('address')) {
+      context.handle(_addressMeta,
+          address.isAcceptableOrUnknown(data['address']!, _addressMeta));
+    }
+    if (data.containsKey('member_count')) {
+      context.handle(
+          _memberCountMeta,
+          memberCount.isAcceptableOrUnknown(
+              data['member_count']!, _memberCountMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
     return context;
   }
@@ -2866,11 +3262,9 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
-      houseId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}house_id'])!,
-      unitId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}unit_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      ownerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
       tenantCode: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}tenant_code'])!,
       name: attachedDatabase.typeMapping
@@ -2879,16 +3273,28 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
           .read(DriftSqlType.string, data['${effectivePrefix}phone'])!,
       email: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}email']),
-      startDate: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}start_date'])!,
       isActive: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
-      openingBalance: attachedDatabase.typeMapping.read(
-          DriftSqlType.double, data['${effectivePrefix}opening_balance'])!,
-      agreedRent: attachedDatabase.typeMapping
-          .read(DriftSqlType.double, data['${effectivePrefix}agreed_rent']),
       password: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}password']),
+      imageUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
+      imageBase64: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_base64']),
+      authId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}auth_id']),
+      advanceAmount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}advance_amount'])!,
+      policeVerification: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}police_verification'])!,
+      idProof: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id_proof']),
+      address: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}address']),
+      memberCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}member_count'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes']),
     );
   }
 
@@ -2903,35 +3309,45 @@ class Tenant extends DataClass implements Insertable<Tenant> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int houseId;
-  final int unitId;
+  final String id;
+  final String ownerId;
   final String tenantCode;
   final String name;
   final String phone;
   final String? email;
-  final DateTime startDate;
   final bool isActive;
-  final double openingBalance;
-  final double? agreedRent;
   final String? password;
+  final String? imageUrl;
+  final String? imageBase64;
+  final String? authId;
+  final double advanceAmount;
+  final bool policeVerification;
+  final String? idProof;
+  final String? address;
+  final int memberCount;
+  final String? notes;
   const Tenant(
       {this.firestoreId,
       required this.lastUpdated,
       required this.isSynced,
       required this.isDeleted,
       required this.id,
-      required this.houseId,
-      required this.unitId,
+      required this.ownerId,
       required this.tenantCode,
       required this.name,
       required this.phone,
       this.email,
-      required this.startDate,
       required this.isActive,
-      required this.openingBalance,
-      this.agreedRent,
-      this.password});
+      this.password,
+      this.imageUrl,
+      this.imageBase64,
+      this.authId,
+      required this.advanceAmount,
+      required this.policeVerification,
+      this.idProof,
+      this.address,
+      required this.memberCount,
+      this.notes});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2941,23 +3357,38 @@ class Tenant extends DataClass implements Insertable<Tenant> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['house_id'] = Variable<int>(houseId);
-    map['unit_id'] = Variable<int>(unitId);
+    map['id'] = Variable<String>(id);
+    map['owner_id'] = Variable<String>(ownerId);
     map['tenant_code'] = Variable<String>(tenantCode);
     map['name'] = Variable<String>(name);
     map['phone'] = Variable<String>(phone);
     if (!nullToAbsent || email != null) {
       map['email'] = Variable<String>(email);
     }
-    map['start_date'] = Variable<DateTime>(startDate);
     map['is_active'] = Variable<bool>(isActive);
-    map['opening_balance'] = Variable<double>(openingBalance);
-    if (!nullToAbsent || agreedRent != null) {
-      map['agreed_rent'] = Variable<double>(agreedRent);
-    }
     if (!nullToAbsent || password != null) {
       map['password'] = Variable<String>(password);
+    }
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || imageBase64 != null) {
+      map['image_base64'] = Variable<String>(imageBase64);
+    }
+    if (!nullToAbsent || authId != null) {
+      map['auth_id'] = Variable<String>(authId);
+    }
+    map['advance_amount'] = Variable<double>(advanceAmount);
+    map['police_verification'] = Variable<bool>(policeVerification);
+    if (!nullToAbsent || idProof != null) {
+      map['id_proof'] = Variable<String>(idProof);
+    }
+    if (!nullToAbsent || address != null) {
+      map['address'] = Variable<String>(address);
+    }
+    map['member_count'] = Variable<int>(memberCount);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
     }
     return map;
   }
@@ -2971,22 +3402,35 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       isSynced: Value(isSynced),
       isDeleted: Value(isDeleted),
       id: Value(id),
-      houseId: Value(houseId),
-      unitId: Value(unitId),
+      ownerId: Value(ownerId),
       tenantCode: Value(tenantCode),
       name: Value(name),
       phone: Value(phone),
       email:
           email == null && nullToAbsent ? const Value.absent() : Value(email),
-      startDate: Value(startDate),
       isActive: Value(isActive),
-      openingBalance: Value(openingBalance),
-      agreedRent: agreedRent == null && nullToAbsent
-          ? const Value.absent()
-          : Value(agreedRent),
       password: password == null && nullToAbsent
           ? const Value.absent()
           : Value(password),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      imageBase64: imageBase64 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageBase64),
+      authId:
+          authId == null && nullToAbsent ? const Value.absent() : Value(authId),
+      advanceAmount: Value(advanceAmount),
+      policeVerification: Value(policeVerification),
+      idProof: idProof == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idProof),
+      address: address == null && nullToAbsent
+          ? const Value.absent()
+          : Value(address),
+      memberCount: Value(memberCount),
+      notes:
+          notes == null && nullToAbsent ? const Value.absent() : Value(notes),
     );
   }
 
@@ -2998,18 +3442,23 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      houseId: serializer.fromJson<int>(json['houseId']),
-      unitId: serializer.fromJson<int>(json['unitId']),
+      id: serializer.fromJson<String>(json['id']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
       tenantCode: serializer.fromJson<String>(json['tenantCode']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String>(json['phone']),
       email: serializer.fromJson<String?>(json['email']),
-      startDate: serializer.fromJson<DateTime>(json['startDate']),
       isActive: serializer.fromJson<bool>(json['isActive']),
-      openingBalance: serializer.fromJson<double>(json['openingBalance']),
-      agreedRent: serializer.fromJson<double?>(json['agreedRent']),
       password: serializer.fromJson<String?>(json['password']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      imageBase64: serializer.fromJson<String?>(json['imageBase64']),
+      authId: serializer.fromJson<String?>(json['authId']),
+      advanceAmount: serializer.fromJson<double>(json['advanceAmount']),
+      policeVerification: serializer.fromJson<bool>(json['policeVerification']),
+      idProof: serializer.fromJson<String?>(json['idProof']),
+      address: serializer.fromJson<String?>(json['address']),
+      memberCount: serializer.fromJson<int>(json['memberCount']),
+      notes: serializer.fromJson<String?>(json['notes']),
     );
   }
   @override
@@ -3020,18 +3469,23 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'houseId': serializer.toJson<int>(houseId),
-      'unitId': serializer.toJson<int>(unitId),
+      'id': serializer.toJson<String>(id),
+      'ownerId': serializer.toJson<String>(ownerId),
       'tenantCode': serializer.toJson<String>(tenantCode),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String>(phone),
       'email': serializer.toJson<String?>(email),
-      'startDate': serializer.toJson<DateTime>(startDate),
       'isActive': serializer.toJson<bool>(isActive),
-      'openingBalance': serializer.toJson<double>(openingBalance),
-      'agreedRent': serializer.toJson<double?>(agreedRent),
       'password': serializer.toJson<String?>(password),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'imageBase64': serializer.toJson<String?>(imageBase64),
+      'authId': serializer.toJson<String?>(authId),
+      'advanceAmount': serializer.toJson<double>(advanceAmount),
+      'policeVerification': serializer.toJson<bool>(policeVerification),
+      'idProof': serializer.toJson<String?>(idProof),
+      'address': serializer.toJson<String?>(address),
+      'memberCount': serializer.toJson<int>(memberCount),
+      'notes': serializer.toJson<String?>(notes),
     };
   }
 
@@ -3040,35 +3494,45 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? houseId,
-          int? unitId,
+          String? id,
+          String? ownerId,
           String? tenantCode,
           String? name,
           String? phone,
           Value<String?> email = const Value.absent(),
-          DateTime? startDate,
           bool? isActive,
-          double? openingBalance,
-          Value<double?> agreedRent = const Value.absent(),
-          Value<String?> password = const Value.absent()}) =>
+          Value<String?> password = const Value.absent(),
+          Value<String?> imageUrl = const Value.absent(),
+          Value<String?> imageBase64 = const Value.absent(),
+          Value<String?> authId = const Value.absent(),
+          double? advanceAmount,
+          bool? policeVerification,
+          Value<String?> idProof = const Value.absent(),
+          Value<String?> address = const Value.absent(),
+          int? memberCount,
+          Value<String?> notes = const Value.absent()}) =>
       Tenant(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
         isSynced: isSynced ?? this.isSynced,
         isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
-        houseId: houseId ?? this.houseId,
-        unitId: unitId ?? this.unitId,
+        ownerId: ownerId ?? this.ownerId,
         tenantCode: tenantCode ?? this.tenantCode,
         name: name ?? this.name,
         phone: phone ?? this.phone,
         email: email.present ? email.value : this.email,
-        startDate: startDate ?? this.startDate,
         isActive: isActive ?? this.isActive,
-        openingBalance: openingBalance ?? this.openingBalance,
-        agreedRent: agreedRent.present ? agreedRent.value : this.agreedRent,
         password: password.present ? password.value : this.password,
+        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+        imageBase64: imageBase64.present ? imageBase64.value : this.imageBase64,
+        authId: authId.present ? authId.value : this.authId,
+        advanceAmount: advanceAmount ?? this.advanceAmount,
+        policeVerification: policeVerification ?? this.policeVerification,
+        idProof: idProof.present ? idProof.value : this.idProof,
+        address: address.present ? address.value : this.address,
+        memberCount: memberCount ?? this.memberCount,
+        notes: notes.present ? notes.value : this.notes,
       );
   Tenant copyWithCompanion(TenantsCompanion data) {
     return Tenant(
@@ -3079,21 +3543,29 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
-      houseId: data.houseId.present ? data.houseId.value : this.houseId,
-      unitId: data.unitId.present ? data.unitId.value : this.unitId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       tenantCode:
           data.tenantCode.present ? data.tenantCode.value : this.tenantCode,
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
       email: data.email.present ? data.email.value : this.email,
-      startDate: data.startDate.present ? data.startDate.value : this.startDate,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
-      openingBalance: data.openingBalance.present
-          ? data.openingBalance.value
-          : this.openingBalance,
-      agreedRent:
-          data.agreedRent.present ? data.agreedRent.value : this.agreedRent,
       password: data.password.present ? data.password.value : this.password,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      imageBase64:
+          data.imageBase64.present ? data.imageBase64.value : this.imageBase64,
+      authId: data.authId.present ? data.authId.value : this.authId,
+      advanceAmount: data.advanceAmount.present
+          ? data.advanceAmount.value
+          : this.advanceAmount,
+      policeVerification: data.policeVerification.present
+          ? data.policeVerification.value
+          : this.policeVerification,
+      idProof: data.idProof.present ? data.idProof.value : this.idProof,
+      address: data.address.present ? data.address.value : this.address,
+      memberCount:
+          data.memberCount.present ? data.memberCount.value : this.memberCount,
+      notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
 
@@ -3105,39 +3577,50 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           ..write('isSynced: $isSynced, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
-          ..write('houseId: $houseId, ')
-          ..write('unitId: $unitId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('tenantCode: $tenantCode, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
-          ..write('startDate: $startDate, ')
           ..write('isActive: $isActive, ')
-          ..write('openingBalance: $openingBalance, ')
-          ..write('agreedRent: $agreedRent, ')
-          ..write('password: $password')
+          ..write('password: $password, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('authId: $authId, ')
+          ..write('advanceAmount: $advanceAmount, ')
+          ..write('policeVerification: $policeVerification, ')
+          ..write('idProof: $idProof, ')
+          ..write('address: $address, ')
+          ..write('memberCount: $memberCount, ')
+          ..write('notes: $notes')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      firestoreId,
-      lastUpdated,
-      isSynced,
-      isDeleted,
-      id,
-      houseId,
-      unitId,
-      tenantCode,
-      name,
-      phone,
-      email,
-      startDate,
-      isActive,
-      openingBalance,
-      agreedRent,
-      password);
+  int get hashCode => Object.hashAll([
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        ownerId,
+        tenantCode,
+        name,
+        phone,
+        email,
+        isActive,
+        password,
+        imageUrl,
+        imageBase64,
+        authId,
+        advanceAmount,
+        policeVerification,
+        idProof,
+        address,
+        memberCount,
+        notes
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3147,17 +3630,22 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           other.isSynced == this.isSynced &&
           other.isDeleted == this.isDeleted &&
           other.id == this.id &&
-          other.houseId == this.houseId &&
-          other.unitId == this.unitId &&
+          other.ownerId == this.ownerId &&
           other.tenantCode == this.tenantCode &&
           other.name == this.name &&
           other.phone == this.phone &&
           other.email == this.email &&
-          other.startDate == this.startDate &&
           other.isActive == this.isActive &&
-          other.openingBalance == this.openingBalance &&
-          other.agreedRent == this.agreedRent &&
-          other.password == this.password);
+          other.password == this.password &&
+          other.imageUrl == this.imageUrl &&
+          other.imageBase64 == this.imageBase64 &&
+          other.authId == this.authId &&
+          other.advanceAmount == this.advanceAmount &&
+          other.policeVerification == this.policeVerification &&
+          other.idProof == this.idProof &&
+          other.address == this.address &&
+          other.memberCount == this.memberCount &&
+          other.notes == this.notes);
 }
 
 class TenantsCompanion extends UpdateCompanion<Tenant> {
@@ -3165,76 +3653,99 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> houseId;
-  final Value<int> unitId;
+  final Value<String> id;
+  final Value<String> ownerId;
   final Value<String> tenantCode;
   final Value<String> name;
   final Value<String> phone;
   final Value<String?> email;
-  final Value<DateTime> startDate;
   final Value<bool> isActive;
-  final Value<double> openingBalance;
-  final Value<double?> agreedRent;
   final Value<String?> password;
+  final Value<String?> imageUrl;
+  final Value<String?> imageBase64;
+  final Value<String?> authId;
+  final Value<double> advanceAmount;
+  final Value<bool> policeVerification;
+  final Value<String?> idProof;
+  final Value<String?> address;
+  final Value<int> memberCount;
+  final Value<String?> notes;
+  final Value<int> rowid;
   const TenantsCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
-    this.houseId = const Value.absent(),
-    this.unitId = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.tenantCode = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.email = const Value.absent(),
-    this.startDate = const Value.absent(),
     this.isActive = const Value.absent(),
-    this.openingBalance = const Value.absent(),
-    this.agreedRent = const Value.absent(),
     this.password = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.authId = const Value.absent(),
+    this.advanceAmount = const Value.absent(),
+    this.policeVerification = const Value.absent(),
+    this.idProof = const Value.absent(),
+    this.address = const Value.absent(),
+    this.memberCount = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   TenantsCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int houseId,
-    required int unitId,
+    required String id,
+    required String ownerId,
     required String tenantCode,
     required String name,
     required String phone,
     this.email = const Value.absent(),
-    required DateTime startDate,
     this.isActive = const Value.absent(),
-    this.openingBalance = const Value.absent(),
-    this.agreedRent = const Value.absent(),
     this.password = const Value.absent(),
-  })  : houseId = Value(houseId),
-        unitId = Value(unitId),
+    this.imageUrl = const Value.absent(),
+    this.imageBase64 = const Value.absent(),
+    this.authId = const Value.absent(),
+    this.advanceAmount = const Value.absent(),
+    this.policeVerification = const Value.absent(),
+    this.idProof = const Value.absent(),
+    this.address = const Value.absent(),
+    this.memberCount = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        ownerId = Value(ownerId),
         tenantCode = Value(tenantCode),
         name = Value(name),
-        phone = Value(phone),
-        startDate = Value(startDate);
+        phone = Value(phone);
   static Insertable<Tenant> custom({
     Expression<String>? firestoreId,
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? houseId,
-    Expression<int>? unitId,
+    Expression<String>? id,
+    Expression<String>? ownerId,
     Expression<String>? tenantCode,
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? email,
-    Expression<DateTime>? startDate,
     Expression<bool>? isActive,
-    Expression<double>? openingBalance,
-    Expression<double>? agreedRent,
     Expression<String>? password,
+    Expression<String>? imageUrl,
+    Expression<String>? imageBase64,
+    Expression<String>? authId,
+    Expression<double>? advanceAmount,
+    Expression<bool>? policeVerification,
+    Expression<String>? idProof,
+    Expression<String>? address,
+    Expression<int>? memberCount,
+    Expression<String>? notes,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -3242,17 +3753,23 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       if (isSynced != null) 'is_synced': isSynced,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
-      if (houseId != null) 'house_id': houseId,
-      if (unitId != null) 'unit_id': unitId,
+      if (ownerId != null) 'owner_id': ownerId,
       if (tenantCode != null) 'tenant_code': tenantCode,
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
       if (email != null) 'email': email,
-      if (startDate != null) 'start_date': startDate,
       if (isActive != null) 'is_active': isActive,
-      if (openingBalance != null) 'opening_balance': openingBalance,
-      if (agreedRent != null) 'agreed_rent': agreedRent,
       if (password != null) 'password': password,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (imageBase64 != null) 'image_base64': imageBase64,
+      if (authId != null) 'auth_id': authId,
+      if (advanceAmount != null) 'advance_amount': advanceAmount,
+      if (policeVerification != null) 'police_verification': policeVerification,
+      if (idProof != null) 'id_proof': idProof,
+      if (address != null) 'address': address,
+      if (memberCount != null) 'member_count': memberCount,
+      if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -3261,35 +3778,47 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? houseId,
-      Value<int>? unitId,
+      Value<String>? id,
+      Value<String>? ownerId,
       Value<String>? tenantCode,
       Value<String>? name,
       Value<String>? phone,
       Value<String?>? email,
-      Value<DateTime>? startDate,
       Value<bool>? isActive,
-      Value<double>? openingBalance,
-      Value<double?>? agreedRent,
-      Value<String?>? password}) {
+      Value<String?>? password,
+      Value<String?>? imageUrl,
+      Value<String?>? imageBase64,
+      Value<String?>? authId,
+      Value<double>? advanceAmount,
+      Value<bool>? policeVerification,
+      Value<String?>? idProof,
+      Value<String?>? address,
+      Value<int>? memberCount,
+      Value<String?>? notes,
+      Value<int>? rowid}) {
     return TenantsCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       isSynced: isSynced ?? this.isSynced,
       isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
-      houseId: houseId ?? this.houseId,
-      unitId: unitId ?? this.unitId,
+      ownerId: ownerId ?? this.ownerId,
       tenantCode: tenantCode ?? this.tenantCode,
       name: name ?? this.name,
       phone: phone ?? this.phone,
       email: email ?? this.email,
-      startDate: startDate ?? this.startDate,
       isActive: isActive ?? this.isActive,
-      openingBalance: openingBalance ?? this.openingBalance,
-      agreedRent: agreedRent ?? this.agreedRent,
       password: password ?? this.password,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageBase64: imageBase64 ?? this.imageBase64,
+      authId: authId ?? this.authId,
+      advanceAmount: advanceAmount ?? this.advanceAmount,
+      policeVerification: policeVerification ?? this.policeVerification,
+      idProof: idProof ?? this.idProof,
+      address: address ?? this.address,
+      memberCount: memberCount ?? this.memberCount,
+      notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -3309,13 +3838,10 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
-    if (houseId.present) {
-      map['house_id'] = Variable<int>(houseId.value);
-    }
-    if (unitId.present) {
-      map['unit_id'] = Variable<int>(unitId.value);
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (tenantCode.present) {
       map['tenant_code'] = Variable<String>(tenantCode.value);
@@ -3329,20 +3855,41 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     if (email.present) {
       map['email'] = Variable<String>(email.value);
     }
-    if (startDate.present) {
-      map['start_date'] = Variable<DateTime>(startDate.value);
-    }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
-    if (openingBalance.present) {
-      map['opening_balance'] = Variable<double>(openingBalance.value);
-    }
-    if (agreedRent.present) {
-      map['agreed_rent'] = Variable<double>(agreedRent.value);
-    }
     if (password.present) {
       map['password'] = Variable<String>(password.value);
+    }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (imageBase64.present) {
+      map['image_base64'] = Variable<String>(imageBase64.value);
+    }
+    if (authId.present) {
+      map['auth_id'] = Variable<String>(authId.value);
+    }
+    if (advanceAmount.present) {
+      map['advance_amount'] = Variable<double>(advanceAmount.value);
+    }
+    if (policeVerification.present) {
+      map['police_verification'] = Variable<bool>(policeVerification.value);
+    }
+    if (idProof.present) {
+      map['id_proof'] = Variable<String>(idProof.value);
+    }
+    if (address.present) {
+      map['address'] = Variable<String>(address.value);
+    }
+    if (memberCount.present) {
+      map['member_count'] = Variable<int>(memberCount.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -3355,17 +3902,757 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
           ..write('isSynced: $isSynced, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
-          ..write('houseId: $houseId, ')
-          ..write('unitId: $unitId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('tenantCode: $tenantCode, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
-          ..write('startDate: $startDate, ')
           ..write('isActive: $isActive, ')
-          ..write('openingBalance: $openingBalance, ')
+          ..write('password: $password, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('imageBase64: $imageBase64, ')
+          ..write('authId: $authId, ')
+          ..write('advanceAmount: $advanceAmount, ')
+          ..write('policeVerification: $policeVerification, ')
+          ..write('idProof: $idProof, ')
+          ..write('address: $address, ')
+          ..write('memberCount: $memberCount, ')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TenanciesTable extends Tenancies
+    with TableInfo<$TenanciesTable, Tenancy> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TenanciesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _firestoreIdMeta =
+      const VerificationMeta('firestoreId');
+  @override
+  late final GeneratedColumn<String> firestoreId = GeneratedColumn<String>(
+      'firestore_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _lastUpdatedMeta =
+      const VerificationMeta('lastUpdated');
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+      'last_updated', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isDeletedMeta =
+      const VerificationMeta('isDeleted');
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+      'is_deleted', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_deleted" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _tenantIdMeta =
+      const VerificationMeta('tenantId');
+  @override
+  late final GeneratedColumn<String> tenantId = GeneratedColumn<String>(
+      'tenant_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES tenants (id) ON DELETE CASCADE'));
+  static const VerificationMeta _unitIdMeta = const VerificationMeta('unitId');
+  @override
+  late final GeneratedColumn<String> unitId = GeneratedColumn<String>(
+      'unit_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES units (id) ON DELETE CASCADE'));
+  static const VerificationMeta _ownerIdMeta =
+      const VerificationMeta('ownerId');
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+      'owner_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES owners (id) ON DELETE CASCADE'));
+  static const VerificationMeta _startDateMeta =
+      const VerificationMeta('startDate');
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+      'start_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _endDateMeta =
+      const VerificationMeta('endDate');
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+      'end_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _agreedRentMeta =
+      const VerificationMeta('agreedRent');
+  @override
+  late final GeneratedColumn<double> agreedRent = GeneratedColumn<double>(
+      'agreed_rent', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _securityDepositMeta =
+      const VerificationMeta('securityDeposit');
+  @override
+  late final GeneratedColumn<double> securityDeposit = GeneratedColumn<double>(
+      'security_deposit', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _openingBalanceMeta =
+      const VerificationMeta('openingBalance');
+  @override
+  late final GeneratedColumn<double> openingBalance = GeneratedColumn<double>(
+      'opening_balance', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<int> status = GeneratedColumn<int>(
+      'status', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        tenantId,
+        unitId,
+        ownerId,
+        startDate,
+        endDate,
+        agreedRent,
+        securityDeposit,
+        openingBalance,
+        status,
+        notes
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tenancies';
+  @override
+  VerificationContext validateIntegrity(Insertable<Tenancy> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('firestore_id')) {
+      context.handle(
+          _firestoreIdMeta,
+          firestoreId.isAcceptableOrUnknown(
+              data['firestore_id']!, _firestoreIdMeta));
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+          _lastUpdatedMeta,
+          lastUpdated.isAcceptableOrUnknown(
+              data['last_updated']!, _lastUpdatedMeta));
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(_isDeletedMeta,
+          isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta));
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('tenant_id')) {
+      context.handle(_tenantIdMeta,
+          tenantId.isAcceptableOrUnknown(data['tenant_id']!, _tenantIdMeta));
+    } else if (isInserting) {
+      context.missing(_tenantIdMeta);
+    }
+    if (data.containsKey('unit_id')) {
+      context.handle(_unitIdMeta,
+          unitId.isAcceptableOrUnknown(data['unit_id']!, _unitIdMeta));
+    } else if (isInserting) {
+      context.missing(_unitIdMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(_ownerIdMeta,
+          ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta));
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(_startDateMeta,
+          startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta));
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(_endDateMeta,
+          endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta));
+    }
+    if (data.containsKey('agreed_rent')) {
+      context.handle(
+          _agreedRentMeta,
+          agreedRent.isAcceptableOrUnknown(
+              data['agreed_rent']!, _agreedRentMeta));
+    } else if (isInserting) {
+      context.missing(_agreedRentMeta);
+    }
+    if (data.containsKey('security_deposit')) {
+      context.handle(
+          _securityDepositMeta,
+          securityDeposit.isAcceptableOrUnknown(
+              data['security_deposit']!, _securityDepositMeta));
+    }
+    if (data.containsKey('opening_balance')) {
+      context.handle(
+          _openingBalanceMeta,
+          openingBalance.isAcceptableOrUnknown(
+              data['opening_balance']!, _openingBalanceMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Tenancy map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Tenancy(
+      firestoreId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}firestore_id']),
+      lastUpdated: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}last_updated'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      isDeleted: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      tenantId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tenant_id'])!,
+      unitId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit_id'])!,
+      ownerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
+      startDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}start_date'])!,
+      endDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}end_date']),
+      agreedRent: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}agreed_rent'])!,
+      securityDeposit: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}security_deposit'])!,
+      openingBalance: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}opening_balance'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}status'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes']),
+    );
+  }
+
+  @override
+  $TenanciesTable createAlias(String alias) {
+    return $TenanciesTable(attachedDatabase, alias);
+  }
+}
+
+class Tenancy extends DataClass implements Insertable<Tenancy> {
+  final String? firestoreId;
+  final DateTime lastUpdated;
+  final bool isSynced;
+  final bool isDeleted;
+  final String id;
+  final String tenantId;
+  final String unitId;
+  final String ownerId;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final double agreedRent;
+  final double securityDeposit;
+  final double openingBalance;
+  final int status;
+  final String? notes;
+  const Tenancy(
+      {this.firestoreId,
+      required this.lastUpdated,
+      required this.isSynced,
+      required this.isDeleted,
+      required this.id,
+      required this.tenantId,
+      required this.unitId,
+      required this.ownerId,
+      required this.startDate,
+      this.endDate,
+      required this.agreedRent,
+      required this.securityDeposit,
+      required this.openingBalance,
+      required this.status,
+      this.notes});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || firestoreId != null) {
+      map['firestore_id'] = Variable<String>(firestoreId);
+    }
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['id'] = Variable<String>(id);
+    map['tenant_id'] = Variable<String>(tenantId);
+    map['unit_id'] = Variable<String>(unitId);
+    map['owner_id'] = Variable<String>(ownerId);
+    map['start_date'] = Variable<DateTime>(startDate);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    map['agreed_rent'] = Variable<double>(agreedRent);
+    map['security_deposit'] = Variable<double>(securityDeposit);
+    map['opening_balance'] = Variable<double>(openingBalance);
+    map['status'] = Variable<int>(status);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    return map;
+  }
+
+  TenanciesCompanion toCompanion(bool nullToAbsent) {
+    return TenanciesCompanion(
+      firestoreId: firestoreId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreId),
+      lastUpdated: Value(lastUpdated),
+      isSynced: Value(isSynced),
+      isDeleted: Value(isDeleted),
+      id: Value(id),
+      tenantId: Value(tenantId),
+      unitId: Value(unitId),
+      ownerId: Value(ownerId),
+      startDate: Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      agreedRent: Value(agreedRent),
+      securityDeposit: Value(securityDeposit),
+      openingBalance: Value(openingBalance),
+      status: Value(status),
+      notes:
+          notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+    );
+  }
+
+  factory Tenancy.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Tenancy(
+      firestoreId: serializer.fromJson<String?>(json['firestoreId']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      id: serializer.fromJson<String>(json['id']),
+      tenantId: serializer.fromJson<String>(json['tenantId']),
+      unitId: serializer.fromJson<String>(json['unitId']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      agreedRent: serializer.fromJson<double>(json['agreedRent']),
+      securityDeposit: serializer.fromJson<double>(json['securityDeposit']),
+      openingBalance: serializer.fromJson<double>(json['openingBalance']),
+      status: serializer.fromJson<int>(json['status']),
+      notes: serializer.fromJson<String?>(json['notes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'firestoreId': serializer.toJson<String?>(firestoreId),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'id': serializer.toJson<String>(id),
+      'tenantId': serializer.toJson<String>(tenantId),
+      'unitId': serializer.toJson<String>(unitId),
+      'ownerId': serializer.toJson<String>(ownerId),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'agreedRent': serializer.toJson<double>(agreedRent),
+      'securityDeposit': serializer.toJson<double>(securityDeposit),
+      'openingBalance': serializer.toJson<double>(openingBalance),
+      'status': serializer.toJson<int>(status),
+      'notes': serializer.toJson<String?>(notes),
+    };
+  }
+
+  Tenancy copyWith(
+          {Value<String?> firestoreId = const Value.absent(),
+          DateTime? lastUpdated,
+          bool? isSynced,
+          bool? isDeleted,
+          String? id,
+          String? tenantId,
+          String? unitId,
+          String? ownerId,
+          DateTime? startDate,
+          Value<DateTime?> endDate = const Value.absent(),
+          double? agreedRent,
+          double? securityDeposit,
+          double? openingBalance,
+          int? status,
+          Value<String?> notes = const Value.absent()}) =>
+      Tenancy(
+        firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
+        lastUpdated: lastUpdated ?? this.lastUpdated,
+        isSynced: isSynced ?? this.isSynced,
+        isDeleted: isDeleted ?? this.isDeleted,
+        id: id ?? this.id,
+        tenantId: tenantId ?? this.tenantId,
+        unitId: unitId ?? this.unitId,
+        ownerId: ownerId ?? this.ownerId,
+        startDate: startDate ?? this.startDate,
+        endDate: endDate.present ? endDate.value : this.endDate,
+        agreedRent: agreedRent ?? this.agreedRent,
+        securityDeposit: securityDeposit ?? this.securityDeposit,
+        openingBalance: openingBalance ?? this.openingBalance,
+        status: status ?? this.status,
+        notes: notes.present ? notes.value : this.notes,
+      );
+  Tenancy copyWithCompanion(TenanciesCompanion data) {
+    return Tenancy(
+      firestoreId:
+          data.firestoreId.present ? data.firestoreId.value : this.firestoreId,
+      lastUpdated:
+          data.lastUpdated.present ? data.lastUpdated.value : this.lastUpdated,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      id: data.id.present ? data.id.value : this.id,
+      tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
+      unitId: data.unitId.present ? data.unitId.value : this.unitId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      agreedRent:
+          data.agreedRent.present ? data.agreedRent.value : this.agreedRent,
+      securityDeposit: data.securityDeposit.present
+          ? data.securityDeposit.value
+          : this.securityDeposit,
+      openingBalance: data.openingBalance.present
+          ? data.openingBalance.value
+          : this.openingBalance,
+      status: data.status.present ? data.status.value : this.status,
+      notes: data.notes.present ? data.notes.value : this.notes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Tenancy(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('tenantId: $tenantId, ')
+          ..write('unitId: $unitId, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
           ..write('agreedRent: $agreedRent, ')
-          ..write('password: $password')
+          ..write('securityDeposit: $securityDeposit, ')
+          ..write('openingBalance: $openingBalance, ')
+          ..write('status: $status, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      tenantId,
+      unitId,
+      ownerId,
+      startDate,
+      endDate,
+      agreedRent,
+      securityDeposit,
+      openingBalance,
+      status,
+      notes);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Tenancy &&
+          other.firestoreId == this.firestoreId &&
+          other.lastUpdated == this.lastUpdated &&
+          other.isSynced == this.isSynced &&
+          other.isDeleted == this.isDeleted &&
+          other.id == this.id &&
+          other.tenantId == this.tenantId &&
+          other.unitId == this.unitId &&
+          other.ownerId == this.ownerId &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.agreedRent == this.agreedRent &&
+          other.securityDeposit == this.securityDeposit &&
+          other.openingBalance == this.openingBalance &&
+          other.status == this.status &&
+          other.notes == this.notes);
+}
+
+class TenanciesCompanion extends UpdateCompanion<Tenancy> {
+  final Value<String?> firestoreId;
+  final Value<DateTime> lastUpdated;
+  final Value<bool> isSynced;
+  final Value<bool> isDeleted;
+  final Value<String> id;
+  final Value<String> tenantId;
+  final Value<String> unitId;
+  final Value<String> ownerId;
+  final Value<DateTime> startDate;
+  final Value<DateTime?> endDate;
+  final Value<double> agreedRent;
+  final Value<double> securityDeposit;
+  final Value<double> openingBalance;
+  final Value<int> status;
+  final Value<String?> notes;
+  final Value<int> rowid;
+  const TenanciesCompanion({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.id = const Value.absent(),
+    this.tenantId = const Value.absent(),
+    this.unitId = const Value.absent(),
+    this.ownerId = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.agreedRent = const Value.absent(),
+    this.securityDeposit = const Value.absent(),
+    this.openingBalance = const Value.absent(),
+    this.status = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TenanciesCompanion.insert({
+    this.firestoreId = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String id,
+    required String tenantId,
+    required String unitId,
+    required String ownerId,
+    required DateTime startDate,
+    this.endDate = const Value.absent(),
+    required double agreedRent,
+    this.securityDeposit = const Value.absent(),
+    this.openingBalance = const Value.absent(),
+    this.status = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        tenantId = Value(tenantId),
+        unitId = Value(unitId),
+        ownerId = Value(ownerId),
+        startDate = Value(startDate),
+        agreedRent = Value(agreedRent);
+  static Insertable<Tenancy> custom({
+    Expression<String>? firestoreId,
+    Expression<DateTime>? lastUpdated,
+    Expression<bool>? isSynced,
+    Expression<bool>? isDeleted,
+    Expression<String>? id,
+    Expression<String>? tenantId,
+    Expression<String>? unitId,
+    Expression<String>? ownerId,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<double>? agreedRent,
+    Expression<double>? securityDeposit,
+    Expression<double>? openingBalance,
+    Expression<int>? status,
+    Expression<String>? notes,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (firestoreId != null) 'firestore_id': firestoreId,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (id != null) 'id': id,
+      if (tenantId != null) 'tenant_id': tenantId,
+      if (unitId != null) 'unit_id': unitId,
+      if (ownerId != null) 'owner_id': ownerId,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (agreedRent != null) 'agreed_rent': agreedRent,
+      if (securityDeposit != null) 'security_deposit': securityDeposit,
+      if (openingBalance != null) 'opening_balance': openingBalance,
+      if (status != null) 'status': status,
+      if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TenanciesCompanion copyWith(
+      {Value<String?>? firestoreId,
+      Value<DateTime>? lastUpdated,
+      Value<bool>? isSynced,
+      Value<bool>? isDeleted,
+      Value<String>? id,
+      Value<String>? tenantId,
+      Value<String>? unitId,
+      Value<String>? ownerId,
+      Value<DateTime>? startDate,
+      Value<DateTime?>? endDate,
+      Value<double>? agreedRent,
+      Value<double>? securityDeposit,
+      Value<double>? openingBalance,
+      Value<int>? status,
+      Value<String?>? notes,
+      Value<int>? rowid}) {
+    return TenanciesCompanion(
+      firestoreId: firestoreId ?? this.firestoreId,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isSynced: isSynced ?? this.isSynced,
+      isDeleted: isDeleted ?? this.isDeleted,
+      id: id ?? this.id,
+      tenantId: tenantId ?? this.tenantId,
+      unitId: unitId ?? this.unitId,
+      ownerId: ownerId ?? this.ownerId,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      agreedRent: agreedRent ?? this.agreedRent,
+      securityDeposit: securityDeposit ?? this.securityDeposit,
+      openingBalance: openingBalance ?? this.openingBalance,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (firestoreId.present) {
+      map['firestore_id'] = Variable<String>(firestoreId.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (tenantId.present) {
+      map['tenant_id'] = Variable<String>(tenantId.value);
+    }
+    if (unitId.present) {
+      map['unit_id'] = Variable<String>(unitId.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (agreedRent.present) {
+      map['agreed_rent'] = Variable<double>(agreedRent.value);
+    }
+    if (securityDeposit.present) {
+      map['security_deposit'] = Variable<double>(securityDeposit.value);
+    }
+    if (openingBalance.present) {
+      map['opening_balance'] = Variable<double>(openingBalance.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<int>(status.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TenanciesCompanion(')
+          ..write('firestoreId: $firestoreId, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('tenantId: $tenantId, ')
+          ..write('unitId: $unitId, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('agreedRent: $agreedRent, ')
+          ..write('securityDeposit: $securityDeposit, ')
+          ..write('openingBalance: $openingBalance, ')
+          ..write('status: $status, ')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -3415,22 +4702,27 @@ class $RentCyclesTable extends RentCycles
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
-  static const VerificationMeta _tenantIdMeta =
-      const VerificationMeta('tenantId');
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _tenancyIdMeta =
+      const VerificationMeta('tenancyId');
   @override
-  late final GeneratedColumn<int> tenantId = GeneratedColumn<int>(
-      'tenant_id', aliasedName, false,
-      type: DriftSqlType.int,
+  late final GeneratedColumn<String> tenancyId = GeneratedColumn<String>(
+      'tenancy_id', aliasedName, false,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'REFERENCES tenants (id) ON DELETE CASCADE'));
+          'REFERENCES tenancies (id) ON DELETE CASCADE'));
+  static const VerificationMeta _ownerIdMeta =
+      const VerificationMeta('ownerId');
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+      'owner_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES owners (id) ON DELETE CASCADE'));
   static const VerificationMeta _monthMeta = const VerificationMeta('month');
   @override
   late final GeneratedColumn<String> month = GeneratedColumn<String>(
@@ -3531,7 +4823,8 @@ class $RentCyclesTable extends RentCycles
         isSynced,
         isDeleted,
         id,
-        tenantId,
+        tenancyId,
+        ownerId,
         month,
         billNumber,
         billPeriodStart,
@@ -3579,12 +4872,20 @@ class $RentCyclesTable extends RentCycles
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('tenant_id')) {
-      context.handle(_tenantIdMeta,
-          tenantId.isAcceptableOrUnknown(data['tenant_id']!, _tenantIdMeta));
     } else if (isInserting) {
-      context.missing(_tenantIdMeta);
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('tenancy_id')) {
+      context.handle(_tenancyIdMeta,
+          tenancyId.isAcceptableOrUnknown(data['tenancy_id']!, _tenancyIdMeta));
+    } else if (isInserting) {
+      context.missing(_tenancyIdMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(_ownerIdMeta,
+          ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta));
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
     }
     if (data.containsKey('month')) {
       context.handle(
@@ -3678,9 +4979,11 @@ class $RentCyclesTable extends RentCycles
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
-      tenantId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}tenant_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      tenancyId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tenancy_id'])!,
+      ownerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
       month: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}month'])!,
       billNumber: attachedDatabase.typeMapping
@@ -3724,8 +5027,9 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int tenantId;
+  final String id;
+  final String tenancyId;
+  final String ownerId;
   final String month;
   final String? billNumber;
   final DateTime? billPeriodStart;
@@ -3746,7 +5050,8 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
       required this.isSynced,
       required this.isDeleted,
       required this.id,
-      required this.tenantId,
+      required this.tenancyId,
+      required this.ownerId,
       required this.month,
       this.billNumber,
       this.billPeriodStart,
@@ -3770,8 +5075,9 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['tenant_id'] = Variable<int>(tenantId);
+    map['id'] = Variable<String>(id);
+    map['tenancy_id'] = Variable<String>(tenancyId);
+    map['owner_id'] = Variable<String>(ownerId);
     map['month'] = Variable<String>(month);
     if (!nullToAbsent || billNumber != null) {
       map['bill_number'] = Variable<String>(billNumber);
@@ -3808,7 +5114,8 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
       isSynced: Value(isSynced),
       isDeleted: Value(isDeleted),
       id: Value(id),
-      tenantId: Value(tenantId),
+      tenancyId: Value(tenancyId),
+      ownerId: Value(ownerId),
       month: Value(month),
       billNumber: billNumber == null && nullToAbsent
           ? const Value.absent()
@@ -3843,8 +5150,9 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      tenantId: serializer.fromJson<int>(json['tenantId']),
+      id: serializer.fromJson<String>(json['id']),
+      tenancyId: serializer.fromJson<String>(json['tenancyId']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
       month: serializer.fromJson<String>(json['month']),
       billNumber: serializer.fromJson<String?>(json['billNumber']),
       billPeriodStart: serializer.fromJson<DateTime?>(json['billPeriodStart']),
@@ -3870,8 +5178,9 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'tenantId': serializer.toJson<int>(tenantId),
+      'id': serializer.toJson<String>(id),
+      'tenancyId': serializer.toJson<String>(tenancyId),
+      'ownerId': serializer.toJson<String>(ownerId),
       'month': serializer.toJson<String>(month),
       'billNumber': serializer.toJson<String?>(billNumber),
       'billPeriodStart': serializer.toJson<DateTime?>(billPeriodStart),
@@ -3894,8 +5203,9 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? tenantId,
+          String? id,
+          String? tenancyId,
+          String? ownerId,
           String? month,
           Value<String?> billNumber = const Value.absent(),
           Value<DateTime?> billPeriodStart = const Value.absent(),
@@ -3916,7 +5226,8 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
         isSynced: isSynced ?? this.isSynced,
         isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
-        tenantId: tenantId ?? this.tenantId,
+        tenancyId: tenancyId ?? this.tenancyId,
+        ownerId: ownerId ?? this.ownerId,
         month: month ?? this.month,
         billNumber: billNumber.present ? billNumber.value : this.billNumber,
         billPeriodStart: billPeriodStart.present
@@ -3944,7 +5255,8 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
-      tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
+      tenancyId: data.tenancyId.present ? data.tenancyId.value : this.tenancyId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       month: data.month.present ? data.month.value : this.month,
       billNumber:
           data.billNumber.present ? data.billNumber.value : this.billNumber,
@@ -3981,7 +5293,8 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
           ..write('isSynced: $isSynced, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
-          ..write('tenantId: $tenantId, ')
+          ..write('tenancyId: $tenancyId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('month: $month, ')
           ..write('billNumber: $billNumber, ')
           ..write('billPeriodStart: $billPeriodStart, ')
@@ -4001,27 +5314,29 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      firestoreId,
-      lastUpdated,
-      isSynced,
-      isDeleted,
-      id,
-      tenantId,
-      month,
-      billNumber,
-      billPeriodStart,
-      billPeriodEnd,
-      billGeneratedDate,
-      dueDate,
-      baseRent,
-      electricAmount,
-      otherCharges,
-      discount,
-      totalDue,
-      totalPaid,
-      status,
-      notes);
+  int get hashCode => Object.hashAll([
+        firestoreId,
+        lastUpdated,
+        isSynced,
+        isDeleted,
+        id,
+        tenancyId,
+        ownerId,
+        month,
+        billNumber,
+        billPeriodStart,
+        billPeriodEnd,
+        billGeneratedDate,
+        dueDate,
+        baseRent,
+        electricAmount,
+        otherCharges,
+        discount,
+        totalDue,
+        totalPaid,
+        status,
+        notes
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4031,7 +5346,8 @@ class RentCycle extends DataClass implements Insertable<RentCycle> {
           other.isSynced == this.isSynced &&
           other.isDeleted == this.isDeleted &&
           other.id == this.id &&
-          other.tenantId == this.tenantId &&
+          other.tenancyId == this.tenancyId &&
+          other.ownerId == this.ownerId &&
           other.month == this.month &&
           other.billNumber == this.billNumber &&
           other.billPeriodStart == this.billPeriodStart &&
@@ -4053,8 +5369,9 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> tenantId;
+  final Value<String> id;
+  final Value<String> tenancyId;
+  final Value<String> ownerId;
   final Value<String> month;
   final Value<String?> billNumber;
   final Value<DateTime?> billPeriodStart;
@@ -4069,13 +5386,15 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
   final Value<double> totalPaid;
   final Value<int> status;
   final Value<String?> notes;
+  final Value<int> rowid;
   const RentCyclesCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
-    this.tenantId = const Value.absent(),
+    this.tenancyId = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.month = const Value.absent(),
     this.billNumber = const Value.absent(),
     this.billPeriodStart = const Value.absent(),
@@ -4090,14 +5409,16 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
     this.totalPaid = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   RentCyclesCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int tenantId,
+    required String id,
+    required String tenancyId,
+    required String ownerId,
     required String month,
     this.billNumber = const Value.absent(),
     this.billPeriodStart = const Value.absent(),
@@ -4112,7 +5433,10 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
     this.totalPaid = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
-  })  : tenantId = Value(tenantId),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        tenancyId = Value(tenancyId),
+        ownerId = Value(ownerId),
         month = Value(month),
         baseRent = Value(baseRent),
         totalDue = Value(totalDue);
@@ -4121,8 +5445,9 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? tenantId,
+    Expression<String>? id,
+    Expression<String>? tenancyId,
+    Expression<String>? ownerId,
     Expression<String>? month,
     Expression<String>? billNumber,
     Expression<DateTime>? billPeriodStart,
@@ -4137,6 +5462,7 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
     Expression<double>? totalPaid,
     Expression<int>? status,
     Expression<String>? notes,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -4144,7 +5470,8 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
       if (isSynced != null) 'is_synced': isSynced,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
-      if (tenantId != null) 'tenant_id': tenantId,
+      if (tenancyId != null) 'tenancy_id': tenancyId,
+      if (ownerId != null) 'owner_id': ownerId,
       if (month != null) 'month': month,
       if (billNumber != null) 'bill_number': billNumber,
       if (billPeriodStart != null) 'bill_period_start': billPeriodStart,
@@ -4159,6 +5486,7 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
       if (totalPaid != null) 'total_paid': totalPaid,
       if (status != null) 'status': status,
       if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -4167,8 +5495,9 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? tenantId,
+      Value<String>? id,
+      Value<String>? tenancyId,
+      Value<String>? ownerId,
       Value<String>? month,
       Value<String?>? billNumber,
       Value<DateTime?>? billPeriodStart,
@@ -4182,14 +5511,16 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
       Value<double>? totalDue,
       Value<double>? totalPaid,
       Value<int>? status,
-      Value<String?>? notes}) {
+      Value<String?>? notes,
+      Value<int>? rowid}) {
     return RentCyclesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       isSynced: isSynced ?? this.isSynced,
       isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
-      tenantId: tenantId ?? this.tenantId,
+      tenancyId: tenancyId ?? this.tenancyId,
+      ownerId: ownerId ?? this.ownerId,
       month: month ?? this.month,
       billNumber: billNumber ?? this.billNumber,
       billPeriodStart: billPeriodStart ?? this.billPeriodStart,
@@ -4204,6 +5535,7 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
       totalPaid: totalPaid ?? this.totalPaid,
       status: status ?? this.status,
       notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -4223,10 +5555,13 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
-    if (tenantId.present) {
-      map['tenant_id'] = Variable<int>(tenantId.value);
+    if (tenancyId.present) {
+      map['tenancy_id'] = Variable<String>(tenancyId.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (month.present) {
       map['month'] = Variable<String>(month.value);
@@ -4270,6 +5605,9 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -4281,7 +5619,8 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
           ..write('isSynced: $isSynced, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
-          ..write('tenantId: $tenantId, ')
+          ..write('tenancyId: $tenancyId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('month: $month, ')
           ..write('billNumber: $billNumber, ')
           ..write('billPeriodStart: $billPeriodStart, ')
@@ -4295,7 +5634,8 @@ class RentCyclesCompanion extends UpdateCompanion<RentCycle> {
           ..write('totalDue: $totalDue, ')
           ..write('totalPaid: $totalPaid, ')
           ..write('status: $status, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -4764,31 +6104,27 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _rentCycleIdMeta =
       const VerificationMeta('rentCycleId');
   @override
-  late final GeneratedColumn<int> rentCycleId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> rentCycleId = GeneratedColumn<String>(
       'rent_cycle_id', aliasedName, false,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES rent_cycles (id) ON DELETE CASCADE'));
-  static const VerificationMeta _tenantIdMeta =
-      const VerificationMeta('tenantId');
+  static const VerificationMeta _ownerIdMeta =
+      const VerificationMeta('ownerId');
   @override
-  late final GeneratedColumn<int> tenantId = GeneratedColumn<int>(
-      'tenant_id', aliasedName, false,
-      type: DriftSqlType.int,
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+      'owner_id', aliasedName, false,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'REFERENCES tenants (id) ON DELETE CASCADE'));
+          'REFERENCES owners (id) ON DELETE CASCADE'));
   static const VerificationMeta _amountMeta = const VerificationMeta('amount');
   @override
   late final GeneratedColumn<double> amount = GeneratedColumn<double>(
@@ -4838,7 +6174,7 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
         isDeleted,
         id,
         rentCycleId,
-        tenantId,
+        ownerId,
         amount,
         date,
         method,
@@ -4879,6 +6215,8 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('rent_cycle_id')) {
       context.handle(
@@ -4888,11 +6226,11 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
     } else if (isInserting) {
       context.missing(_rentCycleIdMeta);
     }
-    if (data.containsKey('tenant_id')) {
-      context.handle(_tenantIdMeta,
-          tenantId.isAcceptableOrUnknown(data['tenant_id']!, _tenantIdMeta));
+    if (data.containsKey('owner_id')) {
+      context.handle(_ownerIdMeta,
+          ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta));
     } else if (isInserting) {
-      context.missing(_tenantIdMeta);
+      context.missing(_ownerIdMeta);
     }
     if (data.containsKey('amount')) {
       context.handle(_amountMeta,
@@ -4950,11 +6288,11 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       rentCycleId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}rent_cycle_id'])!,
-      tenantId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}tenant_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}rent_cycle_id'])!,
+      ownerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
       amount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
       date: attachedDatabase.typeMapping
@@ -4983,9 +6321,9 @@ class Payment extends DataClass implements Insertable<Payment> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int rentCycleId;
-  final int tenantId;
+  final String id;
+  final String rentCycleId;
+  final String ownerId;
   final double amount;
   final DateTime date;
   final String method;
@@ -5000,7 +6338,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       required this.isDeleted,
       required this.id,
       required this.rentCycleId,
-      required this.tenantId,
+      required this.ownerId,
       required this.amount,
       required this.date,
       required this.method,
@@ -5017,9 +6355,9 @@ class Payment extends DataClass implements Insertable<Payment> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['rent_cycle_id'] = Variable<int>(rentCycleId);
-    map['tenant_id'] = Variable<int>(tenantId);
+    map['id'] = Variable<String>(id);
+    map['rent_cycle_id'] = Variable<String>(rentCycleId);
+    map['owner_id'] = Variable<String>(ownerId);
     map['amount'] = Variable<double>(amount);
     map['date'] = Variable<DateTime>(date);
     map['method'] = Variable<String>(method);
@@ -5048,7 +6386,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       isDeleted: Value(isDeleted),
       id: Value(id),
       rentCycleId: Value(rentCycleId),
-      tenantId: Value(tenantId),
+      ownerId: Value(ownerId),
       amount: Value(amount),
       date: Value(date),
       method: Value(method),
@@ -5074,9 +6412,9 @@ class Payment extends DataClass implements Insertable<Payment> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      rentCycleId: serializer.fromJson<int>(json['rentCycleId']),
-      tenantId: serializer.fromJson<int>(json['tenantId']),
+      id: serializer.fromJson<String>(json['id']),
+      rentCycleId: serializer.fromJson<String>(json['rentCycleId']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
       amount: serializer.fromJson<double>(json['amount']),
       date: serializer.fromJson<DateTime>(json['date']),
       method: serializer.fromJson<String>(json['method']),
@@ -5094,9 +6432,9 @@ class Payment extends DataClass implements Insertable<Payment> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'rentCycleId': serializer.toJson<int>(rentCycleId),
-      'tenantId': serializer.toJson<int>(tenantId),
+      'id': serializer.toJson<String>(id),
+      'rentCycleId': serializer.toJson<String>(rentCycleId),
+      'ownerId': serializer.toJson<String>(ownerId),
       'amount': serializer.toJson<double>(amount),
       'date': serializer.toJson<DateTime>(date),
       'method': serializer.toJson<String>(method),
@@ -5112,9 +6450,9 @@ class Payment extends DataClass implements Insertable<Payment> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? rentCycleId,
-          int? tenantId,
+          String? id,
+          String? rentCycleId,
+          String? ownerId,
           double? amount,
           DateTime? date,
           String? method,
@@ -5129,7 +6467,7 @@ class Payment extends DataClass implements Insertable<Payment> {
         isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         rentCycleId: rentCycleId ?? this.rentCycleId,
-        tenantId: tenantId ?? this.tenantId,
+        ownerId: ownerId ?? this.ownerId,
         amount: amount ?? this.amount,
         date: date ?? this.date,
         method: method ?? this.method,
@@ -5149,7 +6487,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       id: data.id.present ? data.id.value : this.id,
       rentCycleId:
           data.rentCycleId.present ? data.rentCycleId.value : this.rentCycleId,
-      tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       amount: data.amount.present ? data.amount.value : this.amount,
       date: data.date.present ? data.date.value : this.date,
       method: data.method.present ? data.method.value : this.method,
@@ -5171,7 +6509,7 @@ class Payment extends DataClass implements Insertable<Payment> {
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('rentCycleId: $rentCycleId, ')
-          ..write('tenantId: $tenantId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
           ..write('method: $method, ')
@@ -5191,7 +6529,7 @@ class Payment extends DataClass implements Insertable<Payment> {
       isDeleted,
       id,
       rentCycleId,
-      tenantId,
+      ownerId,
       amount,
       date,
       method,
@@ -5209,7 +6547,7 @@ class Payment extends DataClass implements Insertable<Payment> {
           other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.rentCycleId == this.rentCycleId &&
-          other.tenantId == this.tenantId &&
+          other.ownerId == this.ownerId &&
           other.amount == this.amount &&
           other.date == this.date &&
           other.method == this.method &&
@@ -5224,9 +6562,9 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> rentCycleId;
-  final Value<int> tenantId;
+  final Value<String> id;
+  final Value<String> rentCycleId;
+  final Value<String> ownerId;
   final Value<double> amount;
   final Value<DateTime> date;
   final Value<String> method;
@@ -5234,6 +6572,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
   final Value<String?> referenceId;
   final Value<String?> collectedBy;
   final Value<String?> notes;
+  final Value<int> rowid;
   const PaymentsCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -5241,7 +6580,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.rentCycleId = const Value.absent(),
-    this.tenantId = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.amount = const Value.absent(),
     this.date = const Value.absent(),
     this.method = const Value.absent(),
@@ -5249,15 +6588,16 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     this.referenceId = const Value.absent(),
     this.collectedBy = const Value.absent(),
     this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   PaymentsCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int rentCycleId,
-    required int tenantId,
+    required String id,
+    required String rentCycleId,
+    required String ownerId,
     required double amount,
     required DateTime date,
     required String method,
@@ -5265,8 +6605,10 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     this.referenceId = const Value.absent(),
     this.collectedBy = const Value.absent(),
     this.notes = const Value.absent(),
-  })  : rentCycleId = Value(rentCycleId),
-        tenantId = Value(tenantId),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        rentCycleId = Value(rentCycleId),
+        ownerId = Value(ownerId),
         amount = Value(amount),
         date = Value(date),
         method = Value(method);
@@ -5275,9 +6617,9 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? rentCycleId,
-    Expression<int>? tenantId,
+    Expression<String>? id,
+    Expression<String>? rentCycleId,
+    Expression<String>? ownerId,
     Expression<double>? amount,
     Expression<DateTime>? date,
     Expression<String>? method,
@@ -5285,6 +6627,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     Expression<String>? referenceId,
     Expression<String>? collectedBy,
     Expression<String>? notes,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -5293,7 +6636,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (rentCycleId != null) 'rent_cycle_id': rentCycleId,
-      if (tenantId != null) 'tenant_id': tenantId,
+      if (ownerId != null) 'owner_id': ownerId,
       if (amount != null) 'amount': amount,
       if (date != null) 'date': date,
       if (method != null) 'method': method,
@@ -5301,6 +6644,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       if (referenceId != null) 'reference_id': referenceId,
       if (collectedBy != null) 'collected_by': collectedBy,
       if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -5309,16 +6653,17 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? rentCycleId,
-      Value<int>? tenantId,
+      Value<String>? id,
+      Value<String>? rentCycleId,
+      Value<String>? ownerId,
       Value<double>? amount,
       Value<DateTime>? date,
       Value<String>? method,
       Value<int?>? channelId,
       Value<String?>? referenceId,
       Value<String?>? collectedBy,
-      Value<String?>? notes}) {
+      Value<String?>? notes,
+      Value<int>? rowid}) {
     return PaymentsCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -5326,7 +6671,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       rentCycleId: rentCycleId ?? this.rentCycleId,
-      tenantId: tenantId ?? this.tenantId,
+      ownerId: ownerId ?? this.ownerId,
       amount: amount ?? this.amount,
       date: date ?? this.date,
       method: method ?? this.method,
@@ -5334,6 +6679,7 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       referenceId: referenceId ?? this.referenceId,
       collectedBy: collectedBy ?? this.collectedBy,
       notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -5353,13 +6699,13 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (rentCycleId.present) {
-      map['rent_cycle_id'] = Variable<int>(rentCycleId.value);
+      map['rent_cycle_id'] = Variable<String>(rentCycleId.value);
     }
-    if (tenantId.present) {
-      map['tenant_id'] = Variable<int>(tenantId.value);
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
@@ -5382,6 +6728,9 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -5394,14 +6743,15 @@ class PaymentsCompanion extends UpdateCompanion<Payment> {
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('rentCycleId: $rentCycleId, ')
-          ..write('tenantId: $tenantId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
           ..write('method: $method, ')
           ..write('channelId: $channelId, ')
           ..write('referenceId: $referenceId, ')
           ..write('collectedBy: $collectedBy, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -5450,19 +6800,15 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _ownerIdMeta =
       const VerificationMeta('ownerId');
   @override
-  late final GeneratedColumn<int> ownerId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
       'owner_id', aliasedName, false,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES owners (id) ON DELETE CASCADE'));
@@ -5493,6 +6839,12 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
       'description', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _receiptPathMeta =
+      const VerificationMeta('receiptPath');
+  @override
+  late final GeneratedColumn<String> receiptPath = GeneratedColumn<String>(
+      'receipt_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -5505,7 +6857,8 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         date,
         amount,
         category,
-        description
+        description,
+        receiptPath
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5539,6 +6892,8 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('owner_id')) {
       context.handle(_ownerIdMeta,
@@ -5576,6 +6931,12 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
           description.isAcceptableOrUnknown(
               data['description']!, _descriptionMeta));
     }
+    if (data.containsKey('receipt_path')) {
+      context.handle(
+          _receiptPathMeta,
+          receiptPath.isAcceptableOrUnknown(
+              data['receipt_path']!, _receiptPathMeta));
+    }
     return context;
   }
 
@@ -5594,9 +6955,9 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       ownerId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}owner_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
       date: attachedDatabase.typeMapping
@@ -5607,6 +6968,8 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
           .read(DriftSqlType.string, data['${effectivePrefix}category'])!,
       description: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}description']),
+      receiptPath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}receipt_path']),
     );
   }
 
@@ -5621,13 +6984,14 @@ class Expense extends DataClass implements Insertable<Expense> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int ownerId;
+  final String id;
+  final String ownerId;
   final String title;
   final DateTime date;
   final double amount;
   final String category;
   final String? description;
+  final String? receiptPath;
   const Expense(
       {this.firestoreId,
       required this.lastUpdated,
@@ -5639,7 +7003,8 @@ class Expense extends DataClass implements Insertable<Expense> {
       required this.date,
       required this.amount,
       required this.category,
-      this.description});
+      this.description,
+      this.receiptPath});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -5649,14 +7014,17 @@ class Expense extends DataClass implements Insertable<Expense> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['owner_id'] = Variable<int>(ownerId);
+    map['id'] = Variable<String>(id);
+    map['owner_id'] = Variable<String>(ownerId);
     map['title'] = Variable<String>(title);
     map['date'] = Variable<DateTime>(date);
     map['amount'] = Variable<double>(amount);
     map['category'] = Variable<String>(category);
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || receiptPath != null) {
+      map['receipt_path'] = Variable<String>(receiptPath);
     }
     return map;
   }
@@ -5678,6 +7046,9 @@ class Expense extends DataClass implements Insertable<Expense> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      receiptPath: receiptPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receiptPath),
     );
   }
 
@@ -5689,13 +7060,14 @@ class Expense extends DataClass implements Insertable<Expense> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      ownerId: serializer.fromJson<int>(json['ownerId']),
+      id: serializer.fromJson<String>(json['id']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
       title: serializer.fromJson<String>(json['title']),
       date: serializer.fromJson<DateTime>(json['date']),
       amount: serializer.fromJson<double>(json['amount']),
       category: serializer.fromJson<String>(json['category']),
       description: serializer.fromJson<String?>(json['description']),
+      receiptPath: serializer.fromJson<String?>(json['receiptPath']),
     );
   }
   @override
@@ -5706,13 +7078,14 @@ class Expense extends DataClass implements Insertable<Expense> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'ownerId': serializer.toJson<int>(ownerId),
+      'id': serializer.toJson<String>(id),
+      'ownerId': serializer.toJson<String>(ownerId),
       'title': serializer.toJson<String>(title),
       'date': serializer.toJson<DateTime>(date),
       'amount': serializer.toJson<double>(amount),
       'category': serializer.toJson<String>(category),
       'description': serializer.toJson<String?>(description),
+      'receiptPath': serializer.toJson<String?>(receiptPath),
     };
   }
 
@@ -5721,13 +7094,14 @@ class Expense extends DataClass implements Insertable<Expense> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? ownerId,
+          String? id,
+          String? ownerId,
           String? title,
           DateTime? date,
           double? amount,
           String? category,
-          Value<String?> description = const Value.absent()}) =>
+          Value<String?> description = const Value.absent(),
+          Value<String?> receiptPath = const Value.absent()}) =>
       Expense(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -5740,6 +7114,7 @@ class Expense extends DataClass implements Insertable<Expense> {
         amount: amount ?? this.amount,
         category: category ?? this.category,
         description: description.present ? description.value : this.description,
+        receiptPath: receiptPath.present ? receiptPath.value : this.receiptPath,
       );
   Expense copyWithCompanion(ExpensesCompanion data) {
     return Expense(
@@ -5757,6 +7132,8 @@ class Expense extends DataClass implements Insertable<Expense> {
       category: data.category.present ? data.category.value : this.category,
       description:
           data.description.present ? data.description.value : this.description,
+      receiptPath:
+          data.receiptPath.present ? data.receiptPath.value : this.receiptPath,
     );
   }
 
@@ -5773,14 +7150,15 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('date: $date, ')
           ..write('amount: $amount, ')
           ..write('category: $category, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('receiptPath: $receiptPath')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, ownerId, title, date, amount, category, description);
+      id, ownerId, title, date, amount, category, description, receiptPath);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5795,7 +7173,8 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.date == this.date &&
           other.amount == this.amount &&
           other.category == this.category &&
-          other.description == this.description);
+          other.description == this.description &&
+          other.receiptPath == this.receiptPath);
 }
 
 class ExpensesCompanion extends UpdateCompanion<Expense> {
@@ -5803,13 +7182,15 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> ownerId;
+  final Value<String> id;
+  final Value<String> ownerId;
   final Value<String> title;
   final Value<DateTime> date;
   final Value<double> amount;
   final Value<String> category;
   final Value<String?> description;
+  final Value<String?> receiptPath;
+  final Value<int> rowid;
   const ExpensesCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -5822,20 +7203,25 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.amount = const Value.absent(),
     this.category = const Value.absent(),
     this.description = const Value.absent(),
+    this.receiptPath = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   ExpensesCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int ownerId,
+    required String id,
+    required String ownerId,
     required String title,
     required DateTime date,
     required double amount,
     required String category,
     this.description = const Value.absent(),
-  })  : ownerId = Value(ownerId),
+    this.receiptPath = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        ownerId = Value(ownerId),
         title = Value(title),
         date = Value(date),
         amount = Value(amount),
@@ -5845,13 +7231,15 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? ownerId,
+    Expression<String>? id,
+    Expression<String>? ownerId,
     Expression<String>? title,
     Expression<DateTime>? date,
     Expression<double>? amount,
     Expression<String>? category,
     Expression<String>? description,
+    Expression<String>? receiptPath,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -5865,6 +7253,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (amount != null) 'amount': amount,
       if (category != null) 'category': category,
       if (description != null) 'description': description,
+      if (receiptPath != null) 'receipt_path': receiptPath,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -5873,13 +7263,15 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? ownerId,
+      Value<String>? id,
+      Value<String>? ownerId,
       Value<String>? title,
       Value<DateTime>? date,
       Value<double>? amount,
       Value<String>? category,
-      Value<String?>? description}) {
+      Value<String?>? description,
+      Value<String?>? receiptPath,
+      Value<int>? rowid}) {
     return ExpensesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -5892,6 +7284,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       amount: amount ?? this.amount,
       category: category ?? this.category,
       description: description ?? this.description,
+      receiptPath: receiptPath ?? this.receiptPath,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -5911,10 +7305,10 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (ownerId.present) {
-      map['owner_id'] = Variable<int>(ownerId.value);
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -5930,6 +7324,12 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     }
     if (description.present) {
       map['description'] = Variable<String>(description.value);
+    }
+    if (receiptPath.present) {
+      map['receipt_path'] = Variable<String>(receiptPath.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -5947,7 +7347,9 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('date: $date, ')
           ..write('amount: $amount, ')
           ..write('category: $category, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('receiptPath: $receiptPath, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -5997,21 +7399,26 @@ class $ElectricReadingsTable extends ElectricReadings
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _unitIdMeta = const VerificationMeta('unitId');
   @override
-  late final GeneratedColumn<int> unitId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> unitId = GeneratedColumn<String>(
       'unit_id', aliasedName, false,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES units (id) ON DELETE CASCADE'));
+  static const VerificationMeta _ownerIdMeta =
+      const VerificationMeta('ownerId');
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+      'owner_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES owners (id) ON DELETE CASCADE'));
   static const VerificationMeta _readingDateMeta =
       const VerificationMeta('readingDate');
   @override
@@ -6070,6 +7477,7 @@ class $ElectricReadingsTable extends ElectricReadings
         isDeleted,
         id,
         unitId,
+        ownerId,
         readingDate,
         meterName,
         prevReading,
@@ -6111,12 +7519,20 @@ class $ElectricReadingsTable extends ElectricReadings
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('unit_id')) {
       context.handle(_unitIdMeta,
           unitId.isAcceptableOrUnknown(data['unit_id']!, _unitIdMeta));
     } else if (isInserting) {
       context.missing(_unitIdMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(_ownerIdMeta,
+          ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta));
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
     }
     if (data.containsKey('reading_date')) {
       context.handle(
@@ -6182,9 +7598,11 @@ class $ElectricReadingsTable extends ElectricReadings
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       unitId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}unit_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}unit_id'])!,
+      ownerId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}owner_id'])!,
       readingDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}reading_date'])!,
       meterName: attachedDatabase.typeMapping
@@ -6215,8 +7633,9 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int unitId;
+  final String id;
+  final String unitId;
+  final String ownerId;
   final DateTime readingDate;
   final String? meterName;
   final double prevReading;
@@ -6232,6 +7651,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       required this.isDeleted,
       required this.id,
       required this.unitId,
+      required this.ownerId,
       required this.readingDate,
       this.meterName,
       required this.prevReading,
@@ -6249,8 +7669,9 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['unit_id'] = Variable<int>(unitId);
+    map['id'] = Variable<String>(id);
+    map['unit_id'] = Variable<String>(unitId);
+    map['owner_id'] = Variable<String>(ownerId);
     map['reading_date'] = Variable<DateTime>(readingDate);
     if (!nullToAbsent || meterName != null) {
       map['meter_name'] = Variable<String>(meterName);
@@ -6278,6 +7699,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       isDeleted: Value(isDeleted),
       id: Value(id),
       unitId: Value(unitId),
+      ownerId: Value(ownerId),
       readingDate: Value(readingDate),
       meterName: meterName == null && nullToAbsent
           ? const Value.absent()
@@ -6302,8 +7724,9 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      unitId: serializer.fromJson<int>(json['unitId']),
+      id: serializer.fromJson<String>(json['id']),
+      unitId: serializer.fromJson<String>(json['unitId']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
       readingDate: serializer.fromJson<DateTime>(json['readingDate']),
       meterName: serializer.fromJson<String?>(json['meterName']),
       prevReading: serializer.fromJson<double>(json['prevReading']),
@@ -6322,8 +7745,9 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'unitId': serializer.toJson<int>(unitId),
+      'id': serializer.toJson<String>(id),
+      'unitId': serializer.toJson<String>(unitId),
+      'ownerId': serializer.toJson<String>(ownerId),
       'readingDate': serializer.toJson<DateTime>(readingDate),
       'meterName': serializer.toJson<String?>(meterName),
       'prevReading': serializer.toJson<double>(prevReading),
@@ -6340,8 +7764,9 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? unitId,
+          String? id,
+          String? unitId,
+          String? ownerId,
           DateTime? readingDate,
           Value<String?> meterName = const Value.absent(),
           double? prevReading,
@@ -6357,6 +7782,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
         isDeleted: isDeleted ?? this.isDeleted,
         id: id ?? this.id,
         unitId: unitId ?? this.unitId,
+        ownerId: ownerId ?? this.ownerId,
         readingDate: readingDate ?? this.readingDate,
         meterName: meterName.present ? meterName.value : this.meterName,
         prevReading: prevReading ?? this.prevReading,
@@ -6376,6 +7802,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       id: data.id.present ? data.id.value : this.id,
       unitId: data.unitId.present ? data.unitId.value : this.unitId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       readingDate:
           data.readingDate.present ? data.readingDate.value : this.readingDate,
       meterName: data.meterName.present ? data.meterName.value : this.meterName,
@@ -6401,6 +7828,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('unitId: $unitId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('readingDate: $readingDate, ')
           ..write('meterName: $meterName, ')
           ..write('prevReading: $prevReading, ')
@@ -6421,6 +7849,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
       isDeleted,
       id,
       unitId,
+      ownerId,
       readingDate,
       meterName,
       prevReading,
@@ -6439,6 +7868,7 @@ class ElectricReading extends DataClass implements Insertable<ElectricReading> {
           other.isDeleted == this.isDeleted &&
           other.id == this.id &&
           other.unitId == this.unitId &&
+          other.ownerId == this.ownerId &&
           other.readingDate == this.readingDate &&
           other.meterName == this.meterName &&
           other.prevReading == this.prevReading &&
@@ -6454,8 +7884,9 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> unitId;
+  final Value<String> id;
+  final Value<String> unitId;
+  final Value<String> ownerId;
   final Value<DateTime> readingDate;
   final Value<String?> meterName;
   final Value<double> prevReading;
@@ -6464,6 +7895,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
   final Value<double> amount;
   final Value<String?> imagePath;
   final Value<String?> notes;
+  final Value<int> rowid;
   const ElectricReadingsCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -6471,6 +7903,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     this.isDeleted = const Value.absent(),
     this.id = const Value.absent(),
     this.unitId = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.readingDate = const Value.absent(),
     this.meterName = const Value.absent(),
     this.prevReading = const Value.absent(),
@@ -6479,14 +7912,16 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     this.amount = const Value.absent(),
     this.imagePath = const Value.absent(),
     this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   ElectricReadingsCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int unitId,
+    required String id,
+    required String unitId,
+    required String ownerId,
     required DateTime readingDate,
     this.meterName = const Value.absent(),
     this.prevReading = const Value.absent(),
@@ -6495,7 +7930,10 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     required double amount,
     this.imagePath = const Value.absent(),
     this.notes = const Value.absent(),
-  })  : unitId = Value(unitId),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        unitId = Value(unitId),
+        ownerId = Value(ownerId),
         readingDate = Value(readingDate),
         currentReading = Value(currentReading),
         amount = Value(amount);
@@ -6504,8 +7942,9 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? unitId,
+    Expression<String>? id,
+    Expression<String>? unitId,
+    Expression<String>? ownerId,
     Expression<DateTime>? readingDate,
     Expression<String>? meterName,
     Expression<double>? prevReading,
@@ -6514,6 +7953,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     Expression<double>? amount,
     Expression<String>? imagePath,
     Expression<String>? notes,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -6522,6 +7962,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (id != null) 'id': id,
       if (unitId != null) 'unit_id': unitId,
+      if (ownerId != null) 'owner_id': ownerId,
       if (readingDate != null) 'reading_date': readingDate,
       if (meterName != null) 'meter_name': meterName,
       if (prevReading != null) 'prev_reading': prevReading,
@@ -6530,6 +7971,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       if (amount != null) 'amount': amount,
       if (imagePath != null) 'image_path': imagePath,
       if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -6538,8 +7980,9 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? unitId,
+      Value<String>? id,
+      Value<String>? unitId,
+      Value<String>? ownerId,
       Value<DateTime>? readingDate,
       Value<String?>? meterName,
       Value<double>? prevReading,
@@ -6547,7 +7990,8 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       Value<double>? ratePerUnit,
       Value<double>? amount,
       Value<String?>? imagePath,
-      Value<String?>? notes}) {
+      Value<String?>? notes,
+      Value<int>? rowid}) {
     return ElectricReadingsCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -6555,6 +7999,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       isDeleted: isDeleted ?? this.isDeleted,
       id: id ?? this.id,
       unitId: unitId ?? this.unitId,
+      ownerId: ownerId ?? this.ownerId,
       readingDate: readingDate ?? this.readingDate,
       meterName: meterName ?? this.meterName,
       prevReading: prevReading ?? this.prevReading,
@@ -6563,6 +8008,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       amount: amount ?? this.amount,
       imagePath: imagePath ?? this.imagePath,
       notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -6582,10 +8028,13 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (unitId.present) {
-      map['unit_id'] = Variable<int>(unitId.value);
+      map['unit_id'] = Variable<String>(unitId.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (readingDate.present) {
       map['reading_date'] = Variable<DateTime>(readingDate.value);
@@ -6611,6 +8060,9 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -6623,6 +8075,7 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
           ..write('isDeleted: $isDeleted, ')
           ..write('id: $id, ')
           ..write('unitId: $unitId, ')
+          ..write('ownerId: $ownerId, ')
           ..write('readingDate: $readingDate, ')
           ..write('meterName: $meterName, ')
           ..write('prevReading: $prevReading, ')
@@ -6630,7 +8083,8 @@ class ElectricReadingsCompanion extends UpdateCompanion<ElectricReading> {
           ..write('ratePerUnit: $ratePerUnit, ')
           ..write('amount: $amount, ')
           ..write('imagePath: $imagePath, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -6680,19 +8134,15 @@ class $OtherChargesTable extends OtherCharges
       defaultValue: const Constant(false));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _rentCycleIdMeta =
       const VerificationMeta('rentCycleId');
   @override
-  late final GeneratedColumn<int> rentCycleId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> rentCycleId = GeneratedColumn<String>(
       'rent_cycle_id', aliasedName, false,
-      type: DriftSqlType.int,
+      type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'REFERENCES rent_cycles (id) ON DELETE CASCADE'));
@@ -6756,6 +8206,8 @@ class $OtherChargesTable extends OtherCharges
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('rent_cycle_id')) {
       context.handle(
@@ -6799,9 +8251,9 @@ class $OtherChargesTable extends OtherCharges
       isDeleted: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       rentCycleId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}rent_cycle_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}rent_cycle_id'])!,
       amount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
       category: attachedDatabase.typeMapping
@@ -6822,8 +8274,8 @@ class OtherCharge extends DataClass implements Insertable<OtherCharge> {
   final DateTime lastUpdated;
   final bool isSynced;
   final bool isDeleted;
-  final int id;
-  final int rentCycleId;
+  final String id;
+  final String rentCycleId;
   final double amount;
   final String category;
   final String? notes;
@@ -6846,8 +8298,8 @@ class OtherCharge extends DataClass implements Insertable<OtherCharge> {
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     map['is_synced'] = Variable<bool>(isSynced);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
-    map['rent_cycle_id'] = Variable<int>(rentCycleId);
+    map['id'] = Variable<String>(id);
+    map['rent_cycle_id'] = Variable<String>(rentCycleId);
     map['amount'] = Variable<double>(amount);
     map['category'] = Variable<String>(category);
     if (!nullToAbsent || notes != null) {
@@ -6881,8 +8333,8 @@ class OtherCharge extends DataClass implements Insertable<OtherCharge> {
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
-      rentCycleId: serializer.fromJson<int>(json['rentCycleId']),
+      id: serializer.fromJson<String>(json['id']),
+      rentCycleId: serializer.fromJson<String>(json['rentCycleId']),
       amount: serializer.fromJson<double>(json['amount']),
       category: serializer.fromJson<String>(json['category']),
       notes: serializer.fromJson<String?>(json['notes']),
@@ -6896,8 +8348,8 @@ class OtherCharge extends DataClass implements Insertable<OtherCharge> {
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
       'isSynced': serializer.toJson<bool>(isSynced),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
-      'rentCycleId': serializer.toJson<int>(rentCycleId),
+      'id': serializer.toJson<String>(id),
+      'rentCycleId': serializer.toJson<String>(rentCycleId),
       'amount': serializer.toJson<double>(amount),
       'category': serializer.toJson<String>(category),
       'notes': serializer.toJson<String?>(notes),
@@ -6909,8 +8361,8 @@ class OtherCharge extends DataClass implements Insertable<OtherCharge> {
           DateTime? lastUpdated,
           bool? isSynced,
           bool? isDeleted,
-          int? id,
-          int? rentCycleId,
+          String? id,
+          String? rentCycleId,
           double? amount,
           String? category,
           Value<String?> notes = const Value.absent()}) =>
@@ -6981,11 +8433,12 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
   final Value<DateTime> lastUpdated;
   final Value<bool> isSynced;
   final Value<bool> isDeleted;
-  final Value<int> id;
-  final Value<int> rentCycleId;
+  final Value<String> id;
+  final Value<String> rentCycleId;
   final Value<double> amount;
   final Value<String> category;
   final Value<String?> notes;
+  final Value<int> rowid;
   const OtherChargesCompanion({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
@@ -6996,18 +8449,21 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
     this.amount = const Value.absent(),
     this.category = const Value.absent(),
     this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   OtherChargesCompanion.insert({
     this.firestoreId = const Value.absent(),
     this.lastUpdated = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
-    required int rentCycleId,
+    required String id,
+    required String rentCycleId,
     required double amount,
     required String category,
     this.notes = const Value.absent(),
-  })  : rentCycleId = Value(rentCycleId),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        rentCycleId = Value(rentCycleId),
         amount = Value(amount),
         category = Value(category);
   static Insertable<OtherCharge> custom({
@@ -7015,11 +8471,12 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
     Expression<DateTime>? lastUpdated,
     Expression<bool>? isSynced,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
-    Expression<int>? rentCycleId,
+    Expression<String>? id,
+    Expression<String>? rentCycleId,
     Expression<double>? amount,
     Expression<String>? category,
     Expression<String>? notes,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (firestoreId != null) 'firestore_id': firestoreId,
@@ -7031,6 +8488,7 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
       if (amount != null) 'amount': amount,
       if (category != null) 'category': category,
       if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
@@ -7039,11 +8497,12 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
       Value<DateTime>? lastUpdated,
       Value<bool>? isSynced,
       Value<bool>? isDeleted,
-      Value<int>? id,
-      Value<int>? rentCycleId,
+      Value<String>? id,
+      Value<String>? rentCycleId,
       Value<double>? amount,
       Value<String>? category,
-      Value<String?>? notes}) {
+      Value<String?>? notes,
+      Value<int>? rowid}) {
     return OtherChargesCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
       lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -7054,6 +8513,7 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
       amount: amount ?? this.amount,
       category: category ?? this.category,
       notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -7073,10 +8533,10 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (rentCycleId.present) {
-      map['rent_cycle_id'] = Variable<int>(rentCycleId.value);
+      map['rent_cycle_id'] = Variable<String>(rentCycleId.value);
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
@@ -7086,6 +8546,9 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -7101,7 +8564,8 @@ class OtherChargesCompanion extends UpdateCompanion<OtherCharge> {
           ..write('rentCycleId: $rentCycleId, ')
           ..write('amount: $amount, ')
           ..write('category: $category, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -7115,6 +8579,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BhkTemplatesTable bhkTemplates = $BhkTemplatesTable(this);
   late final $UnitsTable units = $UnitsTable(this);
   late final $TenantsTable tenants = $TenantsTable(this);
+  late final $TenanciesTable tenancies = $TenanciesTable(this);
   late final $RentCyclesTable rentCycles = $RentCyclesTable(this);
   late final $PaymentChannelsTable paymentChannels =
       $PaymentChannelsTable(this);
@@ -7133,6 +8598,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         bhkTemplates,
         units,
         tenants,
+        tenancies,
         rentCycles,
         paymentChannels,
         payments,
@@ -7165,7 +8631,49 @@ abstract class _$AppDatabase extends GeneratedDatabase {
             ],
           ),
           WritePropagation(
+            on: TableUpdateQuery.onTableName('owners',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('units', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('owners',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('tenants', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
             on: TableUpdateQuery.onTableName('tenants',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('tenancies', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('units',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('tenancies', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('owners',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('tenancies', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('tenancies',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('rent_cycles', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('owners',
                 limitUpdateKind: UpdateKind.delete),
             result: [
               TableUpdate('rent_cycles', kind: UpdateKind.delete),
@@ -7179,7 +8687,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
             ],
           ),
           WritePropagation(
-            on: TableUpdateQuery.onTableName('tenants',
+            on: TableUpdateQuery.onTableName('owners',
                 limitUpdateKind: UpdateKind.delete),
             result: [
               TableUpdate('payments', kind: UpdateKind.delete),
@@ -7194,6 +8702,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
           ),
           WritePropagation(
             on: TableUpdateQuery.onTableName('units',
+                limitUpdateKind: UpdateKind.delete),
+            result: [
+              TableUpdate('electric_readings', kind: UpdateKind.delete),
+            ],
+          ),
+          WritePropagation(
+            on: TableUpdateQuery.onTableName('owners',
                 limitUpdateKind: UpdateKind.delete),
             result: [
               TableUpdate('electric_readings', kind: UpdateKind.delete),
@@ -7215,28 +8730,32 @@ typedef $$OwnersTableCreateCompanionBuilder = OwnersCompanion Function({
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
+  required String id,
   required String name,
   Value<String?> phone,
   Value<String?> email,
   Value<String> subscriptionPlan,
   Value<String> currency,
   Value<String?> timezone,
+  Value<String?> upiId,
   Value<DateTime> createdAt,
+  Value<int> rowid,
 });
 typedef $$OwnersTableUpdateCompanionBuilder = OwnersCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
+  Value<String> id,
   Value<String> name,
   Value<String?> phone,
   Value<String?> email,
   Value<String> subscriptionPlan,
   Value<String> currency,
   Value<String?> timezone,
+  Value<String?> upiId,
   Value<DateTime> createdAt,
+  Value<int> rowid,
 });
 
 final class $$OwnersTableReferences
@@ -7250,9 +8769,79 @@ final class $$OwnersTableReferences
 
   $$HousesTableProcessedTableManager get housesRefs {
     final manager = $$HousesTableTableManager($_db, $_db.houses)
-        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<int>('id')!));
+        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_housesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$UnitsTable, List<Unit>> _unitsRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.units,
+          aliasName: $_aliasNameGenerator(db.owners.id, db.units.ownerId));
+
+  $$UnitsTableProcessedTableManager get unitsRefs {
+    final manager = $$UnitsTableTableManager($_db, $_db.units)
+        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_unitsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$TenantsTable, List<Tenant>> _tenantsRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.tenants,
+          aliasName: $_aliasNameGenerator(db.owners.id, db.tenants.ownerId));
+
+  $$TenantsTableProcessedTableManager get tenantsRefs {
+    final manager = $$TenantsTableTableManager($_db, $_db.tenants)
+        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_tenantsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$TenanciesTable, List<Tenancy>>
+      _tenanciesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+          db.tenancies,
+          aliasName: $_aliasNameGenerator(db.owners.id, db.tenancies.ownerId));
+
+  $$TenanciesTableProcessedTableManager get tenanciesRefs {
+    final manager = $$TenanciesTableTableManager($_db, $_db.tenancies)
+        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_tenanciesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$RentCyclesTable, List<RentCycle>>
+      _rentCyclesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+          db.rentCycles,
+          aliasName: $_aliasNameGenerator(db.owners.id, db.rentCycles.ownerId));
+
+  $$RentCyclesTableProcessedTableManager get rentCyclesRefs {
+    final manager = $$RentCyclesTableTableManager($_db, $_db.rentCycles)
+        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_rentCyclesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$PaymentsTable, List<Payment>> _paymentsRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.payments,
+          aliasName: $_aliasNameGenerator(db.owners.id, db.payments.ownerId));
+
+  $$PaymentsTableProcessedTableManager get paymentsRefs {
+    final manager = $$PaymentsTableTableManager($_db, $_db.payments)
+        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_paymentsRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -7264,9 +8853,26 @@ final class $$OwnersTableReferences
 
   $$ExpensesTableProcessedTableManager get expensesRefs {
     final manager = $$ExpensesTableTableManager($_db, $_db.expenses)
-        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<int>('id')!));
+        .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_expensesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$ElectricReadingsTable, List<ElectricReading>>
+      _electricReadingsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.electricReadings,
+              aliasName: $_aliasNameGenerator(
+                  db.owners.id, db.electricReadings.ownerId));
+
+  $$ElectricReadingsTableProcessedTableManager get electricReadingsRefs {
+    final manager =
+        $$ElectricReadingsTableTableManager($_db, $_db.electricReadings)
+            .filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache =
+        $_typedResult.readTableOrNull(_electricReadingsRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -7293,7 +8899,7 @@ class $$OwnersTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get name => $composableBuilder(
@@ -7314,6 +8920,9 @@ class $$OwnersTableFilterComposer
 
   ColumnFilters<String> get timezone => $composableBuilder(
       column: $table.timezone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get upiId => $composableBuilder(
+      column: $table.upiId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -7339,6 +8948,111 @@ class $$OwnersTableFilterComposer
     return f(composer);
   }
 
+  Expression<bool> unitsRefs(
+      Expression<bool> Function($$UnitsTableFilterComposer f) f) {
+    final $$UnitsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.units,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UnitsTableFilterComposer(
+              $db: $db,
+              $table: $db.units,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> tenantsRefs(
+      Expression<bool> Function($$TenantsTableFilterComposer f) f) {
+    final $$TenantsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.tenants,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenantsTableFilterComposer(
+              $db: $db,
+              $table: $db.tenants,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> tenanciesRefs(
+      Expression<bool> Function($$TenanciesTableFilterComposer f) f) {
+    final $$TenanciesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.tenancies,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenanciesTableFilterComposer(
+              $db: $db,
+              $table: $db.tenancies,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> rentCyclesRefs(
+      Expression<bool> Function($$RentCyclesTableFilterComposer f) f) {
+    final $$RentCyclesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.rentCycles,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RentCyclesTableFilterComposer(
+              $db: $db,
+              $table: $db.rentCycles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> paymentsRefs(
+      Expression<bool> Function($$PaymentsTableFilterComposer f) f) {
+    final $$PaymentsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.payments,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PaymentsTableFilterComposer(
+              $db: $db,
+              $table: $db.payments,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
   Expression<bool> expensesRefs(
       Expression<bool> Function($$ExpensesTableFilterComposer f) f) {
     final $$ExpensesTableFilterComposer composer = $composerBuilder(
@@ -7352,6 +9066,27 @@ class $$OwnersTableFilterComposer
             $$ExpensesTableFilterComposer(
               $db: $db,
               $table: $db.expenses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> electricReadingsRefs(
+      Expression<bool> Function($$ElectricReadingsTableFilterComposer f) f) {
+    final $$ElectricReadingsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.electricReadings,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ElectricReadingsTableFilterComposer(
+              $db: $db,
+              $table: $db.electricReadings,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -7382,7 +9117,7 @@ class $$OwnersTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get name => $composableBuilder(
@@ -7403,6 +9138,9 @@ class $$OwnersTableOrderingComposer
 
   ColumnOrderings<String> get timezone => $composableBuilder(
       column: $table.timezone, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get upiId => $composableBuilder(
+      column: $table.upiId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
@@ -7429,7 +9167,7 @@ class $$OwnersTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
@@ -7450,6 +9188,9 @@ class $$OwnersTableAnnotationComposer
   GeneratedColumn<String> get timezone =>
       $composableBuilder(column: $table.timezone, builder: (column) => column);
 
+  GeneratedColumn<String> get upiId =>
+      $composableBuilder(column: $table.upiId, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -7466,6 +9207,111 @@ class $$OwnersTableAnnotationComposer
             $$HousesTableAnnotationComposer(
               $db: $db,
               $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> unitsRefs<T extends Object>(
+      Expression<T> Function($$UnitsTableAnnotationComposer a) f) {
+    final $$UnitsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.units,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UnitsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.units,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> tenantsRefs<T extends Object>(
+      Expression<T> Function($$TenantsTableAnnotationComposer a) f) {
+    final $$TenantsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.tenants,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenantsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.tenants,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> tenanciesRefs<T extends Object>(
+      Expression<T> Function($$TenanciesTableAnnotationComposer a) f) {
+    final $$TenanciesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.tenancies,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenanciesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.tenancies,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> rentCyclesRefs<T extends Object>(
+      Expression<T> Function($$RentCyclesTableAnnotationComposer a) f) {
+    final $$RentCyclesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.rentCycles,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RentCyclesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.rentCycles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> paymentsRefs<T extends Object>(
+      Expression<T> Function($$PaymentsTableAnnotationComposer a) f) {
+    final $$PaymentsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.payments,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$PaymentsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.payments,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -7494,6 +9340,27 @@ class $$OwnersTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> electricReadingsRefs<T extends Object>(
+      Expression<T> Function($$ElectricReadingsTableAnnotationComposer a) f) {
+    final $$ElectricReadingsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.electricReadings,
+        getReferencedColumn: (t) => t.ownerId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ElectricReadingsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.electricReadings,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$OwnersTableTableManager extends RootTableManager<
@@ -7507,7 +9374,15 @@ class $$OwnersTableTableManager extends RootTableManager<
     $$OwnersTableUpdateCompanionBuilder,
     (Owner, $$OwnersTableReferences),
     Owner,
-    PrefetchHooks Function({bool housesRefs, bool expensesRefs})> {
+    PrefetchHooks Function(
+        {bool housesRefs,
+        bool unitsRefs,
+        bool tenantsRefs,
+        bool tenanciesRefs,
+        bool rentCyclesRefs,
+        bool paymentsRefs,
+        bool expensesRefs,
+        bool electricReadingsRefs})> {
   $$OwnersTableTableManager(_$AppDatabase db, $OwnersTable table)
       : super(TableManagerState(
           db: db,
@@ -7523,14 +9398,16 @@ class $$OwnersTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
+            Value<String> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String?> phone = const Value.absent(),
             Value<String?> email = const Value.absent(),
             Value<String> subscriptionPlan = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String?> timezone = const Value.absent(),
+            Value<String?> upiId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               OwnersCompanion(
             firestoreId: firestoreId,
@@ -7544,21 +9421,25 @@ class $$OwnersTableTableManager extends RootTableManager<
             subscriptionPlan: subscriptionPlan,
             currency: currency,
             timezone: timezone,
+            upiId: upiId,
             createdAt: createdAt,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
+            required String id,
             required String name,
             Value<String?> phone = const Value.absent(),
             Value<String?> email = const Value.absent(),
             Value<String> subscriptionPlan = const Value.absent(),
             Value<String> currency = const Value.absent(),
             Value<String?> timezone = const Value.absent(),
+            Value<String?> upiId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               OwnersCompanion.insert(
             firestoreId: firestoreId,
@@ -7572,18 +9453,34 @@ class $$OwnersTableTableManager extends RootTableManager<
             subscriptionPlan: subscriptionPlan,
             currency: currency,
             timezone: timezone,
+            upiId: upiId,
             createdAt: createdAt,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
                   (e.readTable(table), $$OwnersTableReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({housesRefs = false, expensesRefs = false}) {
+          prefetchHooksCallback: (
+              {housesRefs = false,
+              unitsRefs = false,
+              tenantsRefs = false,
+              tenanciesRefs = false,
+              rentCyclesRefs = false,
+              paymentsRefs = false,
+              expensesRefs = false,
+              electricReadingsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (housesRefs) db.houses,
-                if (expensesRefs) db.expenses
+                if (unitsRefs) db.units,
+                if (tenantsRefs) db.tenants,
+                if (tenanciesRefs) db.tenancies,
+                if (rentCyclesRefs) db.rentCycles,
+                if (paymentsRefs) db.payments,
+                if (expensesRefs) db.expenses,
+                if (electricReadingsRefs) db.electricReadings
               ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
@@ -7599,6 +9496,63 @@ class $$OwnersTableTableManager extends RootTableManager<
                                 referencedItems) =>
                             referencedItems.where((e) => e.ownerId == item.id),
                         typedResults: items),
+                  if (unitsRefs)
+                    await $_getPrefetchedData<Owner, $OwnersTable, Unit>(
+                        currentTable: table,
+                        referencedTable:
+                            $$OwnersTableReferences._unitsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OwnersTableReferences(db, table, p0).unitsRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.ownerId == item.id),
+                        typedResults: items),
+                  if (tenantsRefs)
+                    await $_getPrefetchedData<Owner, $OwnersTable, Tenant>(
+                        currentTable: table,
+                        referencedTable:
+                            $$OwnersTableReferences._tenantsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OwnersTableReferences(db, table, p0).tenantsRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.ownerId == item.id),
+                        typedResults: items),
+                  if (tenanciesRefs)
+                    await $_getPrefetchedData<Owner, $OwnersTable, Tenancy>(
+                        currentTable: table,
+                        referencedTable:
+                            $$OwnersTableReferences._tenanciesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OwnersTableReferences(db, table, p0)
+                                .tenanciesRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.ownerId == item.id),
+                        typedResults: items),
+                  if (rentCyclesRefs)
+                    await $_getPrefetchedData<Owner, $OwnersTable, RentCycle>(
+                        currentTable: table,
+                        referencedTable:
+                            $$OwnersTableReferences._rentCyclesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OwnersTableReferences(db, table, p0)
+                                .rentCyclesRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.ownerId == item.id),
+                        typedResults: items),
+                  if (paymentsRefs)
+                    await $_getPrefetchedData<Owner, $OwnersTable, Payment>(
+                        currentTable: table,
+                        referencedTable:
+                            $$OwnersTableReferences._paymentsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OwnersTableReferences(db, table, p0).paymentsRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.ownerId == item.id),
+                        typedResults: items),
                   if (expensesRefs)
                     await $_getPrefetchedData<Owner, $OwnersTable, Expense>(
                         currentTable: table,
@@ -7606,6 +9560,19 @@ class $$OwnersTableTableManager extends RootTableManager<
                             $$OwnersTableReferences._expensesRefsTable(db),
                         managerFromTypedResult: (p0) =>
                             $$OwnersTableReferences(db, table, p0).expensesRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.ownerId == item.id),
+                        typedResults: items),
+                  if (electricReadingsRefs)
+                    await $_getPrefetchedData<Owner, $OwnersTable,
+                            ElectricReading>(
+                        currentTable: table,
+                        referencedTable: $$OwnersTableReferences
+                            ._electricReadingsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OwnersTableReferences(db, table, p0)
+                                .electricReadingsRefs,
                         referencedItemsForCurrentItem: (item,
                                 referencedItems) =>
                             referencedItems.where((e) => e.ownerId == item.id),
@@ -7628,28 +9595,44 @@ typedef $$OwnersTableProcessedTableManager = ProcessedTableManager<
     $$OwnersTableUpdateCompanionBuilder,
     (Owner, $$OwnersTableReferences),
     Owner,
-    PrefetchHooks Function({bool housesRefs, bool expensesRefs})>;
+    PrefetchHooks Function(
+        {bool housesRefs,
+        bool unitsRefs,
+        bool tenantsRefs,
+        bool tenanciesRefs,
+        bool rentCyclesRefs,
+        bool paymentsRefs,
+        bool expensesRefs,
+        bool electricReadingsRefs})>;
 typedef $$HousesTableCreateCompanionBuilder = HousesCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int ownerId,
+  required String id,
+  required String ownerId,
   required String name,
   required String address,
   Value<String?> notes,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<int> unitCount,
+  Value<int> rowid,
 });
 typedef $$HousesTableUpdateCompanionBuilder = HousesCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> ownerId,
+  Value<String> id,
+  Value<String> ownerId,
   Value<String> name,
   Value<String> address,
   Value<String?> notes,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<int> unitCount,
+  Value<int> rowid,
 });
 
 final class $$HousesTableReferences
@@ -7660,7 +9643,7 @@ final class $$HousesTableReferences
       .createAlias($_aliasNameGenerator(db.houses.ownerId, db.owners.id));
 
   $$OwnersTableProcessedTableManager get ownerId {
-    final $_column = $_itemColumn<int>('owner_id')!;
+    final $_column = $_itemColumn<String>('owner_id')!;
 
     final manager = $$OwnersTableTableManager($_db, $_db.owners)
         .filter((f) => f.id.sqlEquals($_column));
@@ -7678,7 +9661,7 @@ final class $$HousesTableReferences
 
   $$BhkTemplatesTableProcessedTableManager get bhkTemplatesRefs {
     final manager = $$BhkTemplatesTableTableManager($_db, $_db.bhkTemplates)
-        .filter((f) => f.houseId.id.sqlEquals($_itemColumn<int>('id')!));
+        .filter((f) => f.houseId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_bhkTemplatesRefsTable($_db));
     return ProcessedTableManager(
@@ -7692,23 +9675,9 @@ final class $$HousesTableReferences
 
   $$UnitsTableProcessedTableManager get unitsRefs {
     final manager = $$UnitsTableTableManager($_db, $_db.units)
-        .filter((f) => f.houseId.id.sqlEquals($_itemColumn<int>('id')!));
+        .filter((f) => f.houseId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_unitsRefsTable($_db));
-    return ProcessedTableManager(
-        manager.$state.copyWith(prefetchedData: cache));
-  }
-
-  static MultiTypedResultKey<$TenantsTable, List<Tenant>> _tenantsRefsTable(
-          _$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.tenants,
-          aliasName: $_aliasNameGenerator(db.houses.id, db.tenants.houseId));
-
-  $$TenantsTableProcessedTableManager get tenantsRefs {
-    final manager = $$TenantsTableTableManager($_db, $_db.tenants)
-        .filter((f) => f.houseId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_tenantsRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -7735,7 +9704,7 @@ class $$HousesTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get name => $composableBuilder(
@@ -7746,6 +9715,15 @@ class $$HousesTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get unitCount => $composableBuilder(
+      column: $table.unitCount, builder: (column) => ColumnFilters(column));
 
   $$OwnersTableFilterComposer get ownerId {
     final $$OwnersTableFilterComposer composer = $composerBuilder(
@@ -7808,27 +9786,6 @@ class $$HousesTableFilterComposer
             ));
     return f(composer);
   }
-
-  Expression<bool> tenantsRefs(
-      Expression<bool> Function($$TenantsTableFilterComposer f) f) {
-    final $$TenantsTableFilterComposer composer = $composerBuilder(
-        composer: this,
-        getCurrentColumn: (t) => t.id,
-        referencedTable: $db.tenants,
-        getReferencedColumn: (t) => t.houseId,
-        builder: (joinBuilder,
-                {$addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableFilterComposer(
-              $db: $db,
-              $table: $db.tenants,
-              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-              joinBuilder: joinBuilder,
-              $removeJoinBuilderFromRootComposer:
-                  $removeJoinBuilderFromRootComposer,
-            ));
-    return f(composer);
-  }
 }
 
 class $$HousesTableOrderingComposer
@@ -7852,7 +9809,7 @@ class $$HousesTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get name => $composableBuilder(
@@ -7863,6 +9820,15 @@ class $$HousesTableOrderingComposer
 
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get unitCount => $composableBuilder(
+      column: $table.unitCount, builder: (column) => ColumnOrderings(column));
 
   $$OwnersTableOrderingComposer get ownerId {
     final $$OwnersTableOrderingComposer composer = $composerBuilder(
@@ -7906,7 +9872,7 @@ class $$HousesTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
@@ -7917,6 +9883,15 @@ class $$HousesTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => column);
+
+  GeneratedColumn<int> get unitCount =>
+      $composableBuilder(column: $table.unitCount, builder: (column) => column);
 
   $$OwnersTableAnnotationComposer get ownerId {
     final $$OwnersTableAnnotationComposer composer = $composerBuilder(
@@ -7979,27 +9954,6 @@ class $$HousesTableAnnotationComposer
             ));
     return f(composer);
   }
-
-  Expression<T> tenantsRefs<T extends Object>(
-      Expression<T> Function($$TenantsTableAnnotationComposer a) f) {
-    final $$TenantsTableAnnotationComposer composer = $composerBuilder(
-        composer: this,
-        getCurrentColumn: (t) => t.id,
-        referencedTable: $db.tenants,
-        getReferencedColumn: (t) => t.houseId,
-        builder: (joinBuilder,
-                {$addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableAnnotationComposer(
-              $db: $db,
-              $table: $db.tenants,
-              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-              joinBuilder: joinBuilder,
-              $removeJoinBuilderFromRootComposer:
-                  $removeJoinBuilderFromRootComposer,
-            ));
-    return f(composer);
-  }
 }
 
 class $$HousesTableTableManager extends RootTableManager<
@@ -8014,10 +9968,7 @@ class $$HousesTableTableManager extends RootTableManager<
     (House, $$HousesTableReferences),
     House,
     PrefetchHooks Function(
-        {bool ownerId,
-        bool bhkTemplatesRefs,
-        bool unitsRefs,
-        bool tenantsRefs})> {
+        {bool ownerId, bool bhkTemplatesRefs, bool unitsRefs})> {
   $$HousesTableTableManager(_$AppDatabase db, $HousesTable table)
       : super(TableManagerState(
           db: db,
@@ -8033,11 +9984,15 @@ class $$HousesTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> ownerId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> address = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<int> unitCount = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               HousesCompanion(
             firestoreId: firestoreId,
@@ -8049,17 +10004,25 @@ class $$HousesTableTableManager extends RootTableManager<
             name: name,
             address: address,
             notes: notes,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            unitCount: unitCount,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int ownerId,
+            required String id,
+            required String ownerId,
             required String name,
             required String address,
             Value<String?> notes = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<int> unitCount = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               HousesCompanion.insert(
             firestoreId: firestoreId,
@@ -8071,22 +10034,22 @@ class $$HousesTableTableManager extends RootTableManager<
             name: name,
             address: address,
             notes: notes,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            unitCount: unitCount,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
                   (e.readTable(table), $$HousesTableReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: (
-              {ownerId = false,
-              bhkTemplatesRefs = false,
-              unitsRefs = false,
-              tenantsRefs = false}) {
+              {ownerId = false, bhkTemplatesRefs = false, unitsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
                 if (bhkTemplatesRefs) db.bhkTemplates,
-                if (unitsRefs) db.units,
-                if (tenantsRefs) db.tenants
+                if (unitsRefs) db.units
               ],
               addJoins: <
                   T extends TableManagerState<
@@ -8137,17 +10100,6 @@ class $$HousesTableTableManager extends RootTableManager<
                         referencedItemsForCurrentItem: (item,
                                 referencedItems) =>
                             referencedItems.where((e) => e.houseId == item.id),
-                        typedResults: items),
-                  if (tenantsRefs)
-                    await $_getPrefetchedData<House, $HousesTable, Tenant>(
-                        currentTable: table,
-                        referencedTable:
-                            $$HousesTableReferences._tenantsRefsTable(db),
-                        managerFromTypedResult: (p0) =>
-                            $$HousesTableReferences(db, table, p0).tenantsRefs,
-                        referencedItemsForCurrentItem: (item,
-                                referencedItems) =>
-                            referencedItems.where((e) => e.houseId == item.id),
                         typedResults: items)
                 ];
               },
@@ -8168,18 +10120,15 @@ typedef $$HousesTableProcessedTableManager = ProcessedTableManager<
     (House, $$HousesTableReferences),
     House,
     PrefetchHooks Function(
-        {bool ownerId,
-        bool bhkTemplatesRefs,
-        bool unitsRefs,
-        bool tenantsRefs})>;
+        {bool ownerId, bool bhkTemplatesRefs, bool unitsRefs})>;
 typedef $$BhkTemplatesTableCreateCompanionBuilder = BhkTemplatesCompanion
     Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int houseId,
+  required String id,
+  required String houseId,
   required String bhkType,
   required double defaultRent,
   Value<String?> description,
@@ -8187,6 +10136,7 @@ typedef $$BhkTemplatesTableCreateCompanionBuilder = BhkTemplatesCompanion
   Value<int> kitchenCount,
   Value<int> hallCount,
   Value<bool> hasBalcony,
+  Value<int> rowid,
 });
 typedef $$BhkTemplatesTableUpdateCompanionBuilder = BhkTemplatesCompanion
     Function({
@@ -8194,8 +10144,8 @@ typedef $$BhkTemplatesTableUpdateCompanionBuilder = BhkTemplatesCompanion
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> houseId,
+  Value<String> id,
+  Value<String> houseId,
   Value<String> bhkType,
   Value<double> defaultRent,
   Value<String?> description,
@@ -8203,6 +10153,7 @@ typedef $$BhkTemplatesTableUpdateCompanionBuilder = BhkTemplatesCompanion
   Value<int> kitchenCount,
   Value<int> hallCount,
   Value<bool> hasBalcony,
+  Value<int> rowid,
 });
 
 final class $$BhkTemplatesTableReferences
@@ -8213,7 +10164,7 @@ final class $$BhkTemplatesTableReferences
       .createAlias($_aliasNameGenerator(db.bhkTemplates.houseId, db.houses.id));
 
   $$HousesTableProcessedTableManager get houseId {
-    final $_column = $_itemColumn<int>('house_id')!;
+    final $_column = $_itemColumn<String>('house_id')!;
 
     final manager = $$HousesTableTableManager($_db, $_db.houses)
         .filter((f) => f.id.sqlEquals($_column));
@@ -8230,8 +10181,8 @@ final class $$BhkTemplatesTableReferences
               $_aliasNameGenerator(db.bhkTemplates.id, db.units.bhkTemplateId));
 
   $$UnitsTableProcessedTableManager get unitsRefs {
-    final manager = $$UnitsTableTableManager($_db, $_db.units)
-        .filter((f) => f.bhkTemplateId.id.sqlEquals($_itemColumn<int>('id')!));
+    final manager = $$UnitsTableTableManager($_db, $_db.units).filter(
+        (f) => f.bhkTemplateId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_unitsRefsTable($_db));
     return ProcessedTableManager(
@@ -8260,7 +10211,7 @@ class $$BhkTemplatesTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get bhkType => $composableBuilder(
@@ -8347,7 +10298,7 @@ class $$BhkTemplatesTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get bhkType => $composableBuilder(
@@ -8414,7 +10365,7 @@ class $$BhkTemplatesTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get bhkType =>
@@ -8507,8 +10458,8 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> houseId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> houseId = const Value.absent(),
             Value<String> bhkType = const Value.absent(),
             Value<double> defaultRent = const Value.absent(),
             Value<String?> description = const Value.absent(),
@@ -8516,6 +10467,7 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             Value<int> kitchenCount = const Value.absent(),
             Value<int> hallCount = const Value.absent(),
             Value<bool> hasBalcony = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               BhkTemplatesCompanion(
             firestoreId: firestoreId,
@@ -8531,14 +10483,15 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             kitchenCount: kitchenCount,
             hallCount: hallCount,
             hasBalcony: hasBalcony,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int houseId,
+            required String id,
+            required String houseId,
             required String bhkType,
             required double defaultRent,
             Value<String?> description = const Value.absent(),
@@ -8546,6 +10499,7 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             Value<int> kitchenCount = const Value.absent(),
             Value<int> hallCount = const Value.absent(),
             Value<bool> hasBalcony = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               BhkTemplatesCompanion.insert(
             firestoreId: firestoreId,
@@ -8561,6 +10515,7 @@ class $$BhkTemplatesTableTableManager extends RootTableManager<
             kitchenCount: kitchenCount,
             hallCount: hallCount,
             hasBalcony: hasBalcony,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
@@ -8637,11 +10592,12 @@ typedef $$UnitsTableCreateCompanionBuilder = UnitsCompanion Function({
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int houseId,
+  required String id,
+  required String houseId,
+  required String ownerId,
   required String nameOrNumber,
   Value<int?> floor,
-  Value<int?> bhkTemplateId,
+  Value<String?> bhkTemplateId,
   Value<String?> bhkType,
   required double baseRent,
   Value<double?> editableRent,
@@ -8651,18 +10607,22 @@ typedef $$UnitsTableCreateCompanionBuilder = UnitsCompanion Function({
   Value<String?> meterNumber,
   Value<int> defaultDueDay,
   Value<bool> isOccupied,
-  Value<int?> tenantId,
+  Value<String?> imageUrls,
+  Value<String?> imagesBase64,
+  Value<String?> currentTenancyId,
+  Value<int> rowid,
 });
 typedef $$UnitsTableUpdateCompanionBuilder = UnitsCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> houseId,
+  Value<String> id,
+  Value<String> houseId,
+  Value<String> ownerId,
   Value<String> nameOrNumber,
   Value<int?> floor,
-  Value<int?> bhkTemplateId,
+  Value<String?> bhkTemplateId,
   Value<String?> bhkType,
   Value<double> baseRent,
   Value<double?> editableRent,
@@ -8672,7 +10632,10 @@ typedef $$UnitsTableUpdateCompanionBuilder = UnitsCompanion Function({
   Value<String?> meterNumber,
   Value<int> defaultDueDay,
   Value<bool> isOccupied,
-  Value<int?> tenantId,
+  Value<String?> imageUrls,
+  Value<String?> imagesBase64,
+  Value<String?> currentTenancyId,
+  Value<int> rowid,
 });
 
 final class $$UnitsTableReferences
@@ -8683,11 +10646,25 @@ final class $$UnitsTableReferences
       .createAlias($_aliasNameGenerator(db.units.houseId, db.houses.id));
 
   $$HousesTableProcessedTableManager get houseId {
-    final $_column = $_itemColumn<int>('house_id')!;
+    final $_column = $_itemColumn<String>('house_id')!;
 
     final manager = $$HousesTableTableManager($_db, $_db.houses)
         .filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_houseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $OwnersTable _ownerIdTable(_$AppDatabase db) => db.owners
+      .createAlias($_aliasNameGenerator(db.units.ownerId, db.owners.id));
+
+  $$OwnersTableProcessedTableManager get ownerId {
+    final $_column = $_itemColumn<String>('owner_id')!;
+
+    final manager = $$OwnersTableTableManager($_db, $_db.owners)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ownerIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -8698,7 +10675,7 @@ final class $$UnitsTableReferences
           $_aliasNameGenerator(db.units.bhkTemplateId, db.bhkTemplates.id));
 
   $$BhkTemplatesTableProcessedTableManager? get bhkTemplateId {
-    final $_column = $_itemColumn<int>('bhk_template_id');
+    final $_column = $_itemColumn<String>('bhk_template_id');
     if ($_column == null) return null;
     final manager = $$BhkTemplatesTableTableManager($_db, $_db.bhkTemplates)
         .filter((f) => f.id.sqlEquals($_column));
@@ -8708,16 +10685,16 @@ final class $$UnitsTableReferences
         manager.$state.copyWith(prefetchedData: [item]));
   }
 
-  static MultiTypedResultKey<$TenantsTable, List<Tenant>> _tenantsRefsTable(
-          _$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.tenants,
-          aliasName: $_aliasNameGenerator(db.units.id, db.tenants.unitId));
+  static MultiTypedResultKey<$TenanciesTable, List<Tenancy>>
+      _tenanciesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+          db.tenancies,
+          aliasName: $_aliasNameGenerator(db.units.id, db.tenancies.unitId));
 
-  $$TenantsTableProcessedTableManager get tenantsRefs {
-    final manager = $$TenantsTableTableManager($_db, $_db.tenants)
-        .filter((f) => f.unitId.id.sqlEquals($_itemColumn<int>('id')!));
+  $$TenanciesTableProcessedTableManager get tenanciesRefs {
+    final manager = $$TenanciesTableTableManager($_db, $_db.tenancies)
+        .filter((f) => f.unitId.id.sqlEquals($_itemColumn<String>('id')!));
 
-    final cache = $_typedResult.readTableOrNull(_tenantsRefsTable($_db));
+    final cache = $_typedResult.readTableOrNull(_tenanciesRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -8731,7 +10708,7 @@ final class $$UnitsTableReferences
   $$ElectricReadingsTableProcessedTableManager get electricReadingsRefs {
     final manager =
         $$ElectricReadingsTableTableManager($_db, $_db.electricReadings)
-            .filter((f) => f.unitId.id.sqlEquals($_itemColumn<int>('id')!));
+            .filter((f) => f.unitId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache =
         $_typedResult.readTableOrNull(_electricReadingsRefsTable($_db));
@@ -8760,7 +10737,7 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get nameOrNumber => $composableBuilder(
@@ -8797,8 +10774,15 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
   ColumnFilters<bool> get isOccupied => $composableBuilder(
       column: $table.isOccupied, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get tenantId => $composableBuilder(
-      column: $table.tenantId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get imageUrls => $composableBuilder(
+      column: $table.imageUrls, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imagesBase64 => $composableBuilder(
+      column: $table.imagesBase64, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get currentTenancyId => $composableBuilder(
+      column: $table.currentTenancyId,
+      builder: (column) => ColumnFilters(column));
 
   $$HousesTableFilterComposer get houseId {
     final $$HousesTableFilterComposer composer = $composerBuilder(
@@ -8812,6 +10796,26 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
             $$HousesTableFilterComposer(
               $db: $db,
               $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableFilterComposer get ownerId {
+    final $$OwnersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableFilterComposer(
+              $db: $db,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -8840,19 +10844,19 @@ class $$UnitsTableFilterComposer extends Composer<_$AppDatabase, $UnitsTable> {
     return composer;
   }
 
-  Expression<bool> tenantsRefs(
-      Expression<bool> Function($$TenantsTableFilterComposer f) f) {
-    final $$TenantsTableFilterComposer composer = $composerBuilder(
+  Expression<bool> tenanciesRefs(
+      Expression<bool> Function($$TenanciesTableFilterComposer f) f) {
+    final $$TenanciesTableFilterComposer composer = $composerBuilder(
         composer: this,
         getCurrentColumn: (t) => t.id,
-        referencedTable: $db.tenants,
+        referencedTable: $db.tenancies,
         getReferencedColumn: (t) => t.unitId,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableFilterComposer(
+            $$TenanciesTableFilterComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.tenancies,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -8904,7 +10908,7 @@ class $$UnitsTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get nameOrNumber => $composableBuilder(
@@ -8944,8 +10948,16 @@ class $$UnitsTableOrderingComposer
   ColumnOrderings<bool> get isOccupied => $composableBuilder(
       column: $table.isOccupied, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get tenantId => $composableBuilder(
-      column: $table.tenantId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get imageUrls => $composableBuilder(
+      column: $table.imageUrls, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imagesBase64 => $composableBuilder(
+      column: $table.imagesBase64,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get currentTenancyId => $composableBuilder(
+      column: $table.currentTenancyId,
+      builder: (column) => ColumnOrderings(column));
 
   $$HousesTableOrderingComposer get houseId {
     final $$HousesTableOrderingComposer composer = $composerBuilder(
@@ -8959,6 +10971,26 @@ class $$UnitsTableOrderingComposer
             $$HousesTableOrderingComposer(
               $db: $db,
               $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableOrderingComposer get ownerId {
+    final $$OwnersTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableOrderingComposer(
+              $db: $db,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9009,7 +11041,7 @@ class $$UnitsTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get nameOrNumber => $composableBuilder(
@@ -9045,8 +11077,14 @@ class $$UnitsTableAnnotationComposer
   GeneratedColumn<bool> get isOccupied => $composableBuilder(
       column: $table.isOccupied, builder: (column) => column);
 
-  GeneratedColumn<int> get tenantId =>
-      $composableBuilder(column: $table.tenantId, builder: (column) => column);
+  GeneratedColumn<String> get imageUrls =>
+      $composableBuilder(column: $table.imageUrls, builder: (column) => column);
+
+  GeneratedColumn<String> get imagesBase64 => $composableBuilder(
+      column: $table.imagesBase64, builder: (column) => column);
+
+  GeneratedColumn<String> get currentTenancyId => $composableBuilder(
+      column: $table.currentTenancyId, builder: (column) => column);
 
   $$HousesTableAnnotationComposer get houseId {
     final $$HousesTableAnnotationComposer composer = $composerBuilder(
@@ -9060,6 +11098,26 @@ class $$UnitsTableAnnotationComposer
             $$HousesTableAnnotationComposer(
               $db: $db,
               $table: $db.houses,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableAnnotationComposer get ownerId {
+    final $$OwnersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9088,19 +11146,19 @@ class $$UnitsTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> tenantsRefs<T extends Object>(
-      Expression<T> Function($$TenantsTableAnnotationComposer a) f) {
-    final $$TenantsTableAnnotationComposer composer = $composerBuilder(
+  Expression<T> tenanciesRefs<T extends Object>(
+      Expression<T> Function($$TenanciesTableAnnotationComposer a) f) {
+    final $$TenanciesTableAnnotationComposer composer = $composerBuilder(
         composer: this,
         getCurrentColumn: (t) => t.id,
-        referencedTable: $db.tenants,
+        referencedTable: $db.tenancies,
         getReferencedColumn: (t) => t.unitId,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableAnnotationComposer(
+            $$TenanciesTableAnnotationComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.tenancies,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9144,8 +11202,9 @@ class $$UnitsTableTableManager extends RootTableManager<
     Unit,
     PrefetchHooks Function(
         {bool houseId,
+        bool ownerId,
         bool bhkTemplateId,
-        bool tenantsRefs,
+        bool tenanciesRefs,
         bool electricReadingsRefs})> {
   $$UnitsTableTableManager(_$AppDatabase db, $UnitsTable table)
       : super(TableManagerState(
@@ -9162,11 +11221,12 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> houseId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> houseId = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
             Value<String> nameOrNumber = const Value.absent(),
             Value<int?> floor = const Value.absent(),
-            Value<int?> bhkTemplateId = const Value.absent(),
+            Value<String?> bhkTemplateId = const Value.absent(),
             Value<String?> bhkType = const Value.absent(),
             Value<double> baseRent = const Value.absent(),
             Value<double?> editableRent = const Value.absent(),
@@ -9176,7 +11236,10 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<String?> meterNumber = const Value.absent(),
             Value<int> defaultDueDay = const Value.absent(),
             Value<bool> isOccupied = const Value.absent(),
-            Value<int?> tenantId = const Value.absent(),
+            Value<String?> imageUrls = const Value.absent(),
+            Value<String?> imagesBase64 = const Value.absent(),
+            Value<String?> currentTenancyId = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               UnitsCompanion(
             firestoreId: firestoreId,
@@ -9185,6 +11248,7 @@ class $$UnitsTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             id: id,
             houseId: houseId,
+            ownerId: ownerId,
             nameOrNumber: nameOrNumber,
             floor: floor,
             bhkTemplateId: bhkTemplateId,
@@ -9197,18 +11261,22 @@ class $$UnitsTableTableManager extends RootTableManager<
             meterNumber: meterNumber,
             defaultDueDay: defaultDueDay,
             isOccupied: isOccupied,
-            tenantId: tenantId,
+            imageUrls: imageUrls,
+            imagesBase64: imagesBase64,
+            currentTenancyId: currentTenancyId,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int houseId,
+            required String id,
+            required String houseId,
+            required String ownerId,
             required String nameOrNumber,
             Value<int?> floor = const Value.absent(),
-            Value<int?> bhkTemplateId = const Value.absent(),
+            Value<String?> bhkTemplateId = const Value.absent(),
             Value<String?> bhkType = const Value.absent(),
             required double baseRent,
             Value<double?> editableRent = const Value.absent(),
@@ -9218,7 +11286,10 @@ class $$UnitsTableTableManager extends RootTableManager<
             Value<String?> meterNumber = const Value.absent(),
             Value<int> defaultDueDay = const Value.absent(),
             Value<bool> isOccupied = const Value.absent(),
-            Value<int?> tenantId = const Value.absent(),
+            Value<String?> imageUrls = const Value.absent(),
+            Value<String?> imagesBase64 = const Value.absent(),
+            Value<String?> currentTenancyId = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               UnitsCompanion.insert(
             firestoreId: firestoreId,
@@ -9227,6 +11298,7 @@ class $$UnitsTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             id: id,
             houseId: houseId,
+            ownerId: ownerId,
             nameOrNumber: nameOrNumber,
             floor: floor,
             bhkTemplateId: bhkTemplateId,
@@ -9239,7 +11311,10 @@ class $$UnitsTableTableManager extends RootTableManager<
             meterNumber: meterNumber,
             defaultDueDay: defaultDueDay,
             isOccupied: isOccupied,
-            tenantId: tenantId,
+            imageUrls: imageUrls,
+            imagesBase64: imagesBase64,
+            currentTenancyId: currentTenancyId,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
@@ -9247,13 +11322,14 @@ class $$UnitsTableTableManager extends RootTableManager<
               .toList(),
           prefetchHooksCallback: (
               {houseId = false,
+              ownerId = false,
               bhkTemplateId = false,
-              tenantsRefs = false,
+              tenanciesRefs = false,
               electricReadingsRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
-                if (tenantsRefs) db.tenants,
+                if (tenanciesRefs) db.tenancies,
                 if (electricReadingsRefs) db.electricReadings
               ],
               addJoins: <
@@ -9278,6 +11354,15 @@ class $$UnitsTableTableManager extends RootTableManager<
                         $$UnitsTableReferences._houseIdTable(db).id,
                   ) as T;
                 }
+                if (ownerId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.ownerId,
+                    referencedTable: $$UnitsTableReferences._ownerIdTable(db),
+                    referencedColumn:
+                        $$UnitsTableReferences._ownerIdTable(db).id,
+                  ) as T;
+                }
                 if (bhkTemplateId) {
                   state = state.withJoin(
                     currentTable: table,
@@ -9293,13 +11378,13 @@ class $$UnitsTableTableManager extends RootTableManager<
               },
               getPrefetchedDataCallback: (items) async {
                 return [
-                  if (tenantsRefs)
-                    await $_getPrefetchedData<Unit, $UnitsTable, Tenant>(
+                  if (tenanciesRefs)
+                    await $_getPrefetchedData<Unit, $UnitsTable, Tenancy>(
                         currentTable: table,
                         referencedTable:
-                            $$UnitsTableReferences._tenantsRefsTable(db),
+                            $$UnitsTableReferences._tenanciesRefsTable(db),
                         managerFromTypedResult: (p0) =>
-                            $$UnitsTableReferences(db, table, p0).tenantsRefs,
+                            $$UnitsTableReferences(db, table, p0).tenanciesRefs,
                         referencedItemsForCurrentItem: (item,
                                 referencedItems) =>
                             referencedItems.where((e) => e.unitId == item.id),
@@ -9337,103 +11422,88 @@ typedef $$UnitsTableProcessedTableManager = ProcessedTableManager<
     Unit,
     PrefetchHooks Function(
         {bool houseId,
+        bool ownerId,
         bool bhkTemplateId,
-        bool tenantsRefs,
+        bool tenanciesRefs,
         bool electricReadingsRefs})>;
 typedef $$TenantsTableCreateCompanionBuilder = TenantsCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int houseId,
-  required int unitId,
+  required String id,
+  required String ownerId,
   required String tenantCode,
   required String name,
   required String phone,
   Value<String?> email,
-  required DateTime startDate,
   Value<bool> isActive,
-  Value<double> openingBalance,
-  Value<double?> agreedRent,
   Value<String?> password,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<String?> authId,
+  Value<double> advanceAmount,
+  Value<bool> policeVerification,
+  Value<String?> idProof,
+  Value<String?> address,
+  Value<int> memberCount,
+  Value<String?> notes,
+  Value<int> rowid,
 });
 typedef $$TenantsTableUpdateCompanionBuilder = TenantsCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> houseId,
-  Value<int> unitId,
+  Value<String> id,
+  Value<String> ownerId,
   Value<String> tenantCode,
   Value<String> name,
   Value<String> phone,
   Value<String?> email,
-  Value<DateTime> startDate,
   Value<bool> isActive,
-  Value<double> openingBalance,
-  Value<double?> agreedRent,
   Value<String?> password,
+  Value<String?> imageUrl,
+  Value<String?> imageBase64,
+  Value<String?> authId,
+  Value<double> advanceAmount,
+  Value<bool> policeVerification,
+  Value<String?> idProof,
+  Value<String?> address,
+  Value<int> memberCount,
+  Value<String?> notes,
+  Value<int> rowid,
 });
 
 final class $$TenantsTableReferences
     extends BaseReferences<_$AppDatabase, $TenantsTable, Tenant> {
   $$TenantsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $HousesTable _houseIdTable(_$AppDatabase db) => db.houses
-      .createAlias($_aliasNameGenerator(db.tenants.houseId, db.houses.id));
+  static $OwnersTable _ownerIdTable(_$AppDatabase db) => db.owners
+      .createAlias($_aliasNameGenerator(db.tenants.ownerId, db.owners.id));
 
-  $$HousesTableProcessedTableManager get houseId {
-    final $_column = $_itemColumn<int>('house_id')!;
+  $$OwnersTableProcessedTableManager get ownerId {
+    final $_column = $_itemColumn<String>('owner_id')!;
 
-    final manager = $$HousesTableTableManager($_db, $_db.houses)
+    final manager = $$OwnersTableTableManager($_db, $_db.owners)
         .filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_houseIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_ownerIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
   }
 
-  static $UnitsTable _unitIdTable(_$AppDatabase db) => db.units
-      .createAlias($_aliasNameGenerator(db.tenants.unitId, db.units.id));
-
-  $$UnitsTableProcessedTableManager get unitId {
-    final $_column = $_itemColumn<int>('unit_id')!;
-
-    final manager = $$UnitsTableTableManager($_db, $_db.units)
-        .filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_unitIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-        manager.$state.copyWith(prefetchedData: [item]));
-  }
-
-  static MultiTypedResultKey<$RentCyclesTable, List<RentCycle>>
-      _rentCyclesRefsTable(_$AppDatabase db) =>
-          MultiTypedResultKey.fromTable(db.rentCycles,
+  static MultiTypedResultKey<$TenanciesTable, List<Tenancy>>
+      _tenanciesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.tenancies,
               aliasName:
-                  $_aliasNameGenerator(db.tenants.id, db.rentCycles.tenantId));
+                  $_aliasNameGenerator(db.tenants.id, db.tenancies.tenantId));
 
-  $$RentCyclesTableProcessedTableManager get rentCyclesRefs {
-    final manager = $$RentCyclesTableTableManager($_db, $_db.rentCycles)
-        .filter((f) => f.tenantId.id.sqlEquals($_itemColumn<int>('id')!));
+  $$TenanciesTableProcessedTableManager get tenanciesRefs {
+    final manager = $$TenanciesTableTableManager($_db, $_db.tenancies)
+        .filter((f) => f.tenantId.id.sqlEquals($_itemColumn<String>('id')!));
 
-    final cache = $_typedResult.readTableOrNull(_rentCyclesRefsTable($_db));
-    return ProcessedTableManager(
-        manager.$state.copyWith(prefetchedData: cache));
-  }
-
-  static MultiTypedResultKey<$PaymentsTable, List<Payment>> _paymentsRefsTable(
-          _$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(db.payments,
-          aliasName: $_aliasNameGenerator(db.tenants.id, db.payments.tenantId));
-
-  $$PaymentsTableProcessedTableManager get paymentsRefs {
-    final manager = $$PaymentsTableTableManager($_db, $_db.payments)
-        .filter((f) => f.tenantId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_paymentsRefsTable($_db));
+    final cache = $_typedResult.readTableOrNull(_tenanciesRefsTable($_db));
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
@@ -9460,7 +11530,7 @@ class $$TenantsTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get tenantCode => $composableBuilder(
@@ -9475,34 +11545,52 @@ class $$TenantsTableFilterComposer
   ColumnFilters<String> get email => $composableBuilder(
       column: $table.email, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<DateTime> get startDate => $composableBuilder(
-      column: $table.startDate, builder: (column) => ColumnFilters(column));
-
   ColumnFilters<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<double> get openingBalance => $composableBuilder(
-      column: $table.openingBalance,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<double> get agreedRent => $composableBuilder(
-      column: $table.agreedRent, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get password => $composableBuilder(
       column: $table.password, builder: (column) => ColumnFilters(column));
 
-  $$HousesTableFilterComposer get houseId {
-    final $$HousesTableFilterComposer composer = $composerBuilder(
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get authId => $composableBuilder(
+      column: $table.authId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get advanceAmount => $composableBuilder(
+      column: $table.advanceAmount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get policeVerification => $composableBuilder(
+      column: $table.policeVerification,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get idProof => $composableBuilder(
+      column: $table.idProof, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get address => $composableBuilder(
+      column: $table.address, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get memberCount => $composableBuilder(
+      column: $table.memberCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  $$OwnersTableFilterComposer get ownerId {
+    final $$OwnersTableFilterComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.houseId,
-        referencedTable: $db.houses,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$HousesTableFilterComposer(
+            $$OwnersTableFilterComposer(
               $db: $db,
-              $table: $db.houses,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9511,60 +11599,19 @@ class $$TenantsTableFilterComposer
     return composer;
   }
 
-  $$UnitsTableFilterComposer get unitId {
-    final $$UnitsTableFilterComposer composer = $composerBuilder(
-        composer: this,
-        getCurrentColumn: (t) => t.unitId,
-        referencedTable: $db.units,
-        getReferencedColumn: (t) => t.id,
-        builder: (joinBuilder,
-                {$addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer}) =>
-            $$UnitsTableFilterComposer(
-              $db: $db,
-              $table: $db.units,
-              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-              joinBuilder: joinBuilder,
-              $removeJoinBuilderFromRootComposer:
-                  $removeJoinBuilderFromRootComposer,
-            ));
-    return composer;
-  }
-
-  Expression<bool> rentCyclesRefs(
-      Expression<bool> Function($$RentCyclesTableFilterComposer f) f) {
-    final $$RentCyclesTableFilterComposer composer = $composerBuilder(
+  Expression<bool> tenanciesRefs(
+      Expression<bool> Function($$TenanciesTableFilterComposer f) f) {
+    final $$TenanciesTableFilterComposer composer = $composerBuilder(
         composer: this,
         getCurrentColumn: (t) => t.id,
-        referencedTable: $db.rentCycles,
+        referencedTable: $db.tenancies,
         getReferencedColumn: (t) => t.tenantId,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$RentCyclesTableFilterComposer(
+            $$TenanciesTableFilterComposer(
               $db: $db,
-              $table: $db.rentCycles,
-              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-              joinBuilder: joinBuilder,
-              $removeJoinBuilderFromRootComposer:
-                  $removeJoinBuilderFromRootComposer,
-            ));
-    return f(composer);
-  }
-
-  Expression<bool> paymentsRefs(
-      Expression<bool> Function($$PaymentsTableFilterComposer f) f) {
-    final $$PaymentsTableFilterComposer composer = $composerBuilder(
-        composer: this,
-        getCurrentColumn: (t) => t.id,
-        referencedTable: $db.payments,
-        getReferencedColumn: (t) => t.tenantId,
-        builder: (joinBuilder,
-                {$addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer}) =>
-            $$PaymentsTableFilterComposer(
-              $db: $db,
-              $table: $db.payments,
+              $table: $db.tenancies,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9595,7 +11642,7 @@ class $$TenantsTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get tenantCode => $composableBuilder(
@@ -9610,54 +11657,53 @@ class $$TenantsTableOrderingComposer
   ColumnOrderings<String> get email => $composableBuilder(
       column: $table.email, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<DateTime> get startDate => $composableBuilder(
-      column: $table.startDate, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<bool> get isActive => $composableBuilder(
       column: $table.isActive, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<double> get openingBalance => $composableBuilder(
-      column: $table.openingBalance,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<double> get agreedRent => $composableBuilder(
-      column: $table.agreedRent, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get password => $composableBuilder(
       column: $table.password, builder: (column) => ColumnOrderings(column));
 
-  $$HousesTableOrderingComposer get houseId {
-    final $$HousesTableOrderingComposer composer = $composerBuilder(
-        composer: this,
-        getCurrentColumn: (t) => t.houseId,
-        referencedTable: $db.houses,
-        getReferencedColumn: (t) => t.id,
-        builder: (joinBuilder,
-                {$addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer}) =>
-            $$HousesTableOrderingComposer(
-              $db: $db,
-              $table: $db.houses,
-              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-              joinBuilder: joinBuilder,
-              $removeJoinBuilderFromRootComposer:
-                  $removeJoinBuilderFromRootComposer,
-            ));
-    return composer;
-  }
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
 
-  $$UnitsTableOrderingComposer get unitId {
-    final $$UnitsTableOrderingComposer composer = $composerBuilder(
+  ColumnOrderings<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get authId => $composableBuilder(
+      column: $table.authId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get advanceAmount => $composableBuilder(
+      column: $table.advanceAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get policeVerification => $composableBuilder(
+      column: $table.policeVerification,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get idProof => $composableBuilder(
+      column: $table.idProof, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get address => $composableBuilder(
+      column: $table.address, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get memberCount => $composableBuilder(
+      column: $table.memberCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  $$OwnersTableOrderingComposer get ownerId {
+    final $$OwnersTableOrderingComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.unitId,
-        referencedTable: $db.units,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$UnitsTableOrderingComposer(
+            $$OwnersTableOrderingComposer(
               $db: $db,
-              $table: $db.units,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9688,7 +11734,7 @@ class $$TenantsTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get tenantCode => $composableBuilder(
@@ -9703,33 +11749,658 @@ class $$TenantsTableAnnotationComposer
   GeneratedColumn<String> get email =>
       $composableBuilder(column: $table.email, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get startDate =>
-      $composableBuilder(column: $table.startDate, builder: (column) => column);
-
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
-
-  GeneratedColumn<double> get openingBalance => $composableBuilder(
-      column: $table.openingBalance, builder: (column) => column);
-
-  GeneratedColumn<double> get agreedRent => $composableBuilder(
-      column: $table.agreedRent, builder: (column) => column);
 
   GeneratedColumn<String> get password =>
       $composableBuilder(column: $table.password, builder: (column) => column);
 
-  $$HousesTableAnnotationComposer get houseId {
-    final $$HousesTableAnnotationComposer composer = $composerBuilder(
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get imageBase64 => $composableBuilder(
+      column: $table.imageBase64, builder: (column) => column);
+
+  GeneratedColumn<String> get authId =>
+      $composableBuilder(column: $table.authId, builder: (column) => column);
+
+  GeneratedColumn<double> get advanceAmount => $composableBuilder(
+      column: $table.advanceAmount, builder: (column) => column);
+
+  GeneratedColumn<bool> get policeVerification => $composableBuilder(
+      column: $table.policeVerification, builder: (column) => column);
+
+  GeneratedColumn<String> get idProof =>
+      $composableBuilder(column: $table.idProof, builder: (column) => column);
+
+  GeneratedColumn<String> get address =>
+      $composableBuilder(column: $table.address, builder: (column) => column);
+
+  GeneratedColumn<int> get memberCount => $composableBuilder(
+      column: $table.memberCount, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  $$OwnersTableAnnotationComposer get ownerId {
+    final $$OwnersTableAnnotationComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.houseId,
-        referencedTable: $db.houses,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$HousesTableAnnotationComposer(
+            $$OwnersTableAnnotationComposer(
               $db: $db,
-              $table: $db.houses,
+              $table: $db.owners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<T> tenanciesRefs<T extends Object>(
+      Expression<T> Function($$TenanciesTableAnnotationComposer a) f) {
+    final $$TenanciesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.tenancies,
+        getReferencedColumn: (t) => t.tenantId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenanciesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.tenancies,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$TenantsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TenantsTable,
+    Tenant,
+    $$TenantsTableFilterComposer,
+    $$TenantsTableOrderingComposer,
+    $$TenantsTableAnnotationComposer,
+    $$TenantsTableCreateCompanionBuilder,
+    $$TenantsTableUpdateCompanionBuilder,
+    (Tenant, $$TenantsTableReferences),
+    Tenant,
+    PrefetchHooks Function({bool ownerId, bool tenanciesRefs})> {
+  $$TenantsTableTableManager(_$AppDatabase db, $TenantsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TenantsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TenantsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TenantsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
+            Value<String> tenantCode = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String> phone = const Value.absent(),
+            Value<String?> email = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<String?> password = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<String?> authId = const Value.absent(),
+            Value<double> advanceAmount = const Value.absent(),
+            Value<bool> policeVerification = const Value.absent(),
+            Value<String?> idProof = const Value.absent(),
+            Value<String?> address = const Value.absent(),
+            Value<int> memberCount = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TenantsCompanion(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
+            id: id,
+            ownerId: ownerId,
+            tenantCode: tenantCode,
+            name: name,
+            phone: phone,
+            email: email,
+            isActive: isActive,
+            password: password,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            authId: authId,
+            advanceAmount: advanceAmount,
+            policeVerification: policeVerification,
+            idProof: idProof,
+            address: address,
+            memberCount: memberCount,
+            notes: notes,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            Value<String?> firestoreId = const Value.absent(),
+            Value<DateTime> lastUpdated = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<bool> isDeleted = const Value.absent(),
+            required String id,
+            required String ownerId,
+            required String tenantCode,
+            required String name,
+            required String phone,
+            Value<String?> email = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<String?> password = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<String?> imageBase64 = const Value.absent(),
+            Value<String?> authId = const Value.absent(),
+            Value<double> advanceAmount = const Value.absent(),
+            Value<bool> policeVerification = const Value.absent(),
+            Value<String?> idProof = const Value.absent(),
+            Value<String?> address = const Value.absent(),
+            Value<int> memberCount = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TenantsCompanion.insert(
+            firestoreId: firestoreId,
+            lastUpdated: lastUpdated,
+            isSynced: isSynced,
+            isDeleted: isDeleted,
+            id: id,
+            ownerId: ownerId,
+            tenantCode: tenantCode,
+            name: name,
+            phone: phone,
+            email: email,
+            isActive: isActive,
+            password: password,
+            imageUrl: imageUrl,
+            imageBase64: imageBase64,
+            authId: authId,
+            advanceAmount: advanceAmount,
+            policeVerification: policeVerification,
+            idProof: idProof,
+            address: address,
+            memberCount: memberCount,
+            notes: notes,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) =>
+                  (e.readTable(table), $$TenantsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({ownerId = false, tenanciesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (tenanciesRefs) db.tenancies],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (ownerId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.ownerId,
+                    referencedTable: $$TenantsTableReferences._ownerIdTable(db),
+                    referencedColumn:
+                        $$TenantsTableReferences._ownerIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (tenanciesRefs)
+                    await $_getPrefetchedData<Tenant, $TenantsTable, Tenancy>(
+                        currentTable: table,
+                        referencedTable:
+                            $$TenantsTableReferences._tenanciesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$TenantsTableReferences(db, table, p0)
+                                .tenanciesRefs,
+                        referencedItemsForCurrentItem: (item,
+                                referencedItems) =>
+                            referencedItems.where((e) => e.tenantId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$TenantsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TenantsTable,
+    Tenant,
+    $$TenantsTableFilterComposer,
+    $$TenantsTableOrderingComposer,
+    $$TenantsTableAnnotationComposer,
+    $$TenantsTableCreateCompanionBuilder,
+    $$TenantsTableUpdateCompanionBuilder,
+    (Tenant, $$TenantsTableReferences),
+    Tenant,
+    PrefetchHooks Function({bool ownerId, bool tenanciesRefs})>;
+typedef $$TenanciesTableCreateCompanionBuilder = TenanciesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
+  required String id,
+  required String tenantId,
+  required String unitId,
+  required String ownerId,
+  required DateTime startDate,
+  Value<DateTime?> endDate,
+  required double agreedRent,
+  Value<double> securityDeposit,
+  Value<double> openingBalance,
+  Value<int> status,
+  Value<String?> notes,
+  Value<int> rowid,
+});
+typedef $$TenanciesTableUpdateCompanionBuilder = TenanciesCompanion Function({
+  Value<String?> firestoreId,
+  Value<DateTime> lastUpdated,
+  Value<bool> isSynced,
+  Value<bool> isDeleted,
+  Value<String> id,
+  Value<String> tenantId,
+  Value<String> unitId,
+  Value<String> ownerId,
+  Value<DateTime> startDate,
+  Value<DateTime?> endDate,
+  Value<double> agreedRent,
+  Value<double> securityDeposit,
+  Value<double> openingBalance,
+  Value<int> status,
+  Value<String?> notes,
+  Value<int> rowid,
+});
+
+final class $$TenanciesTableReferences
+    extends BaseReferences<_$AppDatabase, $TenanciesTable, Tenancy> {
+  $$TenanciesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TenantsTable _tenantIdTable(_$AppDatabase db) => db.tenants
+      .createAlias($_aliasNameGenerator(db.tenancies.tenantId, db.tenants.id));
+
+  $$TenantsTableProcessedTableManager get tenantId {
+    final $_column = $_itemColumn<String>('tenant_id')!;
+
+    final manager = $$TenantsTableTableManager($_db, $_db.tenants)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_tenantIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $UnitsTable _unitIdTable(_$AppDatabase db) => db.units
+      .createAlias($_aliasNameGenerator(db.tenancies.unitId, db.units.id));
+
+  $$UnitsTableProcessedTableManager get unitId {
+    final $_column = $_itemColumn<String>('unit_id')!;
+
+    final manager = $$UnitsTableTableManager($_db, $_db.units)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_unitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $OwnersTable _ownerIdTable(_$AppDatabase db) => db.owners
+      .createAlias($_aliasNameGenerator(db.tenancies.ownerId, db.owners.id));
+
+  $$OwnersTableProcessedTableManager get ownerId {
+    final $_column = $_itemColumn<String>('owner_id')!;
+
+    final manager = $$OwnersTableTableManager($_db, $_db.owners)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ownerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$RentCyclesTable, List<RentCycle>>
+      _rentCyclesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+          db.rentCycles,
+          aliasName:
+              $_aliasNameGenerator(db.tenancies.id, db.rentCycles.tenancyId));
+
+  $$RentCyclesTableProcessedTableManager get rentCyclesRefs {
+    final manager = $$RentCyclesTableTableManager($_db, $_db.rentCycles)
+        .filter((f) => f.tenancyId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_rentCyclesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$TenanciesTableFilterComposer
+    extends Composer<_$AppDatabase, $TenanciesTable> {
+  $$TenanciesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get agreedRent => $composableBuilder(
+      column: $table.agreedRent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get securityDeposit => $composableBuilder(
+      column: $table.securityDeposit,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get openingBalance => $composableBuilder(
+      column: $table.openingBalance,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  $$TenantsTableFilterComposer get tenantId {
+    final $$TenantsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.tenantId,
+        referencedTable: $db.tenants,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenantsTableFilterComposer(
+              $db: $db,
+              $table: $db.tenants,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$UnitsTableFilterComposer get unitId {
+    final $$UnitsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.unitId,
+        referencedTable: $db.units,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UnitsTableFilterComposer(
+              $db: $db,
+              $table: $db.units,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableFilterComposer get ownerId {
+    final $$OwnersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableFilterComposer(
+              $db: $db,
+              $table: $db.owners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<bool> rentCyclesRefs(
+      Expression<bool> Function($$RentCyclesTableFilterComposer f) f) {
+    final $$RentCyclesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.rentCycles,
+        getReferencedColumn: (t) => t.tenancyId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RentCyclesTableFilterComposer(
+              $db: $db,
+              $table: $db.rentCycles,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$TenanciesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TenanciesTable> {
+  $$TenanciesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+      column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get agreedRent => $composableBuilder(
+      column: $table.agreedRent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get securityDeposit => $composableBuilder(
+      column: $table.securityDeposit,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get openingBalance => $composableBuilder(
+      column: $table.openingBalance,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  $$TenantsTableOrderingComposer get tenantId {
+    final $$TenantsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.tenantId,
+        referencedTable: $db.tenants,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenantsTableOrderingComposer(
+              $db: $db,
+              $table: $db.tenants,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$UnitsTableOrderingComposer get unitId {
+    final $$UnitsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.unitId,
+        referencedTable: $db.units,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$UnitsTableOrderingComposer(
+              $db: $db,
+              $table: $db.units,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableOrderingComposer get ownerId {
+    final $$OwnersTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableOrderingComposer(
+              $db: $db,
+              $table: $db.owners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$TenanciesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TenanciesTable> {
+  $$TenanciesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get firestoreId => $composableBuilder(
+      column: $table.firestoreId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+      column: $table.lastUpdated, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<double> get agreedRent => $composableBuilder(
+      column: $table.agreedRent, builder: (column) => column);
+
+  GeneratedColumn<double> get securityDeposit => $composableBuilder(
+      column: $table.securityDeposit, builder: (column) => column);
+
+  GeneratedColumn<double> get openingBalance => $composableBuilder(
+      column: $table.openingBalance, builder: (column) => column);
+
+  GeneratedColumn<int> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  $$TenantsTableAnnotationComposer get tenantId {
+    final $$TenantsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.tenantId,
+        referencedTable: $db.tenants,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TenantsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.tenants,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -9758,13 +12429,33 @@ class $$TenantsTableAnnotationComposer
     return composer;
   }
 
+  $$OwnersTableAnnotationComposer get ownerId {
+    final $$OwnersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.owners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
   Expression<T> rentCyclesRefs<T extends Object>(
       Expression<T> Function($$RentCyclesTableAnnotationComposer a) f) {
     final $$RentCyclesTableAnnotationComposer composer = $composerBuilder(
         composer: this,
         getCurrentColumn: (t) => t.id,
         referencedTable: $db.rentCycles,
-        getReferencedColumn: (t) => t.tenantId,
+        getReferencedColumn: (t) => t.tenancyId,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
@@ -9778,139 +12469,117 @@ class $$TenantsTableAnnotationComposer
             ));
     return f(composer);
   }
-
-  Expression<T> paymentsRefs<T extends Object>(
-      Expression<T> Function($$PaymentsTableAnnotationComposer a) f) {
-    final $$PaymentsTableAnnotationComposer composer = $composerBuilder(
-        composer: this,
-        getCurrentColumn: (t) => t.id,
-        referencedTable: $db.payments,
-        getReferencedColumn: (t) => t.tenantId,
-        builder: (joinBuilder,
-                {$addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer}) =>
-            $$PaymentsTableAnnotationComposer(
-              $db: $db,
-              $table: $db.payments,
-              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-              joinBuilder: joinBuilder,
-              $removeJoinBuilderFromRootComposer:
-                  $removeJoinBuilderFromRootComposer,
-            ));
-    return f(composer);
-  }
 }
 
-class $$TenantsTableTableManager extends RootTableManager<
+class $$TenanciesTableTableManager extends RootTableManager<
     _$AppDatabase,
-    $TenantsTable,
-    Tenant,
-    $$TenantsTableFilterComposer,
-    $$TenantsTableOrderingComposer,
-    $$TenantsTableAnnotationComposer,
-    $$TenantsTableCreateCompanionBuilder,
-    $$TenantsTableUpdateCompanionBuilder,
-    (Tenant, $$TenantsTableReferences),
-    Tenant,
+    $TenanciesTable,
+    Tenancy,
+    $$TenanciesTableFilterComposer,
+    $$TenanciesTableOrderingComposer,
+    $$TenanciesTableAnnotationComposer,
+    $$TenanciesTableCreateCompanionBuilder,
+    $$TenanciesTableUpdateCompanionBuilder,
+    (Tenancy, $$TenanciesTableReferences),
+    Tenancy,
     PrefetchHooks Function(
-        {bool houseId, bool unitId, bool rentCyclesRefs, bool paymentsRefs})> {
-  $$TenantsTableTableManager(_$AppDatabase db, $TenantsTable table)
+        {bool tenantId, bool unitId, bool ownerId, bool rentCyclesRefs})> {
+  $$TenanciesTableTableManager(_$AppDatabase db, $TenanciesTable table)
       : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$TenantsTableFilterComposer($db: db, $table: table),
+              $$TenanciesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$TenantsTableOrderingComposer($db: db, $table: table),
+              $$TenanciesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$TenantsTableAnnotationComposer($db: db, $table: table),
+              $$TenanciesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> houseId = const Value.absent(),
-            Value<int> unitId = const Value.absent(),
-            Value<String> tenantCode = const Value.absent(),
-            Value<String> name = const Value.absent(),
-            Value<String> phone = const Value.absent(),
-            Value<String?> email = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> tenantId = const Value.absent(),
+            Value<String> unitId = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
             Value<DateTime> startDate = const Value.absent(),
-            Value<bool> isActive = const Value.absent(),
+            Value<DateTime?> endDate = const Value.absent(),
+            Value<double> agreedRent = const Value.absent(),
+            Value<double> securityDeposit = const Value.absent(),
             Value<double> openingBalance = const Value.absent(),
-            Value<double?> agreedRent = const Value.absent(),
-            Value<String?> password = const Value.absent(),
+            Value<int> status = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
-              TenantsCompanion(
+              TenanciesCompanion(
             firestoreId: firestoreId,
             lastUpdated: lastUpdated,
             isSynced: isSynced,
             isDeleted: isDeleted,
             id: id,
-            houseId: houseId,
+            tenantId: tenantId,
             unitId: unitId,
-            tenantCode: tenantCode,
-            name: name,
-            phone: phone,
-            email: email,
+            ownerId: ownerId,
             startDate: startDate,
-            isActive: isActive,
-            openingBalance: openingBalance,
+            endDate: endDate,
             agreedRent: agreedRent,
-            password: password,
+            securityDeposit: securityDeposit,
+            openingBalance: openingBalance,
+            status: status,
+            notes: notes,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int houseId,
-            required int unitId,
-            required String tenantCode,
-            required String name,
-            required String phone,
-            Value<String?> email = const Value.absent(),
+            required String id,
+            required String tenantId,
+            required String unitId,
+            required String ownerId,
             required DateTime startDate,
-            Value<bool> isActive = const Value.absent(),
+            Value<DateTime?> endDate = const Value.absent(),
+            required double agreedRent,
+            Value<double> securityDeposit = const Value.absent(),
             Value<double> openingBalance = const Value.absent(),
-            Value<double?> agreedRent = const Value.absent(),
-            Value<String?> password = const Value.absent(),
+            Value<int> status = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
-              TenantsCompanion.insert(
+              TenanciesCompanion.insert(
             firestoreId: firestoreId,
             lastUpdated: lastUpdated,
             isSynced: isSynced,
             isDeleted: isDeleted,
             id: id,
-            houseId: houseId,
+            tenantId: tenantId,
             unitId: unitId,
-            tenantCode: tenantCode,
-            name: name,
-            phone: phone,
-            email: email,
+            ownerId: ownerId,
             startDate: startDate,
-            isActive: isActive,
-            openingBalance: openingBalance,
+            endDate: endDate,
             agreedRent: agreedRent,
-            password: password,
+            securityDeposit: securityDeposit,
+            openingBalance: openingBalance,
+            status: status,
+            notes: notes,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
-              .map((e) =>
-                  (e.readTable(table), $$TenantsTableReferences(db, table, e)))
+              .map((e) => (
+                    e.readTable(table),
+                    $$TenanciesTableReferences(db, table, e)
+                  ))
               .toList(),
           prefetchHooksCallback: (
-              {houseId = false,
+              {tenantId = false,
               unitId = false,
-              rentCyclesRefs = false,
-              paymentsRefs = false}) {
+              ownerId = false,
+              rentCyclesRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [
-                if (rentCyclesRefs) db.rentCycles,
-                if (paymentsRefs) db.payments
-              ],
+              explicitlyWatchedTables: [if (rentCyclesRefs) db.rentCycles],
               addJoins: <
                   T extends TableManagerState<
                       dynamic,
@@ -9924,22 +12593,34 @@ class $$TenantsTableTableManager extends RootTableManager<
                       dynamic,
                       dynamic,
                       dynamic>>(state) {
-                if (houseId) {
+                if (tenantId) {
                   state = state.withJoin(
                     currentTable: table,
-                    currentColumn: table.houseId,
-                    referencedTable: $$TenantsTableReferences._houseIdTable(db),
+                    currentColumn: table.tenantId,
+                    referencedTable:
+                        $$TenanciesTableReferences._tenantIdTable(db),
                     referencedColumn:
-                        $$TenantsTableReferences._houseIdTable(db).id,
+                        $$TenanciesTableReferences._tenantIdTable(db).id,
                   ) as T;
                 }
                 if (unitId) {
                   state = state.withJoin(
                     currentTable: table,
                     currentColumn: table.unitId,
-                    referencedTable: $$TenantsTableReferences._unitIdTable(db),
+                    referencedTable:
+                        $$TenanciesTableReferences._unitIdTable(db),
                     referencedColumn:
-                        $$TenantsTableReferences._unitIdTable(db).id,
+                        $$TenanciesTableReferences._unitIdTable(db).id,
+                  ) as T;
+                }
+                if (ownerId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.ownerId,
+                    referencedTable:
+                        $$TenanciesTableReferences._ownerIdTable(db),
+                    referencedColumn:
+                        $$TenanciesTableReferences._ownerIdTable(db).id,
                   ) as T;
                 }
 
@@ -9948,28 +12629,17 @@ class $$TenantsTableTableManager extends RootTableManager<
               getPrefetchedDataCallback: (items) async {
                 return [
                   if (rentCyclesRefs)
-                    await $_getPrefetchedData<Tenant, $TenantsTable, RentCycle>(
+                    await $_getPrefetchedData<Tenancy, $TenanciesTable,
+                            RentCycle>(
                         currentTable: table,
                         referencedTable:
-                            $$TenantsTableReferences._rentCyclesRefsTable(db),
+                            $$TenanciesTableReferences._rentCyclesRefsTable(db),
                         managerFromTypedResult: (p0) =>
-                            $$TenantsTableReferences(db, table, p0)
+                            $$TenanciesTableReferences(db, table, p0)
                                 .rentCyclesRefs,
-                        referencedItemsForCurrentItem: (item,
-                                referencedItems) =>
-                            referencedItems.where((e) => e.tenantId == item.id),
-                        typedResults: items),
-                  if (paymentsRefs)
-                    await $_getPrefetchedData<Tenant, $TenantsTable, Payment>(
-                        currentTable: table,
-                        referencedTable:
-                            $$TenantsTableReferences._paymentsRefsTable(db),
-                        managerFromTypedResult: (p0) =>
-                            $$TenantsTableReferences(db, table, p0)
-                                .paymentsRefs,
-                        referencedItemsForCurrentItem: (item,
-                                referencedItems) =>
-                            referencedItems.where((e) => e.tenantId == item.id),
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.tenancyId == item.id),
                         typedResults: items)
                 ];
               },
@@ -9978,26 +12648,27 @@ class $$TenantsTableTableManager extends RootTableManager<
         ));
 }
 
-typedef $$TenantsTableProcessedTableManager = ProcessedTableManager<
+typedef $$TenanciesTableProcessedTableManager = ProcessedTableManager<
     _$AppDatabase,
-    $TenantsTable,
-    Tenant,
-    $$TenantsTableFilterComposer,
-    $$TenantsTableOrderingComposer,
-    $$TenantsTableAnnotationComposer,
-    $$TenantsTableCreateCompanionBuilder,
-    $$TenantsTableUpdateCompanionBuilder,
-    (Tenant, $$TenantsTableReferences),
-    Tenant,
+    $TenanciesTable,
+    Tenancy,
+    $$TenanciesTableFilterComposer,
+    $$TenanciesTableOrderingComposer,
+    $$TenanciesTableAnnotationComposer,
+    $$TenanciesTableCreateCompanionBuilder,
+    $$TenanciesTableUpdateCompanionBuilder,
+    (Tenancy, $$TenanciesTableReferences),
+    Tenancy,
     PrefetchHooks Function(
-        {bool houseId, bool unitId, bool rentCyclesRefs, bool paymentsRefs})>;
+        {bool tenantId, bool unitId, bool ownerId, bool rentCyclesRefs})>;
 typedef $$RentCyclesTableCreateCompanionBuilder = RentCyclesCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int tenantId,
+  required String id,
+  required String tenancyId,
+  required String ownerId,
   required String month,
   Value<String?> billNumber,
   Value<DateTime?> billPeriodStart,
@@ -10012,14 +12683,16 @@ typedef $$RentCyclesTableCreateCompanionBuilder = RentCyclesCompanion Function({
   Value<double> totalPaid,
   Value<int> status,
   Value<String?> notes,
+  Value<int> rowid,
 });
 typedef $$RentCyclesTableUpdateCompanionBuilder = RentCyclesCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> tenantId,
+  Value<String> id,
+  Value<String> tenancyId,
+  Value<String> ownerId,
   Value<String> month,
   Value<String?> billNumber,
   Value<DateTime?> billPeriodStart,
@@ -10034,21 +12707,37 @@ typedef $$RentCyclesTableUpdateCompanionBuilder = RentCyclesCompanion Function({
   Value<double> totalPaid,
   Value<int> status,
   Value<String?> notes,
+  Value<int> rowid,
 });
 
 final class $$RentCyclesTableReferences
     extends BaseReferences<_$AppDatabase, $RentCyclesTable, RentCycle> {
   $$RentCyclesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TenantsTable _tenantIdTable(_$AppDatabase db) => db.tenants
-      .createAlias($_aliasNameGenerator(db.rentCycles.tenantId, db.tenants.id));
+  static $TenanciesTable _tenancyIdTable(_$AppDatabase db) =>
+      db.tenancies.createAlias(
+          $_aliasNameGenerator(db.rentCycles.tenancyId, db.tenancies.id));
 
-  $$TenantsTableProcessedTableManager get tenantId {
-    final $_column = $_itemColumn<int>('tenant_id')!;
+  $$TenanciesTableProcessedTableManager get tenancyId {
+    final $_column = $_itemColumn<String>('tenancy_id')!;
 
-    final manager = $$TenantsTableTableManager($_db, $_db.tenants)
+    final manager = $$TenanciesTableTableManager($_db, $_db.tenancies)
         .filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_tenantIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_tenancyIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $OwnersTable _ownerIdTable(_$AppDatabase db) => db.owners
+      .createAlias($_aliasNameGenerator(db.rentCycles.ownerId, db.owners.id));
+
+  $$OwnersTableProcessedTableManager get ownerId {
+    final $_column = $_itemColumn<String>('owner_id')!;
+
+    final manager = $$OwnersTableTableManager($_db, $_db.owners)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ownerIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -10062,7 +12751,7 @@ final class $$RentCyclesTableReferences
 
   $$PaymentsTableProcessedTableManager get paymentsRefs {
     final manager = $$PaymentsTableTableManager($_db, $_db.payments)
-        .filter((f) => f.rentCycleId.id.sqlEquals($_itemColumn<int>('id')!));
+        .filter((f) => f.rentCycleId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_paymentsRefsTable($_db));
     return ProcessedTableManager(
@@ -10077,7 +12766,7 @@ final class $$RentCyclesTableReferences
 
   $$OtherChargesTableProcessedTableManager get otherChargesRefs {
     final manager = $$OtherChargesTableTableManager($_db, $_db.otherCharges)
-        .filter((f) => f.rentCycleId.id.sqlEquals($_itemColumn<int>('id')!));
+        .filter((f) => f.rentCycleId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_otherChargesRefsTable($_db));
     return ProcessedTableManager(
@@ -10106,7 +12795,7 @@ class $$RentCyclesTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get month => $composableBuilder(
@@ -10154,18 +12843,38 @@ class $$RentCyclesTableFilterComposer
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
 
-  $$TenantsTableFilterComposer get tenantId {
-    final $$TenantsTableFilterComposer composer = $composerBuilder(
+  $$TenanciesTableFilterComposer get tenancyId {
+    final $$TenanciesTableFilterComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.tenantId,
-        referencedTable: $db.tenants,
+        getCurrentColumn: (t) => t.tenancyId,
+        referencedTable: $db.tenancies,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableFilterComposer(
+            $$TenanciesTableFilterComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.tenancies,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableFilterComposer get ownerId {
+    final $$OwnersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableFilterComposer(
+              $db: $db,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -10238,7 +12947,7 @@ class $$RentCyclesTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get month => $composableBuilder(
@@ -10288,18 +12997,38 @@ class $$RentCyclesTableOrderingComposer
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
-  $$TenantsTableOrderingComposer get tenantId {
-    final $$TenantsTableOrderingComposer composer = $composerBuilder(
+  $$TenanciesTableOrderingComposer get tenancyId {
+    final $$TenanciesTableOrderingComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.tenantId,
-        referencedTable: $db.tenants,
+        getCurrentColumn: (t) => t.tenancyId,
+        referencedTable: $db.tenancies,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableOrderingComposer(
+            $$TenanciesTableOrderingComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.tenancies,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableOrderingComposer get ownerId {
+    final $$OwnersTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableOrderingComposer(
+              $db: $db,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -10330,7 +13059,7 @@ class $$RentCyclesTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get month =>
@@ -10375,18 +13104,38 @@ class $$RentCyclesTableAnnotationComposer
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
-  $$TenantsTableAnnotationComposer get tenantId {
-    final $$TenantsTableAnnotationComposer composer = $composerBuilder(
+  $$TenanciesTableAnnotationComposer get tenancyId {
+    final $$TenanciesTableAnnotationComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.tenantId,
-        referencedTable: $db.tenants,
+        getCurrentColumn: (t) => t.tenancyId,
+        referencedTable: $db.tenancies,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableAnnotationComposer(
+            $$TenanciesTableAnnotationComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.tenancies,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OwnersTableAnnotationComposer get ownerId {
+    final $$OwnersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -10450,7 +13199,10 @@ class $$RentCyclesTableTableManager extends RootTableManager<
     (RentCycle, $$RentCyclesTableReferences),
     RentCycle,
     PrefetchHooks Function(
-        {bool tenantId, bool paymentsRefs, bool otherChargesRefs})> {
+        {bool tenancyId,
+        bool ownerId,
+        bool paymentsRefs,
+        bool otherChargesRefs})> {
   $$RentCyclesTableTableManager(_$AppDatabase db, $RentCyclesTable table)
       : super(TableManagerState(
           db: db,
@@ -10466,8 +13218,9 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> tenantId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> tenancyId = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
             Value<String> month = const Value.absent(),
             Value<String?> billNumber = const Value.absent(),
             Value<DateTime?> billPeriodStart = const Value.absent(),
@@ -10482,6 +13235,7 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             Value<double> totalPaid = const Value.absent(),
             Value<int> status = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               RentCyclesCompanion(
             firestoreId: firestoreId,
@@ -10489,7 +13243,8 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             isSynced: isSynced,
             isDeleted: isDeleted,
             id: id,
-            tenantId: tenantId,
+            tenancyId: tenancyId,
+            ownerId: ownerId,
             month: month,
             billNumber: billNumber,
             billPeriodStart: billPeriodStart,
@@ -10504,14 +13259,16 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             totalPaid: totalPaid,
             status: status,
             notes: notes,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int tenantId,
+            required String id,
+            required String tenancyId,
+            required String ownerId,
             required String month,
             Value<String?> billNumber = const Value.absent(),
             Value<DateTime?> billPeriodStart = const Value.absent(),
@@ -10526,6 +13283,7 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             Value<double> totalPaid = const Value.absent(),
             Value<int> status = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               RentCyclesCompanion.insert(
             firestoreId: firestoreId,
@@ -10533,7 +13291,8 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             isSynced: isSynced,
             isDeleted: isDeleted,
             id: id,
-            tenantId: tenantId,
+            tenancyId: tenancyId,
+            ownerId: ownerId,
             month: month,
             billNumber: billNumber,
             billPeriodStart: billPeriodStart,
@@ -10548,6 +13307,7 @@ class $$RentCyclesTableTableManager extends RootTableManager<
             totalPaid: totalPaid,
             status: status,
             notes: notes,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
@@ -10556,7 +13316,8 @@ class $$RentCyclesTableTableManager extends RootTableManager<
                   ))
               .toList(),
           prefetchHooksCallback: (
-              {tenantId = false,
+              {tenancyId = false,
+              ownerId = false,
               paymentsRefs = false,
               otherChargesRefs = false}) {
             return PrefetchHooks(
@@ -10578,14 +13339,24 @@ class $$RentCyclesTableTableManager extends RootTableManager<
                       dynamic,
                       dynamic,
                       dynamic>>(state) {
-                if (tenantId) {
+                if (tenancyId) {
                   state = state.withJoin(
                     currentTable: table,
-                    currentColumn: table.tenantId,
+                    currentColumn: table.tenancyId,
                     referencedTable:
-                        $$RentCyclesTableReferences._tenantIdTable(db),
+                        $$RentCyclesTableReferences._tenancyIdTable(db),
                     referencedColumn:
-                        $$RentCyclesTableReferences._tenantIdTable(db).id,
+                        $$RentCyclesTableReferences._tenancyIdTable(db).id,
+                  ) as T;
+                }
+                if (ownerId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.ownerId,
+                    referencedTable:
+                        $$RentCyclesTableReferences._ownerIdTable(db),
+                    referencedColumn:
+                        $$RentCyclesTableReferences._ownerIdTable(db).id,
                   ) as T;
                 }
 
@@ -10638,7 +13409,10 @@ typedef $$RentCyclesTableProcessedTableManager = ProcessedTableManager<
     (RentCycle, $$RentCyclesTableReferences),
     RentCycle,
     PrefetchHooks Function(
-        {bool tenantId, bool paymentsRefs, bool otherChargesRefs})>;
+        {bool tenancyId,
+        bool ownerId,
+        bool paymentsRefs,
+        bool otherChargesRefs})>;
 typedef $$PaymentChannelsTableCreateCompanionBuilder = PaymentChannelsCompanion
     Function({
   Value<String?> firestoreId,
@@ -10940,9 +13714,9 @@ typedef $$PaymentsTableCreateCompanionBuilder = PaymentsCompanion Function({
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int rentCycleId,
-  required int tenantId,
+  required String id,
+  required String rentCycleId,
+  required String ownerId,
   required double amount,
   required DateTime date,
   required String method,
@@ -10950,15 +13724,16 @@ typedef $$PaymentsTableCreateCompanionBuilder = PaymentsCompanion Function({
   Value<String?> referenceId,
   Value<String?> collectedBy,
   Value<String?> notes,
+  Value<int> rowid,
 });
 typedef $$PaymentsTableUpdateCompanionBuilder = PaymentsCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> rentCycleId,
-  Value<int> tenantId,
+  Value<String> id,
+  Value<String> rentCycleId,
+  Value<String> ownerId,
   Value<double> amount,
   Value<DateTime> date,
   Value<String> method,
@@ -10966,6 +13741,7 @@ typedef $$PaymentsTableUpdateCompanionBuilder = PaymentsCompanion Function({
   Value<String?> referenceId,
   Value<String?> collectedBy,
   Value<String?> notes,
+  Value<int> rowid,
 });
 
 final class $$PaymentsTableReferences
@@ -10977,7 +13753,7 @@ final class $$PaymentsTableReferences
           $_aliasNameGenerator(db.payments.rentCycleId, db.rentCycles.id));
 
   $$RentCyclesTableProcessedTableManager get rentCycleId {
-    final $_column = $_itemColumn<int>('rent_cycle_id')!;
+    final $_column = $_itemColumn<String>('rent_cycle_id')!;
 
     final manager = $$RentCyclesTableTableManager($_db, $_db.rentCycles)
         .filter((f) => f.id.sqlEquals($_column));
@@ -10987,15 +13763,15 @@ final class $$PaymentsTableReferences
         manager.$state.copyWith(prefetchedData: [item]));
   }
 
-  static $TenantsTable _tenantIdTable(_$AppDatabase db) => db.tenants
-      .createAlias($_aliasNameGenerator(db.payments.tenantId, db.tenants.id));
+  static $OwnersTable _ownerIdTable(_$AppDatabase db) => db.owners
+      .createAlias($_aliasNameGenerator(db.payments.ownerId, db.owners.id));
 
-  $$TenantsTableProcessedTableManager get tenantId {
-    final $_column = $_itemColumn<int>('tenant_id')!;
+  $$OwnersTableProcessedTableManager get ownerId {
+    final $_column = $_itemColumn<String>('owner_id')!;
 
-    final manager = $$TenantsTableTableManager($_db, $_db.tenants)
+    final manager = $$OwnersTableTableManager($_db, $_db.owners)
         .filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_tenantIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_ownerIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -11039,7 +13815,7 @@ class $$PaymentsTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get amount => $composableBuilder(
@@ -11080,18 +13856,18 @@ class $$PaymentsTableFilterComposer
     return composer;
   }
 
-  $$TenantsTableFilterComposer get tenantId {
-    final $$TenantsTableFilterComposer composer = $composerBuilder(
+  $$OwnersTableFilterComposer get ownerId {
+    final $$OwnersTableFilterComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.tenantId,
-        referencedTable: $db.tenants,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableFilterComposer(
+            $$OwnersTableFilterComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -11142,7 +13918,7 @@ class $$PaymentsTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get amount => $composableBuilder(
@@ -11183,18 +13959,18 @@ class $$PaymentsTableOrderingComposer
     return composer;
   }
 
-  $$TenantsTableOrderingComposer get tenantId {
-    final $$TenantsTableOrderingComposer composer = $composerBuilder(
+  $$OwnersTableOrderingComposer get ownerId {
+    final $$OwnersTableOrderingComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.tenantId,
-        referencedTable: $db.tenants,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableOrderingComposer(
+            $$OwnersTableOrderingComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -11245,7 +14021,7 @@ class $$PaymentsTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<double> get amount =>
@@ -11286,18 +14062,18 @@ class $$PaymentsTableAnnotationComposer
     return composer;
   }
 
-  $$TenantsTableAnnotationComposer get tenantId {
-    final $$TenantsTableAnnotationComposer composer = $composerBuilder(
+  $$OwnersTableAnnotationComposer get ownerId {
+    final $$OwnersTableAnnotationComposer composer = $composerBuilder(
         composer: this,
-        getCurrentColumn: (t) => t.tenantId,
-        referencedTable: $db.tenants,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
         getReferencedColumn: (t) => t.id,
         builder: (joinBuilder,
                 {$addJoinBuilderToRootComposer,
                 $removeJoinBuilderFromRootComposer}) =>
-            $$TenantsTableAnnotationComposer(
+            $$OwnersTableAnnotationComposer(
               $db: $db,
-              $table: $db.tenants,
+              $table: $db.owners,
               $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
               joinBuilder: joinBuilder,
               $removeJoinBuilderFromRootComposer:
@@ -11338,7 +14114,7 @@ class $$PaymentsTableTableManager extends RootTableManager<
     $$PaymentsTableUpdateCompanionBuilder,
     (Payment, $$PaymentsTableReferences),
     Payment,
-    PrefetchHooks Function({bool rentCycleId, bool tenantId, bool channelId})> {
+    PrefetchHooks Function({bool rentCycleId, bool ownerId, bool channelId})> {
   $$PaymentsTableTableManager(_$AppDatabase db, $PaymentsTable table)
       : super(TableManagerState(
           db: db,
@@ -11354,9 +14130,9 @@ class $$PaymentsTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> rentCycleId = const Value.absent(),
-            Value<int> tenantId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> rentCycleId = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
             Value<double> amount = const Value.absent(),
             Value<DateTime> date = const Value.absent(),
             Value<String> method = const Value.absent(),
@@ -11364,6 +14140,7 @@ class $$PaymentsTableTableManager extends RootTableManager<
             Value<String?> referenceId = const Value.absent(),
             Value<String?> collectedBy = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               PaymentsCompanion(
             firestoreId: firestoreId,
@@ -11372,7 +14149,7 @@ class $$PaymentsTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             id: id,
             rentCycleId: rentCycleId,
-            tenantId: tenantId,
+            ownerId: ownerId,
             amount: amount,
             date: date,
             method: method,
@@ -11380,15 +14157,16 @@ class $$PaymentsTableTableManager extends RootTableManager<
             referenceId: referenceId,
             collectedBy: collectedBy,
             notes: notes,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int rentCycleId,
-            required int tenantId,
+            required String id,
+            required String rentCycleId,
+            required String ownerId,
             required double amount,
             required DateTime date,
             required String method,
@@ -11396,6 +14174,7 @@ class $$PaymentsTableTableManager extends RootTableManager<
             Value<String?> referenceId = const Value.absent(),
             Value<String?> collectedBy = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               PaymentsCompanion.insert(
             firestoreId: firestoreId,
@@ -11404,7 +14183,7 @@ class $$PaymentsTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             id: id,
             rentCycleId: rentCycleId,
-            tenantId: tenantId,
+            ownerId: ownerId,
             amount: amount,
             date: date,
             method: method,
@@ -11412,13 +14191,14 @@ class $$PaymentsTableTableManager extends RootTableManager<
             referenceId: referenceId,
             collectedBy: collectedBy,
             notes: notes,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
                   (e.readTable(table), $$PaymentsTableReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: (
-              {rentCycleId = false, tenantId = false, channelId = false}) {
+              {rentCycleId = false, ownerId = false, channelId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -11445,14 +14225,14 @@ class $$PaymentsTableTableManager extends RootTableManager<
                         $$PaymentsTableReferences._rentCycleIdTable(db).id,
                   ) as T;
                 }
-                if (tenantId) {
+                if (ownerId) {
                   state = state.withJoin(
                     currentTable: table,
-                    currentColumn: table.tenantId,
+                    currentColumn: table.ownerId,
                     referencedTable:
-                        $$PaymentsTableReferences._tenantIdTable(db),
+                        $$PaymentsTableReferences._ownerIdTable(db),
                     referencedColumn:
-                        $$PaymentsTableReferences._tenantIdTable(db).id,
+                        $$PaymentsTableReferences._ownerIdTable(db).id,
                   ) as T;
                 }
                 if (channelId) {
@@ -11487,32 +14267,36 @@ typedef $$PaymentsTableProcessedTableManager = ProcessedTableManager<
     $$PaymentsTableUpdateCompanionBuilder,
     (Payment, $$PaymentsTableReferences),
     Payment,
-    PrefetchHooks Function({bool rentCycleId, bool tenantId, bool channelId})>;
+    PrefetchHooks Function({bool rentCycleId, bool ownerId, bool channelId})>;
 typedef $$ExpensesTableCreateCompanionBuilder = ExpensesCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int ownerId,
+  required String id,
+  required String ownerId,
   required String title,
   required DateTime date,
   required double amount,
   required String category,
   Value<String?> description,
+  Value<String?> receiptPath,
+  Value<int> rowid,
 });
 typedef $$ExpensesTableUpdateCompanionBuilder = ExpensesCompanion Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> ownerId,
+  Value<String> id,
+  Value<String> ownerId,
   Value<String> title,
   Value<DateTime> date,
   Value<double> amount,
   Value<String> category,
   Value<String?> description,
+  Value<String?> receiptPath,
+  Value<int> rowid,
 });
 
 final class $$ExpensesTableReferences
@@ -11523,7 +14307,7 @@ final class $$ExpensesTableReferences
       .createAlias($_aliasNameGenerator(db.expenses.ownerId, db.owners.id));
 
   $$OwnersTableProcessedTableManager get ownerId {
-    final $_column = $_itemColumn<int>('owner_id')!;
+    final $_column = $_itemColumn<String>('owner_id')!;
 
     final manager = $$OwnersTableTableManager($_db, $_db.owners)
         .filter((f) => f.id.sqlEquals($_column));
@@ -11555,7 +14339,7 @@ class $$ExpensesTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get title => $composableBuilder(
@@ -11572,6 +14356,9 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get receiptPath => $composableBuilder(
+      column: $table.receiptPath, builder: (column) => ColumnFilters(column));
 
   $$OwnersTableFilterComposer get ownerId {
     final $$OwnersTableFilterComposer composer = $composerBuilder(
@@ -11615,7 +14402,7 @@ class $$ExpensesTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get title => $composableBuilder(
@@ -11632,6 +14419,9 @@ class $$ExpensesTableOrderingComposer
 
   ColumnOrderings<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get receiptPath => $composableBuilder(
+      column: $table.receiptPath, builder: (column) => ColumnOrderings(column));
 
   $$OwnersTableOrderingComposer get ownerId {
     final $$OwnersTableOrderingComposer composer = $composerBuilder(
@@ -11675,7 +14465,7 @@ class $$ExpensesTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get title =>
@@ -11692,6 +14482,9 @@ class $$ExpensesTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<String> get receiptPath => $composableBuilder(
+      column: $table.receiptPath, builder: (column) => column);
 
   $$OwnersTableAnnotationComposer get ownerId {
     final $$OwnersTableAnnotationComposer composer = $composerBuilder(
@@ -11741,13 +14534,15 @@ class $$ExpensesTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> ownerId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
             Value<String> title = const Value.absent(),
             Value<DateTime> date = const Value.absent(),
             Value<double> amount = const Value.absent(),
             Value<String> category = const Value.absent(),
             Value<String?> description = const Value.absent(),
+            Value<String?> receiptPath = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               ExpensesCompanion(
             firestoreId: firestoreId,
@@ -11761,19 +14556,23 @@ class $$ExpensesTableTableManager extends RootTableManager<
             amount: amount,
             category: category,
             description: description,
+            receiptPath: receiptPath,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int ownerId,
+            required String id,
+            required String ownerId,
             required String title,
             required DateTime date,
             required double amount,
             required String category,
             Value<String?> description = const Value.absent(),
+            Value<String?> receiptPath = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               ExpensesCompanion.insert(
             firestoreId: firestoreId,
@@ -11787,6 +14586,8 @@ class $$ExpensesTableTableManager extends RootTableManager<
             amount: amount,
             category: category,
             description: description,
+            receiptPath: receiptPath,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) =>
@@ -11848,8 +14649,9 @@ typedef $$ElectricReadingsTableCreateCompanionBuilder
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int unitId,
+  required String id,
+  required String unitId,
+  required String ownerId,
   required DateTime readingDate,
   Value<String?> meterName,
   Value<double> prevReading,
@@ -11858,6 +14660,7 @@ typedef $$ElectricReadingsTableCreateCompanionBuilder
   required double amount,
   Value<String?> imagePath,
   Value<String?> notes,
+  Value<int> rowid,
 });
 typedef $$ElectricReadingsTableUpdateCompanionBuilder
     = ElectricReadingsCompanion Function({
@@ -11865,8 +14668,9 @@ typedef $$ElectricReadingsTableUpdateCompanionBuilder
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> unitId,
+  Value<String> id,
+  Value<String> unitId,
+  Value<String> ownerId,
   Value<DateTime> readingDate,
   Value<String?> meterName,
   Value<double> prevReading,
@@ -11875,6 +14679,7 @@ typedef $$ElectricReadingsTableUpdateCompanionBuilder
   Value<double> amount,
   Value<String?> imagePath,
   Value<String?> notes,
+  Value<int> rowid,
 });
 
 final class $$ElectricReadingsTableReferences extends BaseReferences<
@@ -11886,11 +14691,25 @@ final class $$ElectricReadingsTableReferences extends BaseReferences<
       $_aliasNameGenerator(db.electricReadings.unitId, db.units.id));
 
   $$UnitsTableProcessedTableManager get unitId {
-    final $_column = $_itemColumn<int>('unit_id')!;
+    final $_column = $_itemColumn<String>('unit_id')!;
 
     final manager = $$UnitsTableTableManager($_db, $_db.units)
         .filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_unitIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $OwnersTable _ownerIdTable(_$AppDatabase db) => db.owners.createAlias(
+      $_aliasNameGenerator(db.electricReadings.ownerId, db.owners.id));
+
+  $$OwnersTableProcessedTableManager get ownerId {
+    final $_column = $_itemColumn<String>('owner_id')!;
+
+    final manager = $$OwnersTableTableManager($_db, $_db.owners)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ownerIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
@@ -11918,7 +14737,7 @@ class $$ElectricReadingsTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get readingDate => $composableBuilder(
@@ -11965,6 +14784,26 @@ class $$ElectricReadingsTableFilterComposer
             ));
     return composer;
   }
+
+  $$OwnersTableFilterComposer get ownerId {
+    final $$OwnersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableFilterComposer(
+              $db: $db,
+              $table: $db.owners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$ElectricReadingsTableOrderingComposer
@@ -11988,7 +14827,7 @@ class $$ElectricReadingsTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get readingDate => $composableBuilder(
@@ -12035,6 +14874,26 @@ class $$ElectricReadingsTableOrderingComposer
             ));
     return composer;
   }
+
+  $$OwnersTableOrderingComposer get ownerId {
+    final $$OwnersTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableOrderingComposer(
+              $db: $db,
+              $table: $db.owners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$ElectricReadingsTableAnnotationComposer
@@ -12058,7 +14917,7 @@ class $$ElectricReadingsTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<DateTime> get readingDate => $composableBuilder(
@@ -12104,6 +14963,26 @@ class $$ElectricReadingsTableAnnotationComposer
             ));
     return composer;
   }
+
+  $$OwnersTableAnnotationComposer get ownerId {
+    final $$OwnersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.ownerId,
+        referencedTable: $db.owners,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OwnersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.owners,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$ElectricReadingsTableTableManager extends RootTableManager<
@@ -12117,7 +14996,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
     $$ElectricReadingsTableUpdateCompanionBuilder,
     (ElectricReading, $$ElectricReadingsTableReferences),
     ElectricReading,
-    PrefetchHooks Function({bool unitId})> {
+    PrefetchHooks Function({bool unitId, bool ownerId})> {
   $$ElectricReadingsTableTableManager(
       _$AppDatabase db, $ElectricReadingsTable table)
       : super(TableManagerState(
@@ -12134,8 +15013,9 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> unitId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> unitId = const Value.absent(),
+            Value<String> ownerId = const Value.absent(),
             Value<DateTime> readingDate = const Value.absent(),
             Value<String?> meterName = const Value.absent(),
             Value<double> prevReading = const Value.absent(),
@@ -12144,6 +15024,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             Value<double> amount = const Value.absent(),
             Value<String?> imagePath = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               ElectricReadingsCompanion(
             firestoreId: firestoreId,
@@ -12152,6 +15033,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             id: id,
             unitId: unitId,
+            ownerId: ownerId,
             readingDate: readingDate,
             meterName: meterName,
             prevReading: prevReading,
@@ -12160,14 +15042,16 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             amount: amount,
             imagePath: imagePath,
             notes: notes,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int unitId,
+            required String id,
+            required String unitId,
+            required String ownerId,
             required DateTime readingDate,
             Value<String?> meterName = const Value.absent(),
             Value<double> prevReading = const Value.absent(),
@@ -12176,6 +15060,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             required double amount,
             Value<String?> imagePath = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               ElectricReadingsCompanion.insert(
             firestoreId: firestoreId,
@@ -12184,6 +15069,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             id: id,
             unitId: unitId,
+            ownerId: ownerId,
             readingDate: readingDate,
             meterName: meterName,
             prevReading: prevReading,
@@ -12192,6 +15078,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
             amount: amount,
             imagePath: imagePath,
             notes: notes,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
@@ -12199,7 +15086,7 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
                     $$ElectricReadingsTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: ({unitId = false}) {
+          prefetchHooksCallback: ({unitId = false, ownerId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -12226,6 +15113,16 @@ class $$ElectricReadingsTableTableManager extends RootTableManager<
                         $$ElectricReadingsTableReferences._unitIdTable(db).id,
                   ) as T;
                 }
+                if (ownerId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.ownerId,
+                    referencedTable:
+                        $$ElectricReadingsTableReferences._ownerIdTable(db),
+                    referencedColumn:
+                        $$ElectricReadingsTableReferences._ownerIdTable(db).id,
+                  ) as T;
+                }
 
                 return state;
               },
@@ -12248,18 +15145,19 @@ typedef $$ElectricReadingsTableProcessedTableManager = ProcessedTableManager<
     $$ElectricReadingsTableUpdateCompanionBuilder,
     (ElectricReading, $$ElectricReadingsTableReferences),
     ElectricReading,
-    PrefetchHooks Function({bool unitId})>;
+    PrefetchHooks Function({bool unitId, bool ownerId})>;
 typedef $$OtherChargesTableCreateCompanionBuilder = OtherChargesCompanion
     Function({
   Value<String?> firestoreId,
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  required int rentCycleId,
+  required String id,
+  required String rentCycleId,
   required double amount,
   required String category,
   Value<String?> notes,
+  Value<int> rowid,
 });
 typedef $$OtherChargesTableUpdateCompanionBuilder = OtherChargesCompanion
     Function({
@@ -12267,11 +15165,12 @@ typedef $$OtherChargesTableUpdateCompanionBuilder = OtherChargesCompanion
   Value<DateTime> lastUpdated,
   Value<bool> isSynced,
   Value<bool> isDeleted,
-  Value<int> id,
-  Value<int> rentCycleId,
+  Value<String> id,
+  Value<String> rentCycleId,
   Value<double> amount,
   Value<String> category,
   Value<String?> notes,
+  Value<int> rowid,
 });
 
 final class $$OtherChargesTableReferences
@@ -12283,7 +15182,7 @@ final class $$OtherChargesTableReferences
           $_aliasNameGenerator(db.otherCharges.rentCycleId, db.rentCycles.id));
 
   $$RentCyclesTableProcessedTableManager get rentCycleId {
-    final $_column = $_itemColumn<int>('rent_cycle_id')!;
+    final $_column = $_itemColumn<String>('rent_cycle_id')!;
 
     final manager = $$RentCyclesTableTableManager($_db, $_db.rentCycles)
         .filter((f) => f.id.sqlEquals($_column));
@@ -12315,7 +15214,7 @@ class $$OtherChargesTableFilterComposer
   ColumnFilters<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get amount => $composableBuilder(
@@ -12369,7 +15268,7 @@ class $$OtherChargesTableOrderingComposer
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
       column: $table.isDeleted, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get amount => $composableBuilder(
@@ -12423,7 +15322,7 @@ class $$OtherChargesTableAnnotationComposer
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<double> get amount =>
@@ -12483,11 +15382,12 @@ class $$OtherChargesTableTableManager extends RootTableManager<
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            Value<int> rentCycleId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> rentCycleId = const Value.absent(),
             Value<double> amount = const Value.absent(),
             Value<String> category = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               OtherChargesCompanion(
             firestoreId: firestoreId,
@@ -12499,17 +15399,19 @@ class $$OtherChargesTableTableManager extends RootTableManager<
             amount: amount,
             category: category,
             notes: notes,
+            rowid: rowid,
           ),
           createCompanionCallback: ({
             Value<String?> firestoreId = const Value.absent(),
             Value<DateTime> lastUpdated = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
-            Value<int> id = const Value.absent(),
-            required int rentCycleId,
+            required String id,
+            required String rentCycleId,
             required double amount,
             required String category,
             Value<String?> notes = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
           }) =>
               OtherChargesCompanion.insert(
             firestoreId: firestoreId,
@@ -12521,6 +15423,7 @@ class $$OtherChargesTableTableManager extends RootTableManager<
             amount: amount,
             category: category,
             notes: notes,
+            rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
@@ -12592,6 +15495,8 @@ class $AppDatabaseManager {
       $$UnitsTableTableManager(_db, _db.units);
   $$TenantsTableTableManager get tenants =>
       $$TenantsTableTableManager(_db, _db.tenants);
+  $$TenanciesTableTableManager get tenancies =>
+      $$TenanciesTableTableManager(_db, _db.tenancies);
   $$RentCyclesTableTableManager get rentCycles =>
       $$RentCyclesTableTableManager(_db, _db.rentCycles);
   $$PaymentChannelsTableTableManager get paymentChannels =>

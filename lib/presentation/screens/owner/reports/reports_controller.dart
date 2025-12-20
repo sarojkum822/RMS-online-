@@ -1,8 +1,10 @@
 
+import 'dart:math';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../domain/entities/house.dart'; 
+import '../../../../domain/entities/tenancy.dart'; // Import
 import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/expense.dart'; 
@@ -95,6 +97,8 @@ class ReportsController extends _$ReportsController {
       expensesFuture,            // [2]
       housesFuture,              // [3]
       tenantsFuture,             // [4]
+      tenantRepo.getAllTenancies().first, // [5] Fixed
+      houseRepo.getAllUnits().first,      // [6] New
     ]);
 
     // Offload heavy calculation to background isolate to keep UI smooth
@@ -109,7 +113,9 @@ ReportsData _processReportsData(List<dynamic> results) {
     final allExpenses = results[2] as List<Expense>;
     final allHouses = results[3] as List<House>;
     final allTenants = results[4] as List<Tenant>;
-    
+    final allTenancies = results[5] as List<Tenancy>;
+    final allUnits = results[6] as List<Unit>;
+
     final now = DateTime.now();
     final currentMonthStr = DateFormat('yyyy-MM').format(now);
 
@@ -123,7 +129,7 @@ ReportsData _processReportsData(List<dynamic> results) {
       totalExpected += c.totalDue;
       accrualPaid += c.totalPaid;
     }
-    final totalPending = totalExpected - accrualPaid;
+    final totalPending = max(0.0, totalExpected - accrualPaid);
 
     // 2. Expenses & Net Profit
     final currentMonthExpenses = allExpenses.where((e) {
@@ -161,9 +167,9 @@ ReportsData _processReportsData(List<dynamic> results) {
       double collected = 0;
       double pending = 0;
 
-      for (final c in monthCycles) {
+       for (final c in monthCycles) {
         collected += c.totalPaid;
-        pending += (c.totalDue - c.totalPaid);
+        pending += max(0.0, c.totalDue - c.totalPaid);
       }
       revenueTrend.add(MonthlyStats(monthLabel: monthLabel, collected: collected, pending: pending));
     }
@@ -172,14 +178,21 @@ ReportsData _processReportsData(List<dynamic> results) {
     int totalUnits = 0;
     
     List<PropertyRevenue> propertyPerformance = [];
-    Map<int, int> tenantToHouseMap = {};
-    for(final t in allTenants) {
-        tenantToHouseMap[t.id] = t.houseId;
-    }
     
-    Map<int, double> houseRevenueMap = {};
+    // Map Tenancy -> Unit -> House
+    // Map<TenancyId, HouseId>
+    // Map from map TenancyId -> HouseId
+    Map<String, String> tenancyIdsToHouseIds = {}; // Rename to avoid conflict if any (though scoping might be fine, duplicate local var is error)
+    for (var t in allTenancies) {
+        final unit = allUnits.firstWhere((u) => u.id == t.unitId, orElse: () => Unit(id: '', houseId: '', ownerId: '', nameOrNumber: '', baseRent: 0));
+        if(unit.houseId.isNotEmpty) {
+           tenancyIdsToHouseIds[t.id] = unit.houseId;
+        }
+    }
+
+    Map<String, double> houseRevenueMap = {};
     for(final c in allRentCycles) {
-        final houseId = tenantToHouseMap[c.tenantId];
+        final houseId = tenancyIdsToHouseIds[c.tenancyId]; 
         if (houseId != null) {
             houseRevenueMap[houseId] = (houseRevenueMap[houseId] ?? 0) + c.totalPaid;
         }
@@ -189,28 +202,34 @@ ReportsData _processReportsData(List<dynamic> results) {
         propertyPerformance.add(PropertyRevenue(houseName: h.name, revenue: houseRevenueMap[h.id] ?? 0));
     }
     
-    final activeTenantsCount = allTenants.where((t) => t.status == TenantStatus.active).length;
-    totalUnits = activeTenantsCount; 
+    final activeTenanciesCount = allTenancies.where((t) => t.status == TenancyStatus.active).length;
+    totalUnits = activeTenanciesCount; // Placeholder, should be total units from Houses
     final vacantUnits = 0; 
 
     // 6. Top Defaulters
     List<TenantDue> defaulters = [];
-    Map<int, double> tenantDueMap = {};
+    Map<String, double> tenancyDueMap = {};
     for(final c in allRentCycles) {
         final due = c.totalDue - c.totalPaid;
         if (due > 0) {
-            tenantDueMap[c.tenantId] = (tenantDueMap[c.tenantId] ?? 0) + due;
+            tenancyDueMap[c.tenancyId] = (tenancyDueMap[c.tenancyId] ?? 0) + due;
         }
     }
     
-    for(final t in allTenants) {
-        if (t.status == TenantStatus.active) {
-            final due = tenantDueMap[t.id] ?? 0;
-            if (due > 0) {
-                defaulters.add(TenantDue(name: t.name, amount: due, phone: t.phone));
-            }
-        }
-    }
+    // We need to map TenancyId back to Tenant Name.
+    // Tenancy -> TenantId
+    Map<String, String> tenancyToTenantIdMap = {for (var t in allTenancies) t.id: t.tenantId};
+    Map<String, Tenant> tenantMap = {for (var t in allTenants) t.id: t};
+
+    tenancyDueMap.forEach((tenancyId, amount) {
+       final tenantId = tenancyToTenantIdMap[tenancyId];
+       if(tenantId != null) {
+          final tenant = tenantMap[tenantId];
+          if(tenant != null) {
+             defaulters.add(TenantDue(name: tenant.name, amount: amount, phone: tenant.phone));
+          }
+       }
+    });
     
     defaulters.sort((a, b) => b.amount.compareTo(a.amount));
     if (defaulters.length > 5) defaulters = defaulters.sublist(0, 5);
@@ -226,7 +245,7 @@ ReportsData _processReportsData(List<dynamic> results) {
       totalExpenses: totalExpenses,
       netProfit: netProfit,
       totalUnits: totalUnits,
-      occupiedUnits: activeTenantsCount,
+      occupiedUnits: activeTenanciesCount,
       vacantUnits: vacantUnits,
       recentPayments: recentPayments,
       revenueTrend: revenueTrend,

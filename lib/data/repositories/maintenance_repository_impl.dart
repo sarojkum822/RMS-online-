@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/maintenance_request.dart';
 import '../../domain/repositories/i_maintenance_repository.dart';
+import '../../core/constants/firebase_collections.dart'; // Import Constants
 
 class MaintenanceRepositoryImpl implements IMaintenanceRepository {
   final FirebaseFirestore _firestore;
@@ -9,7 +10,7 @@ class MaintenanceRepositoryImpl implements IMaintenanceRepository {
 
   @override
   Future<void> submitRequest(MaintenanceRequest request) async {
-    await _firestore.collection('maintenance').add({
+    await _firestore.collection(FirebaseCollections.tickets).add({
       ...request.toJson(),
       'date': Timestamp.fromDate(request.date),
     });
@@ -18,7 +19,7 @@ class MaintenanceRepositoryImpl implements IMaintenanceRepository {
   @override
   Stream<List<MaintenanceRequest>> watchRequestsForTenant(String tenantId, String ownerId) {
     return _firestore
-        .collection('maintenance')
+        .collection(FirebaseCollections.tickets)
         .where('ownerId', isEqualTo: ownerId)
         .where('tenantId', isEqualTo: tenantId)
         .orderBy('date', descending: true)
@@ -31,7 +32,7 @@ class MaintenanceRepositoryImpl implements IMaintenanceRepository {
   @override
   Stream<List<MaintenanceRequest>> watchRequestsForOwner(String ownerId, {bool pendingOnly = false}) {
     Query query = _firestore
-        .collection('maintenance')
+        .collection(FirebaseCollections.tickets)
         .where('ownerId', isEqualTo: ownerId);
         
     if (pendingOnly) {
@@ -50,13 +51,37 @@ class MaintenanceRepositoryImpl implements IMaintenanceRepository {
   }
 
   @override
-  Future<void> updateStatus(String requestId, MaintenanceStatus status, {double? cost, String? notes}) async {
+  Future<void> updateStatus(String requestId, String ownerId, MaintenanceStatus status, {double? cost, String? notes}) async {
     final data = <String, dynamic>{
-      'status': status.name, // Enum to string
+      'status': status.name,
     };
     if (cost != null) data['cost'] = cost;
     if (notes != null) data['resolutionNotes'] = notes;
     
-    await _firestore.collection('maintenance').doc(requestId).update(data);
+    // Explicitly filter by ownerId
+    final snapshot = await _firestore
+        .collection(FirebaseCollections.tickets)
+        .where(FieldPath.documentId, isEqualTo: requestId)
+        .where('ownerId', isEqualTo: ownerId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.update(data);
+    }
+  }
+
+  @override
+  Future<void> deleteRequest(String requestId, String ownerId) async {
+    final snapshot = await _firestore
+        .collection(FirebaseCollections.tickets)
+        .where(FieldPath.documentId, isEqualTo: requestId)
+        .where('ownerId', isEqualTo: ownerId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      await snapshot.docs.first.reference.delete();
+    }
   }
 }

@@ -20,7 +20,8 @@ House _$HouseFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$House {
-  int get id => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
+  String get ownerId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get address => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
@@ -44,7 +45,8 @@ abstract class $HouseCopyWith<$Res> {
       _$HouseCopyWithImpl<$Res, House>;
   @useResult
   $Res call(
-      {int id,
+      {String id,
+      String ownerId,
       String name,
       String address,
       String? notes,
@@ -69,6 +71,7 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
   @override
   $Res call({
     Object? id = null,
+    Object? ownerId = null,
     Object? name = null,
     Object? address = null,
     Object? notes = freezed,
@@ -80,7 +83,11 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       name: null == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
@@ -117,7 +124,8 @@ abstract class _$$HouseImplCopyWith<$Res> implements $HouseCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id,
+      {String id,
+      String ownerId,
       String name,
       String address,
       String? notes,
@@ -140,6 +148,7 @@ class __$$HouseImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? ownerId = null,
     Object? name = null,
     Object? address = null,
     Object? notes = freezed,
@@ -151,7 +160,11 @@ class __$$HouseImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       name: null == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
@@ -185,6 +198,7 @@ class __$$HouseImplCopyWithImpl<$Res>
 class _$HouseImpl implements _House {
   const _$HouseImpl(
       {required this.id,
+      required this.ownerId,
       required this.name,
       required this.address,
       this.notes,
@@ -196,7 +210,9 @@ class _$HouseImpl implements _House {
       _$$HouseImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
+  @override
+  final String ownerId;
   @override
   final String name;
   @override
@@ -214,7 +230,7 @@ class _$HouseImpl implements _House {
 
   @override
   String toString() {
-    return 'House(id: $id, name: $name, address: $address, notes: $notes, imageUrl: $imageUrl, imageBase64: $imageBase64, unitCount: $unitCount)';
+    return 'House(id: $id, ownerId: $ownerId, name: $name, address: $address, notes: $notes, imageUrl: $imageUrl, imageBase64: $imageBase64, unitCount: $unitCount)';
   }
 
   @override
@@ -223,6 +239,7 @@ class _$HouseImpl implements _House {
         (other.runtimeType == runtimeType &&
             other is _$HouseImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.ownerId, ownerId) || other.ownerId == ownerId) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.address, address) || other.address == address) &&
             (identical(other.notes, notes) || other.notes == notes) &&
@@ -236,8 +253,8 @@ class _$HouseImpl implements _House {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, id, name, address, notes, imageUrl, imageBase64, unitCount);
+  int get hashCode => Object.hash(runtimeType, id, ownerId, name, address,
+      notes, imageUrl, imageBase64, unitCount);
 
   /// Create a copy of House
   /// with the given fields replaced by the non-null parameter values.
@@ -257,7 +274,8 @@ class _$HouseImpl implements _House {
 
 abstract class _House implements House {
   const factory _House(
-      {required final int id,
+      {required final String id,
+      required final String ownerId,
       required final String name,
       required final String address,
       final String? notes,
@@ -268,7 +286,9 @@ abstract class _House implements House {
   factory _House.fromJson(Map<String, dynamic> json) = _$HouseImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
+  @override
+  String get ownerId;
   @override
   String get name;
   @override
@@ -296,16 +316,19 @@ Unit _$UnitFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Unit {
-  int get id => throw _privateConstructorUsedError;
-  int get houseId => throw _privateConstructorUsedError;
+  String get id => throw _privateConstructorUsedError;
+  String get houseId => throw _privateConstructorUsedError;
+  String get ownerId => throw _privateConstructorUsedError;
   String get nameOrNumber => throw _privateConstructorUsedError;
   int? get floor => throw _privateConstructorUsedError;
   double get baseRent =>
       throw _privateConstructorUsedError; // NEW Fields for BHK
-  int? get bhkTemplateId => throw _privateConstructorUsedError;
+  String? get bhkTemplateId => throw _privateConstructorUsedError;
   String? get bhkType => throw _privateConstructorUsedError;
   double? get editableRent => throw _privateConstructorUsedError;
-  int? get tenantId => throw _privateConstructorUsedError; // Advanced Details
+  String? get currentTenancyId =>
+      throw _privateConstructorUsedError; // Replaces tenantId
+// Advanced Details
   String? get furnishingStatus => throw _privateConstructorUsedError;
   double? get carpetArea => throw _privateConstructorUsedError;
   String? get parkingSlot => throw _privateConstructorUsedError;
@@ -331,15 +354,16 @@ abstract class $UnitCopyWith<$Res> {
       _$UnitCopyWithImpl<$Res, Unit>;
   @useResult
   $Res call(
-      {int id,
-      int houseId,
+      {String id,
+      String houseId,
+      String ownerId,
       String nameOrNumber,
       int? floor,
       double baseRent,
-      int? bhkTemplateId,
+      String? bhkTemplateId,
       String? bhkType,
       double? editableRent,
-      int? tenantId,
+      String? currentTenancyId,
       String? furnishingStatus,
       double? carpetArea,
       String? parkingSlot,
@@ -367,13 +391,14 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
   $Res call({
     Object? id = null,
     Object? houseId = null,
+    Object? ownerId = null,
     Object? nameOrNumber = null,
     Object? floor = freezed,
     Object? baseRent = null,
     Object? bhkTemplateId = freezed,
     Object? bhkType = freezed,
     Object? editableRent = freezed,
-    Object? tenantId = freezed,
+    Object? currentTenancyId = freezed,
     Object? furnishingStatus = freezed,
     Object? carpetArea = freezed,
     Object? parkingSlot = freezed,
@@ -387,11 +412,15 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       houseId: null == houseId
           ? _value.houseId
           : houseId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       nameOrNumber: null == nameOrNumber
           ? _value.nameOrNumber
           : nameOrNumber // ignore: cast_nullable_to_non_nullable
@@ -407,7 +436,7 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
       bhkTemplateId: freezed == bhkTemplateId
           ? _value.bhkTemplateId
           : bhkTemplateId // ignore: cast_nullable_to_non_nullable
-              as int?,
+              as String?,
       bhkType: freezed == bhkType
           ? _value.bhkType
           : bhkType // ignore: cast_nullable_to_non_nullable
@@ -416,10 +445,10 @@ class _$UnitCopyWithImpl<$Res, $Val extends Unit>
           ? _value.editableRent
           : editableRent // ignore: cast_nullable_to_non_nullable
               as double?,
-      tenantId: freezed == tenantId
-          ? _value.tenantId
-          : tenantId // ignore: cast_nullable_to_non_nullable
-              as int?,
+      currentTenancyId: freezed == currentTenancyId
+          ? _value.currentTenancyId
+          : currentTenancyId // ignore: cast_nullable_to_non_nullable
+              as String?,
       furnishingStatus: freezed == furnishingStatus
           ? _value.furnishingStatus
           : furnishingStatus // ignore: cast_nullable_to_non_nullable
@@ -464,15 +493,16 @@ abstract class _$$UnitImplCopyWith<$Res> implements $UnitCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {int id,
-      int houseId,
+      {String id,
+      String houseId,
+      String ownerId,
       String nameOrNumber,
       int? floor,
       double baseRent,
-      int? bhkTemplateId,
+      String? bhkTemplateId,
       String? bhkType,
       double? editableRent,
-      int? tenantId,
+      String? currentTenancyId,
       String? furnishingStatus,
       double? carpetArea,
       String? parkingSlot,
@@ -497,13 +527,14 @@ class __$$UnitImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? houseId = null,
+    Object? ownerId = null,
     Object? nameOrNumber = null,
     Object? floor = freezed,
     Object? baseRent = null,
     Object? bhkTemplateId = freezed,
     Object? bhkType = freezed,
     Object? editableRent = freezed,
-    Object? tenantId = freezed,
+    Object? currentTenancyId = freezed,
     Object? furnishingStatus = freezed,
     Object? carpetArea = freezed,
     Object? parkingSlot = freezed,
@@ -517,11 +548,15 @@ class __$$UnitImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
       houseId: null == houseId
           ? _value.houseId
           : houseId // ignore: cast_nullable_to_non_nullable
-              as int,
+              as String,
+      ownerId: null == ownerId
+          ? _value.ownerId
+          : ownerId // ignore: cast_nullable_to_non_nullable
+              as String,
       nameOrNumber: null == nameOrNumber
           ? _value.nameOrNumber
           : nameOrNumber // ignore: cast_nullable_to_non_nullable
@@ -537,7 +572,7 @@ class __$$UnitImplCopyWithImpl<$Res>
       bhkTemplateId: freezed == bhkTemplateId
           ? _value.bhkTemplateId
           : bhkTemplateId // ignore: cast_nullable_to_non_nullable
-              as int?,
+              as String?,
       bhkType: freezed == bhkType
           ? _value.bhkType
           : bhkType // ignore: cast_nullable_to_non_nullable
@@ -546,10 +581,10 @@ class __$$UnitImplCopyWithImpl<$Res>
           ? _value.editableRent
           : editableRent // ignore: cast_nullable_to_non_nullable
               as double?,
-      tenantId: freezed == tenantId
-          ? _value.tenantId
-          : tenantId // ignore: cast_nullable_to_non_nullable
-              as int?,
+      currentTenancyId: freezed == currentTenancyId
+          ? _value.currentTenancyId
+          : currentTenancyId // ignore: cast_nullable_to_non_nullable
+              as String?,
       furnishingStatus: freezed == furnishingStatus
           ? _value.furnishingStatus
           : furnishingStatus // ignore: cast_nullable_to_non_nullable
@@ -592,13 +627,14 @@ class _$UnitImpl implements _Unit {
   const _$UnitImpl(
       {required this.id,
       required this.houseId,
+      required this.ownerId,
       required this.nameOrNumber,
       this.floor,
       required this.baseRent,
       this.bhkTemplateId,
       this.bhkType,
       this.editableRent,
-      this.tenantId,
+      this.currentTenancyId,
       this.furnishingStatus,
       this.carpetArea,
       this.parkingSlot,
@@ -614,9 +650,11 @@ class _$UnitImpl implements _Unit {
       _$$UnitImplFromJson(json);
 
   @override
-  final int id;
+  final String id;
   @override
-  final int houseId;
+  final String houseId;
+  @override
+  final String ownerId;
   @override
   final String nameOrNumber;
   @override
@@ -625,13 +663,14 @@ class _$UnitImpl implements _Unit {
   final double baseRent;
 // NEW Fields for BHK
   @override
-  final int? bhkTemplateId;
+  final String? bhkTemplateId;
   @override
   final String? bhkType;
   @override
   final double? editableRent;
   @override
-  final int? tenantId;
+  final String? currentTenancyId;
+// Replaces tenantId
 // Advanced Details
   @override
   final String? furnishingStatus;
@@ -669,7 +708,7 @@ class _$UnitImpl implements _Unit {
 
   @override
   String toString() {
-    return 'Unit(id: $id, houseId: $houseId, nameOrNumber: $nameOrNumber, floor: $floor, baseRent: $baseRent, bhkTemplateId: $bhkTemplateId, bhkType: $bhkType, editableRent: $editableRent, tenantId: $tenantId, furnishingStatus: $furnishingStatus, carpetArea: $carpetArea, parkingSlot: $parkingSlot, meterNumber: $meterNumber, defaultDueDay: $defaultDueDay, isOccupied: $isOccupied, imageUrls: $imageUrls, imagesBase64: $imagesBase64)';
+    return 'Unit(id: $id, houseId: $houseId, ownerId: $ownerId, nameOrNumber: $nameOrNumber, floor: $floor, baseRent: $baseRent, bhkTemplateId: $bhkTemplateId, bhkType: $bhkType, editableRent: $editableRent, currentTenancyId: $currentTenancyId, furnishingStatus: $furnishingStatus, carpetArea: $carpetArea, parkingSlot: $parkingSlot, meterNumber: $meterNumber, defaultDueDay: $defaultDueDay, isOccupied: $isOccupied, imageUrls: $imageUrls, imagesBase64: $imagesBase64)';
   }
 
   @override
@@ -679,6 +718,7 @@ class _$UnitImpl implements _Unit {
             other is _$UnitImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.houseId, houseId) || other.houseId == houseId) &&
+            (identical(other.ownerId, ownerId) || other.ownerId == ownerId) &&
             (identical(other.nameOrNumber, nameOrNumber) ||
                 other.nameOrNumber == nameOrNumber) &&
             (identical(other.floor, floor) || other.floor == floor) &&
@@ -689,8 +729,8 @@ class _$UnitImpl implements _Unit {
             (identical(other.bhkType, bhkType) || other.bhkType == bhkType) &&
             (identical(other.editableRent, editableRent) ||
                 other.editableRent == editableRent) &&
-            (identical(other.tenantId, tenantId) ||
-                other.tenantId == tenantId) &&
+            (identical(other.currentTenancyId, currentTenancyId) ||
+                other.currentTenancyId == currentTenancyId) &&
             (identical(other.furnishingStatus, furnishingStatus) ||
                 other.furnishingStatus == furnishingStatus) &&
             (identical(other.carpetArea, carpetArea) ||
@@ -715,13 +755,14 @@ class _$UnitImpl implements _Unit {
       runtimeType,
       id,
       houseId,
+      ownerId,
       nameOrNumber,
       floor,
       baseRent,
       bhkTemplateId,
       bhkType,
       editableRent,
-      tenantId,
+      currentTenancyId,
       furnishingStatus,
       carpetArea,
       parkingSlot,
@@ -749,15 +790,16 @@ class _$UnitImpl implements _Unit {
 
 abstract class _Unit implements Unit {
   const factory _Unit(
-      {required final int id,
-      required final int houseId,
+      {required final String id,
+      required final String houseId,
+      required final String ownerId,
       required final String nameOrNumber,
       final int? floor,
       required final double baseRent,
-      final int? bhkTemplateId,
+      final String? bhkTemplateId,
       final String? bhkType,
       final double? editableRent,
-      final int? tenantId,
+      final String? currentTenancyId,
       final String? furnishingStatus,
       final double? carpetArea,
       final String? parkingSlot,
@@ -770,9 +812,11 @@ abstract class _Unit implements Unit {
   factory _Unit.fromJson(Map<String, dynamic> json) = _$UnitImpl.fromJson;
 
   @override
-  int get id;
+  String get id;
   @override
-  int get houseId;
+  String get houseId;
+  @override
+  String get ownerId;
   @override
   String get nameOrNumber;
   @override
@@ -780,13 +824,14 @@ abstract class _Unit implements Unit {
   @override
   double get baseRent; // NEW Fields for BHK
   @override
-  int? get bhkTemplateId;
+  String? get bhkTemplateId;
   @override
   String? get bhkType;
   @override
   double? get editableRent;
   @override
-  int? get tenantId; // Advanced Details
+  String? get currentTenancyId; // Replaces tenantId
+// Advanced Details
   @override
   String? get furnishingStatus;
   @override

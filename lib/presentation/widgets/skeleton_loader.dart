@@ -111,3 +111,18 @@ class ReportsSkeleton extends StatelessWidget {
     );
   }
 }
+
+class SkeletonList extends StatelessWidget {
+  final int itemCount;
+  const SkeletonList({super.key, this.itemCount = 6});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: itemCount,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) => const SkeletonCard(),
+    );
+  }
+}

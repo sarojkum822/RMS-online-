@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'house_controller.dart';
+import '../../../../domain/entities/house.dart';
+import '../settings/owner_controller.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../widgets/empty_state_widget.dart';
 import '../../../../core/utils/dialog_utils.dart';
@@ -32,12 +34,19 @@ class HouseListScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final housesAsync = ref.watch(houseControllerProvider);
+    final isFreePlan = ref.watch(ownerControllerProvider).valueOrNull?.subscriptionPlan == 'free';
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('properties.title'.tr(), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
-        backgroundColor: theme.appBarTheme.backgroundColor,
+        title: Text('properties.title'.tr(), 
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold, 
+            fontSize: 28, 
+            color: theme.textTheme.titleLarge?.color
+          )
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: theme.iconTheme,
       ),
@@ -65,6 +74,7 @@ class HouseListScreen extends ConsumerWidget {
           return CustomScrollView(
             slivers: [
               // Full-width Ad
+              if (isFreePlan)
               const SliverToBoxAdapter(
                  child: Padding(
                    padding: EdgeInsets.symmetric(vertical: 16.0),
@@ -81,7 +91,7 @@ class HouseListScreen extends ConsumerWidget {
                       // Add spacing between items manually since we removed separatorBuilder
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 24.0),
-                        child: _ModernPropertyCard(house: house, isDark: isDark, theme: theme, ref: ref),
+                        child: ModernPropertyCard(house: house, isDark: isDark, theme: theme, ref: ref),
                       );
                     },
                     childCount: houses.length,
@@ -100,13 +110,13 @@ class HouseListScreen extends ConsumerWidget {
   }
 }
 
-class _ModernPropertyCard extends StatelessWidget {
-  final dynamic house;
+class ModernPropertyCard extends StatelessWidget {
+  final House house;
   final bool isDark;
   final ThemeData theme;
   final WidgetRef ref;
 
-  const _ModernPropertyCard({
+  const ModernPropertyCard({
     required this.house,
     required this.isDark,
     required this.theme,
@@ -129,7 +139,7 @@ class _ModernPropertyCard extends StatelessWidget {
       );
     } else {
       return Image.network(
-        HouseListScreen._kRandomHouseImages[house.id % HouseListScreen._kRandomHouseImages.length],
+        HouseListScreen._kRandomHouseImages[house.id.hashCode.abs() % HouseListScreen._kRandomHouseImages.length],
         fit: BoxFit.cover,
         errorBuilder: (_,__,___) => Container(color: Colors.grey[800]),
       );
@@ -179,8 +189,8 @@ class _ModernPropertyCard extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.2), // Slight dark top
-                      Colors.black.withOpacity(0.8), // Strong dark bottom
+                      Colors.black.withValues(alpha: 0.2), // Slight dark top
+                      Colors.black.withValues(alpha: 0.8), // Strong dark bottom
                     ],
                     stops: const [0.5, 0.7, 1.0],
                   ),
@@ -250,13 +260,13 @@ class _ModernPropertyCard extends StatelessWidget {
                                     return Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: isFull ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                                        color: isFull ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
-                                          color: isFull ? Colors.green.withOpacity(0.5) : Colors.orange.withOpacity(0.5),
+                                          color: isFull ? Colors.green.withValues(alpha: 0.5) : Colors.orange.withValues(alpha: 0.5),
                                           width: 1,
                                         ),
-                                        boxShadow: [BoxShadow(color: (isFull ? Colors.green : Colors.orange).withOpacity(0.1), blurRadius: 10)],
+                                        boxShadow: [BoxShadow(color: (isFull ? Colors.green : Colors.orange).withValues(alpha: 0.1), blurRadius: 10)],
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -354,12 +364,12 @@ class _ModernPropertyCard extends StatelessWidget {
   }
 }
 
-class _InfoBadge extends StatelessWidget {
+class InfoBadge extends StatelessWidget {
   final IconData icon;
   final String text;
   final Color? color;
 
-  const _InfoBadge({required this.icon, required this.text, this.color});
+  const InfoBadge({required this.icon, required this.text, this.color});
 
   @override
   Widget build(BuildContext context) {

@@ -1,8 +1,11 @@
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter/foundation.dart'; // For debugPrint
 import '../../../../domain/entities/tenant.dart';
+import '../../../../domain/entities/tenancy.dart'; // Import
 import '../../../providers/data_providers.dart';
 import 'dart:io';
+import 'package:uuid/uuid.dart'; // import uuid
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -10,6 +13,26 @@ import '../house/house_controller.dart';
 import '../rent/rent_controller.dart'; 
 
 part 'tenant_controller.g.dart';
+
+@riverpod
+@riverpod
+Stream<Tenancy?> activeTenancy(ActiveTenancyRef ref, String tenantId) {
+  final repo = ref.watch(tenantRepositoryProvider);
+  // Efficiently stream only the active tenancy for this tenant (owner-side)
+  return repo.watchActiveTenancyForTenant(tenantId);
+}
+
+/// For TENANT-SIDE ACCESS: Uses ownerId from tenant profile
+/// because tenants log in with their own Firebase Auth credentials, not the owner's.
+@riverpod
+Stream<Tenancy?> activeTenancyForTenantAccess(
+  ActiveTenancyForTenantAccessRef ref, 
+  String tenantId, 
+  String ownerId,
+) {
+  final repo = ref.watch(tenantRepositoryProvider);
+  return repo.watchActiveTenancyForTenantAccess(tenantId, ownerId);
+}
 
 @Riverpod(keepAlive: true)
 class TenantController extends _$TenantController {
@@ -19,66 +42,61 @@ class TenantController extends _$TenantController {
     return repo.getAllTenants();
   }
 
-  Future<void> addTenant(Tenant tenant, {double? initialElectricReading, File? imageFile}) async {
+  // Refactored: Simply creates the Tenant profile
+  Future<String> createTenantProfile(Tenant tenant, {File? imageFile}) async {
     final repo = ref.read(tenantRepositoryProvider);
-    final newTenantId = await repo.createTenant(tenant, imageFile: imageFile);
+    return await repo.createTenant(tenant, imageFile: imageFile);
+  }
 
-    // Verify unit update
+  // New: Create Tenancy
+  Future<void> createTenancy(Tenancy tenancy, String houseId) async {
+    final repo = ref.read(tenantRepositoryProvider);
+    await repo.createTenancy(tenancy);
+
+    // Lock Unit
     final propertyRepo = ref.read(propertyRepositoryProvider);
-    final unit = await propertyRepo.getUnit(tenant.unitId);
+    final unit = await propertyRepo.getUnit(tenancy.unitId);
     if (unit != null) {
-      final rentToLock = tenant.agreedRent ?? unit.baseRent;
       await propertyRepo.updateUnit(unit.copyWith(
         isOccupied: true,
-        tenantId: newTenantId,
-        editableRent: rentToLock,
-        baseRent: rentToLock,
+        currentTenancyId: tenancy.id, // Linked
+        editableRent: tenancy.agreedRent,
       ));
-    }
-
-    if (initialElectricReading != null) {
-      await ref.read(rentRepositoryProvider).addElectricReading(
-        tenant.unitId,
-        tenant.startDate,
-        initialElectricReading,
-      );
+      ref.invalidate(houseUnitsProvider(houseId)); 
     }
     
-    // NOTE: We do NOT need manual state update or invalidateSelf(). 
-    // Firestore Stream will automatically emit the new list (optimistically).
-    
-    ref.invalidate(houseUnitsProvider(tenant.houseId)); 
-    ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
+    // Generate First Month Rent (Optional / To be decided by user)
+    // ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
   }
 
   Future<void> updateTenant(Tenant tenant, {File? imageFile}) async {
      final repo = ref.read(tenantRepositoryProvider);
      await repo.updateTenant(tenant, imageFile: imageFile);
-     
-     // Sync Unit Rent if Tenant Rent changed
-     if (tenant.agreedRent != null) {
-        final propertyRepo = ref.read(propertyRepositoryProvider);
-        final unit = await propertyRepo.getUnit(tenant.unitId);
-        if (unit != null) {
-           await propertyRepo.updateUnit(unit.copyWith(
-              baseRent: tenant.agreedRent!,
-              editableRent: tenant.agreedRent!,
-           ));
-           ref.invalidate(houseUnitsProvider(tenant.houseId));
-        }
-     }
+     // Tenancy details are now updated via Tenancy Update methods, not here.
   }
 
   Future<void> registerTenant({
-    required int houseId,
-    required int unitId,
+    required String houseId,
+    required String unitId,
     required String tenantName,
     required String phone,
     String? email,
     String? password,
     double? agreedRent,
-    double? initialElectricReading,
     File? imageFile,
+    required DateTime startDate,
+    double? initialElectricReading, 
+    double? securityDeposit,
+    double? openingBalance,
+    String? notes, 
+    // NEW Fields
+    double? advanceAmount,
+    bool policeVerification = false,
+    String? idProof,
+    String? address,
+    String? dob,
+    String? gender,
+    int memberCount = 1,
   }) async {
     // 1. Create Tenant Auth (Securely)
     String? authId;
@@ -100,24 +118,65 @@ class TenantController extends _$TenantController {
       }
     }
 
+    final tenantId = const Uuid().v4();
+    final ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    // 2. Create Tenant Profile
     final tenant = Tenant(
-        id: 0,
-        houseId: houseId,
-        unitId: unitId,
+        id: tenantId,
         tenantCode: phone, 
         name: tenantName,
         phone: phone,
         email: email,
-        password: password, 
         authId: authId, 
-        startDate: DateTime.now(),
-        status: TenantStatus.active,
-        agreedRent: agreedRent,
-        ownerId: FirebaseAuth.instance.currentUser?.uid ?? '', 
+        isActive: true,
+        ownerId: ownerId,
+        // New Fields
+        advanceAmount: advanceAmount ?? 0.0,
+        policeVerification: policeVerification,
+        idProof: idProof,
+        address: address,
+        dob: dob,
+        gender: gender,
+        memberCount: memberCount, 
+        notes: null, 
     );
 
     try {
-      await addTenant(tenant, initialElectricReading: initialElectricReading, imageFile: imageFile);
+      await createTenantProfile(tenant, imageFile: imageFile);
+
+      // 3. Create Tenancy (The Contract)
+      final tenancy = Tenancy(
+        id: const Uuid().v4(),
+        tenantId: tenantId,
+        unitId: unitId,
+        ownerId: ownerId,
+        startDate: startDate,
+        agreedRent: agreedRent ?? 0.0,
+        securityDeposit: securityDeposit ?? 0.0,
+        openingBalance: openingBalance ?? 0.0, 
+        status: TenancyStatus.active,
+        notes: notes, // Tenancy Notes passed here
+      );
+      
+      await createTenancy(tenancy, houseId);
+      
+      // 4. Record Initial Electric Reading (Linked to Flat)
+      if (initialElectricReading != null) {
+          final rentRepo = ref.read(rentRepositoryProvider);
+          await rentRepo.addElectricReading(unitId, startDate, initialElectricReading);
+          // Invalidate cache
+          ref.invalidate(initialReadingProvider(unitId));
+      }
+
+      // 5. Auto-generate first month's rent bill
+      try {
+        await ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
+      } catch (e) {
+        debugPrint('Note: Could not auto-generate first rent bill: $e');
+        // Don't fail tenant creation if rent generation fails
+      }
+
     } catch (e) {
       if (e.toString().contains('UNIQUE constraint failed')) {
          throw Exception('A tenant with this phone number already exists.');
@@ -149,6 +208,9 @@ class TenantController extends _$TenantController {
     required String newEmail,
     required String newPassword,
   }) async {
+     // NOTE: Updating auth now requires Knowing the old password. 
+     // Since we don't store it, the owner must ask the tenant or just reset it.
+     // For now, retaining logically but might fail if oldPassword is incorrect.
      FirebaseApp app;
     try {
       app = Firebase.app('secondary');
@@ -173,74 +235,134 @@ class TenantController extends _$TenantController {
     }
   }
 
-  Future<void> _deleteTenantAuth(String email, String password) async {
-      FirebaseApp app;
-      try {
-        app = Firebase.app('secondary');
-      } catch (_) {
-        app = await Firebase.initializeApp(name: 'secondary', options: Firebase.app().options);
-      }
-      final auth = FirebaseAuth.instanceFor(app: app);
-      
-      try {
-        await auth.signInWithEmailAndPassword(email: email, password: password);
-        await auth.currentUser?.delete(); 
-      } catch (e) {
-        print('Warning: Failed to delete Auth user: $e');
-      } finally {
-         try { await auth.signOut(); } catch (_) {}
-      }
-  }
+  // Removed _deleteTenantAuth because we no longer store passwords to authenticate the delete action.
+  // Deletion will only remove the database record. Auth user remains (orphaned) until Admin cleanup.
 
   Future<Tenant?> login(String email, String password) async {
     final repo = ref.read(tenantRepositoryProvider);
     return repo.authenticateTenant(email, password);
   }
 
-  Future<void> moveOutTenant(Tenant tenant) async {
+  // Google Login removed - use email/password login only
+
+  Future<void> endTenancy(String tenancyId) async {
     final repo = ref.read(tenantRepositoryProvider);
     
-    // 1. Update Tenant Status to Inactive
-    // We do NOT delete the tenant, just mark inactive provided by the enum
-    final updatedTenant = tenant.copyWith(status: TenantStatus.inactive);
-    await repo.updateTenant(updatedTenant);
+    // Fetch directly (Optimization)
+    final tenancy = await repo.getTenancy(tenancyId);
+    if (tenancy == null) throw Exception('Tenancy not found');
+
+    // 1. End Tenancy
+    await repo.endTenancy(tenancyId);
 
     // 2. Vacate Unit
     final propertyRepo = ref.read(propertyRepositoryProvider);
-    final unit = await propertyRepo.getUnit(tenant.unitId);
+    final unit = await propertyRepo.getUnit(tenancy.unitId);
     if (unit != null) {
-      // Clear tenantId and isOccupied
       await propertyRepo.updateUnit(unit.copyWith(
         isOccupied: false,
-        tenantId: null, 
+        currentTenancyId: null, 
       ));
-      
-      ref.invalidate(houseUnitsProvider(tenant.houseId));
+      ref.invalidate(houseUnitsProvider(unit.houseId));
     }
   }
 
-  Future<void> deleteTenant(int id) async {
+  // --- NEW: Slide Actions Logic ---
+
+  Future<void> moveOutTenant(String tenantId, String? tenancyId) async {
     final repo = ref.read(tenantRepositoryProvider);
     
-    Tenant? tenant;
-    try {
-       tenant = await repo.getTenant(id);
-       if (tenant != null && tenant.email != null && tenant.password != null) {
-          await _deleteTenantAuth(tenant.email!, tenant.password!);
-       }
-    } catch (e) {
-       print('Error during auth cleanup: $e');
+    // 1. Update Tenant Profile
+    final tenant = await repo.getTenant(tenantId);
+    if (tenant != null) {
+      await repo.updateTenant(tenant.copyWith(isActive: false));
     }
+
+    // 2. If active tenancy exists, end it
+    if (tenancyId != null && tenancyId.isNotEmpty) {
+      try {
+        await endTenancy(tenancyId);
+      } catch (e) {
+        print('Ignore endTenancy error if already ended: $e');
+      }
+    }
+  }
+
+  Future<void> moveInTenant({
+    required String tenantId,
+    required String houseId,
+    required String unitId,
+    required double agreedRent,
+    required DateTime startDate,
+  }) async {
+    final repo = ref.read(tenantRepositoryProvider);
+    final ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    // 1. Update Tenant Profile to Active
+    final tenant = await repo.getTenant(tenantId);
+    if (tenant != null) {
+      await repo.updateTenant(tenant.copyWith(isActive: true));
+    }
+
+    // 2. Create New Tenancy
+    final tenancy = Tenancy(
+      id: const Uuid().v4(),
+      tenantId: tenantId,
+      unitId: unitId,
+      ownerId: ownerId,
+      startDate: startDate,
+      agreedRent: agreedRent,
+      status: TenancyStatus.active,
+    );
+    
+    await createTenancy(tenancy, houseId);
+  }
+
+  Future<void> deleteTenantsBatch(List<String> tenantIds) async {
+      final repo = ref.read(tenantRepositoryProvider);
+      
+      int successCount = 0;
+      int failCount = 0;
+      String lastError = '';
+
+      // Process sequentially
+      for (final id in tenantIds) {
+          try {
+             // 1. Auth Cleanup REMOVED (No Password)
+             // 2. Cascade Delete
+             await repo.deleteTenantCascade(id, null);
+             
+             // 3. Invalidate local
+             ref.invalidate(activeTenancyProvider(id));
+             successCount++;
+             
+          } catch (e) {
+             print('Error deleting tenant $id in batch: $e');
+             failCount++;
+             lastError = e.toString();
+          }
+      }
+      
+      if (failCount > 0) {
+          throw Exception('Failed to delete $failCount tenants. Last error: $lastError');
+      }
+  }
+
+  Future<void> deleteTenant(String id, String? unitId, String? houseId) async {
+    final repo = ref.read(tenantRepositoryProvider);
+    
+    // Auth Cleanup REMOVED
 
     await repo.deleteTenant(id);
+    // Note: Tenancies might need separate cleanup or cascade delete at repository level
 
-    if (tenant != null) {
+    if (unitId != null && houseId != null) {
        final propertyRepo = ref.read(propertyRepositoryProvider);
-       final unit = await propertyRepo.getUnit(tenant.unitId);
+       final unit = await propertyRepo.getUnit(unitId);
        if (unit != null) {
-          await propertyRepo.updateUnit(unit.copyWith(isOccupied: false));
+          await propertyRepo.updateUnit(unit.copyWith(isOccupied: false, currentTenancyId: null));
+          ref.invalidate(houseUnitsProvider(houseId));
        }
     }
-    // Stream updates automatically
   }
 }

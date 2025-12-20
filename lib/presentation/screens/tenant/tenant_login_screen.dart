@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/data_providers.dart'; // NEW
 import '../../../core/services/secure_storage_service.dart';
 import '../owner/tenant/tenant_controller.dart'; 
+import '../../../core/services/biometric_service.dart'; // NEW
+import 'package:flutter/services.dart'; // NEW 
 
 class TenantLoginScreen extends ConsumerStatefulWidget {
   const TenantLoginScreen({super.key});
@@ -18,95 +20,53 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController(); // NEW
   final _storageService = SecureStorageService();
+  final _biometricService = BiometricService(); // NEW
   bool _isLoading = false;
+  bool _canCheckBiometrics = false; // NEW
+  bool _isBiometricEnabled = false; // NEW
 
   @override
   void initState() {
     super.initState();
-    _loadCredentials();
+    _checkBiometrics(); // NEW: Combined check
   }
 
-  Future<void> _loadCredentials() async {
+  Future<void> _checkBiometrics() async {
+    final available = await _biometricService.isBiometricAvailable();
+    final enabled = await _storageService.isBiometricEnabled();
     final creds = await _storageService.getCredentials();
-    if (creds != null && mounted) {
+    
+    if (mounted) {
       setState(() {
-        _emailController.text = creds['email']!;
-        _passwordController.text = creds['password']!;
+        _canCheckBiometrics = available && enabled && creds != null;
+        _isBiometricEnabled = enabled;
+        
+        if (creds != null) {
+          _emailController.text = creds['email']!;
+          _passwordController.text = creds['password']!;
+        }
       });
+      
+      // Auto-trigger if enabled
+       if (_canCheckBiometrics) {
+          _loginWithBiometrics();
+       }
     }
   }
-  
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text('Tenant Login', style: GoogleFonts.outfit(color: theme.textTheme.titleLarge?.color, fontWeight: FontWeight.bold)),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color),
-          onPressed: () => context.go('/'),
-        ),
-      ),
-      body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                        'Welcome Back',
-                        style: GoogleFonts.outfit(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: theme.textTheme.headlineMedium?.color, // Was 0xFF1E293B
-                        ),
-                      ),
-                const SizedBox(height: 8),
-                Text(
-                  'Enter your credentials provided by the property owner.',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    color: theme.textTheme.bodyMedium?.color, // Was 0xFF64748B
-                  ),
-                ),
-                const SizedBox(height: 32),
+  Future<void> _loginWithBiometrics() async {
+    final authenticated = await _biometricService.authenticate();
+    if (authenticated) {
+      final creds = await _storageService.getCredentials();
+      if (creds != null) {
+        _emailController.text = creds['email']!;
+        _passwordController.text = creds['password']!;
+        _submitLogin(); 
+      }
+    }
+  }
 
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textCapitalization: TextCapitalization.none,
-                  decoration: InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    filled: true,
-                    fillColor: theme.cardColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    filled: true,
-                    fillColor: theme.cardColor,
-                  ),
-                ),
-                
-                const SizedBox(height: 48),
-                
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : () async {
+  Future<void> _submitLogin() async {
                       final email = _emailController.text.trim().toLowerCase();
                       final password = _passwordController.text.trim();
                       
@@ -127,6 +87,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                            final sessionService = ref.read(userSessionServiceProvider);
                            await sessionService.saveSession(role: 'tenant', tenantId: tenant.id);
                            await _storageService.saveCredentials(email, password); // SAVE CREDS
+
                            // Save Token for Notifications
                            await sessionService.saveTenantFcmToken(tenant.id);
                            
@@ -145,22 +106,154 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                       } finally {
                         if (mounted) setState(() => _isLoading = false);
                       }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF000000) : Colors.white,
+      appBar: AppBar(
+        title: Text('Resident Portal', 
+          style: GoogleFonts.playfairDisplay(
+            color: isDark ? Colors.white : const Color(0xFF0F172A), 
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          )
+        ),
+        backgroundColor: isDark ? Colors.black : Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black),
+          onPressed: () => context.go('/'),
+        ),
+      ),
+      body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome Back',
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    letterSpacing: -1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Securely access your residence portal.',
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                TextField(
+                  controller: _emailController,
+                  style: GoogleFonts.outfit(fontSize: 15),
+                  decoration: InputDecoration(
+                    labelText: 'Register Email',
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                    ),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF8FAFC),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: GoogleFonts.outfit(fontSize: 15),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                    ),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF8FAFC),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+
+                if (_canCheckBiometrics) ...[
+                   SizedBox(
+                     height: 56,
+                     width: double.infinity,
+                     child: OutlinedButton.icon(
+                       style: OutlinedButton.styleFrom(
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                         side: BorderSide(color: theme.primaryColor),
+                       ),
+                       onPressed: _isLoading ? null : () {
+                         HapticFeedback.lightImpact();
+                         _loginWithBiometrics();
+                       },
+                       icon: const Icon(Icons.fingerprint, size: 28),
+                       label: const Text("Login with Face ID / Fingerprint"),
+                     ),
+                   ),
+                   const SizedBox(height: 16),
+                ],
+
+                const SizedBox(height: 16),
+                
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : () {
+                      HapticFeedback.lightImpact();
+                      _submitLogin();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary, // Was Color(0xFF00897B)
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 2,
-                      foregroundColor: Colors.white,
+                      backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
                     ),
                     child: _isLoading 
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                      'Login',
+                      'Sign In to Dashboard',
                       style: GoogleFonts.outfit(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
                       ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+                
+                // Note for tenants
+                Center(
+                  child: Text(
+                    'Credentials are provided by your property owner.\nContact them if you need login access.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: theme.hintColor,
                     ),
                   ),
                 ),

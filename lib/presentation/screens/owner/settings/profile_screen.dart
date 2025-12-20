@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../domain/entities/owner.dart';
 import 'owner_controller.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -36,9 +38,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ownerAsync = ref.watch(ownerControllerProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final ownerValue = ref.watch(ownerControllerProvider);
+    final owner = ownerValue.value; // Access value directly to persist data during loading/error
+    final isLoading = ownerValue.isLoading;
+
+    // Listen for Errors to show SnackBar
+    ref.listen<AsyncValue<Owner?>>(ownerControllerProvider, (previous, next) {
+      if (next.hasError && !next.isLoading) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${next.error}')));
+      }
+      if (!previous!.hasValue && next.hasValue) {
+        // Initial load complete
+      }
+    });
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -49,7 +63,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         iconTheme: theme.iconTheme,
         actions: [
           IconButton(
-            onPressed: () async {
+            onPressed: isLoading ? null : () async {
               if (_isEditing) {
                 try {
                   // 1. Update Profile in Firestore
@@ -59,122 +73,225 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     phone: _phoneController.text
                   );
                   
-                  // 2. Update Email in Firebase Auth if changed
-                  final auth = ref.read(authServiceProvider);
-                  final currentEmail = auth.currentUser?.email;
-                  if (currentEmail != null && currentEmail != _emailController.text.trim()) {
-                      await auth.updateEmail(_emailController.text.trim());
-                  }
+                  // REMOVED: auth.updateEmail logic to prevent auth errors/logout.
+                  // Contact Email in Firestore can differ from Auth Email.
 
-                  if (context.mounted) {
+                  if (context.mounted && !ref.read(ownerControllerProvider).hasError) {
                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile Updated Successfully')));
                   }
                 } catch (e) {
-                   if (context.mounted) {
-                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                   }
+                   // Error is handled by ref.listen usually, but duplicate catch doesn't hurt
                 }
               }
               setState(() {
                 _isEditing = !_isEditing;
               });
             },
-            icon: Icon(_isEditing ? Icons.check : Icons.edit, color: _isEditing ? Colors.green : theme.iconTheme.color),
+            icon: isLoading 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : Icon(_isEditing ? Icons.check : Icons.edit, color: _isEditing ? Colors.green : theme.iconTheme.color),
           )
         ],
       ),
-      body: ownerAsync.when(
-        data: (owner) {
-          if (owner != null && !_isEditing && _nameController.text.isEmpty) {
-             _nameController.text = owner.name;
-             _emailController.text = owner.email ?? '';
-             _phoneController.text = owner.phone ?? '';
-          }
+      body: owner == null 
+        ? const Center(child: CircularProgressIndicator()) 
+        : Builder(
+            builder: (context) {
+               // Update controllers if not editing and data changed externally
+               if (!_isEditing) {
+                 if (_nameController.text != owner.name) _nameController.text = owner.name;
+                 if (_emailController.text != (owner.email ?? '')) _emailController.text = owner.email ?? '';
+                 if (_phoneController.text != (owner.phone ?? '')) _phoneController.text = owner.phone ?? '';
+               }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: theme.cardColor,
-                        child: Text(
-                          owner?.name.substring(0, 1).toUpperCase() ?? 'O', 
-                          style: GoogleFonts.outfit(fontSize: 40, color: theme.primaryColor)
+               final plan = owner.subscriptionPlan ?? 'free';
+               final planColor = plan == 'power' ? Colors.purple : (plan == 'pro' ? Colors.blue : Colors.grey);
+
+               return SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Profile Picture & Basic Info
+                    Center(
+                      child: Column(
+                        children: [
+                          Stack(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: planColor.withValues(alpha: 0.5), width: 2),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: theme.cardColor,
+                                  child: Text(
+                                    owner.name.isNotEmpty == true ? owner.name[0].toUpperCase() : 'O', 
+                                    style: GoogleFonts.outfit(fontSize: 40, fontWeight: FontWeight.bold, color: planColor)
+                                  ),
+                                ),
+                              ),
+                              if (_isEditing)
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: theme.primaryColor,
+                                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            owner.name,
+                            style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color),
+                          ),
+                          Text(
+                            owner.email ?? 'No Email',
+                            style: GoogleFonts.outfit(fontSize: 14, color: theme.hintColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 2. Subscription Status Section (NEW)
+                    Text(
+                      'SUBSCRIPTION',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.bold, 
+                        letterSpacing: 1.2,
+                        color: theme.hintColor
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: planColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: planColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: planColor.withValues(alpha: 0.2), shape: BoxShape.circle),
+                            child: Icon(Icons.star, color: planColor, size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${plan.toUpperCase()} PLAN',
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: planColor),
+                                ),
+                                Text(
+                                  plan == 'free' ? 'Limited features' : 'All premium features active',
+                                  style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => context.push('/owner/settings/subscription'),
+                            child: Text(plan == 'free' ? 'Upgrade' : 'Manage', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: planColor)),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // 3. Contact Details Section
+                    Text(
+                      'CONTACT DETAILS',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.bold, 
+                        letterSpacing: 1.2,
+                        color: theme.hintColor
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField('Full Name', _nameController, Icons.person, theme, isDark, capitalization: TextCapitalization.words),
+                    const SizedBox(height: 16),
+                    _buildTextField('Email', _emailController, Icons.email, theme, isDark, capitalization: TextCapitalization.none, keyboardType: TextInputType.emailAddress, autocorrect: false),
+                    const SizedBox(height: 16),
+                    _buildTextField('Phone', _phoneController, Icons.phone, theme, isDark, capitalization: TextCapitalization.none, keyboardType: TextInputType.phone),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 4. Account Settings
+                    Text(
+                      'ACCOUNT SETTINGS',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.bold, 
+                        letterSpacing: 1.2,
+                        color: theme.hintColor
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.lock_reset),
+                        label: const Text('Change Password'),
+                        onPressed: () => _showChangePasswordDialog(context, ref),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
-                      if (_isEditing)
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: theme.primaryColor,
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
-                          ),
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.delete_forever, color: Colors.red),
+                        label: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+                        onPressed: () => _showDeleteAccountDialog(context, ref),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-                
-                _buildTextField('Full Name', _nameController, Icons.person, theme, isDark),
-                const SizedBox(height: 16),
-                _buildTextField('Email', _emailController, Icons.email, theme, isDark),
-                const SizedBox(height: 16),
-                const SizedBox(height: 16),
-                _buildTextField('Phone', _phoneController, Icons.phone, theme, isDark),
-                
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.lock_reset),
-                    label: const Text('Change Password'),
-                    onPressed: () => _showChangePasswordDialog(context, ref),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                
-                const SizedBox(height: 16),
-                
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.delete_forever, color: Colors.red),
-                    label: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-                    onPressed: () => _showDeleteAccountDialog(context, ref),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(child: Text('Error: $e')),
-      )
+              );
+            }
+        ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, ThemeData theme, bool isDark) {
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, ThemeData theme, bool isDark, {
+    TextCapitalization capitalization = TextCapitalization.none,
+    TextInputType? keyboardType,
+    bool autocorrect = true,
+  }) {
     return TextFormField(
       controller: controller,
       enabled: _isEditing,
       style: theme.textTheme.bodyMedium,
+      textCapitalization: capitalization,
+      keyboardType: keyboardType,
+      autocorrect: autocorrect,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
-        prefixIcon: Icon(icon, color: theme.iconTheme.color?.withOpacity(0.7)),
+        prefixIcon: Icon(icon, color: theme.iconTheme.color?.withValues(alpha: 0.7)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: theme.dividerColor),
@@ -186,7 +303,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         filled: true,
         fillColor: _isEditing 
             ? theme.cardColor 
-            : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100]),
+            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100]),
       ),
     );
   }

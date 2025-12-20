@@ -93,9 +93,9 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
         }
 
         if (widget.house != null) {
-          // Edit Mode
           final updatedHouse = House(
             id: widget.house!.id,
+            ownerId: widget.house!.ownerId, // Preserve original ownerId
             name: _nameCtrl.text.toTitleCase(),
             address: _addressCtrl.text.toTitleCase(),
             notes: _notesCtrl.text,
@@ -167,10 +167,10 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3), // Keep semi-transparent for contrast over image
+                    color: Colors.black.withValues(alpha: 0.3), // Keep semi-transparent for contrast over image
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.add_a_photo, size: 40, color: Colors.white.withOpacity(0.9)),
+                  child: Icon(Icons.add_a_photo, size: 40, color: Colors.white.withValues(alpha: 0.9)),
                 ),
               ),
             ),

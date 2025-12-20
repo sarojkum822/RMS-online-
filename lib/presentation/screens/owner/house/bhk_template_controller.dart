@@ -1,19 +1,20 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../domain/entities/bhk_template.dart';
 import '../../../providers/data_providers.dart';
+import 'package:uuid/uuid.dart';
 
 part 'bhk_template_controller.g.dart';
 
 @riverpod
 class BhkTemplateController extends _$BhkTemplateController {
   @override
-  Stream<List<BhkTemplate>> build(int houseId) {
+  Stream<List<BhkTemplate>> build(String houseId) {
     final repo = ref.watch(propertyRepositoryProvider);
     return repo.getBhkTemplates(houseId);
   }
 
   Future<void> addBhkTemplate({
-    required int houseId,
+    required String houseId,
     required String bhkType,
     required double defaultRent,
     String? description,
@@ -21,10 +22,11 @@ class BhkTemplateController extends _$BhkTemplateController {
     int kitchenCount = 1,
     int hallCount = 1,
     bool hasBalcony = false,
+    String? imageBase64,
   }) async {
     final repo = ref.read(propertyRepositoryProvider);
     final template = BhkTemplate(
-      id: 0,
+      id: const Uuid().v4(),
       houseId: houseId,
       bhkType: bhkType,
       defaultRent: defaultRent,
@@ -33,17 +35,14 @@ class BhkTemplateController extends _$BhkTemplateController {
       kitchenCount: kitchenCount,
       hallCount: hallCount,
       hasBalcony: hasBalcony,
+      imageBase64: imageBase64,
     );
     await repo.createBhkTemplate(template);
-    // Explicit invalidation is not needed for StreamProvider/StreamNotifier 
-    // IF the repository emits a new value.
-    // However, if using snapshots(), it is automatic. 
-    // ref.invalidateSelf(); 
   }
 
   Future<void> updateBhkTemplate({
-    required int id,
-    required int houseId,
+    required String id,
+    required String houseId,
     required String bhkType,
     required double defaultRent,
     String? description,
@@ -51,6 +50,7 @@ class BhkTemplateController extends _$BhkTemplateController {
     int kitchenCount = 1,
     int hallCount = 1,
     bool hasBalcony = false,
+    String? imageBase64,
   }) async {
     final repo = ref.read(propertyRepositoryProvider);
     final template = BhkTemplate(
@@ -63,6 +63,7 @@ class BhkTemplateController extends _$BhkTemplateController {
       kitchenCount: kitchenCount,
       hallCount: hallCount,
       hasBalcony: hasBalcony,
+      imageBase64: imageBase64,
     );
     await repo.updateBhkTemplate(template);
   }

@@ -1,8 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../domain/entities/notice.dart';
-import 'package:rentpilotpro/presentation/providers/data_providers.dart';
-import '../../../domain/repositories/i_notice_repository.dart';
+import 'package:kirayabook/presentation/providers/data_providers.dart';
 
 part 'notice_controller.g.dart';
 
@@ -34,14 +32,14 @@ class NoticeController extends _$NoticeController {
     state = await AsyncValue.guard(() => repo.sendNotice(notice));
   }
 
-  Future<void> markAsRead(String noticeId, String tenantId) async {
+  Future<void> markAsRead(String noticeId, String tenantId, String ownerId) async {
     final repo = ref.read(noticeRepositoryProvider);
-    await repo.markAsRead(noticeId, tenantId);
+    await repo.markAsRead(noticeId, tenantId, ownerId);
   }
 
-  Future<void> deleteNotice(String noticeId) async {
+  Future<void> deleteNotice(String noticeId, String ownerId) async {
     final repo = ref.read(noticeRepositoryProvider);
-    await repo.deleteNotice(noticeId);
+    await repo.deleteNotice(noticeId, ownerId);
   }
 
   Future<void> cleanupOldNotices(String ownerId) async {

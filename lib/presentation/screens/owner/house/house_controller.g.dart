@@ -6,7 +6,7 @@ part of 'house_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$houseUnitsHash() => r'94c48ca11ee1d3ca81033698c7f127c83f4b8da4';
+String _$houseUnitsHash() => r'9d0aa16e076a07849b8b5706a6397feed7882bda';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -40,7 +40,7 @@ class HouseUnitsFamily extends Family<AsyncValue<List<Unit>>> {
 
   /// See also [houseUnits].
   HouseUnitsProvider call(
-    int houseId,
+    String houseId,
   ) {
     return HouseUnitsProvider(
       houseId,
@@ -75,7 +75,7 @@ class HouseUnitsFamily extends Family<AsyncValue<List<Unit>>> {
 class HouseUnitsProvider extends AutoDisposeStreamProvider<List<Unit>> {
   /// See also [houseUnits].
   HouseUnitsProvider(
-    int houseId,
+    String houseId,
   ) : this._internal(
           (ref) => houseUnits(
             ref as HouseUnitsRef,
@@ -103,7 +103,7 @@ class HouseUnitsProvider extends AutoDisposeStreamProvider<List<Unit>> {
     required this.houseId,
   }) : super.internal();
 
-  final int houseId;
+  final String houseId;
 
   @override
   Override overrideWith(
@@ -146,7 +146,7 @@ class HouseUnitsProvider extends AutoDisposeStreamProvider<List<Unit>> {
 // ignore: unused_element
 mixin HouseUnitsRef on AutoDisposeStreamProviderRef<List<Unit>> {
   /// The parameter `houseId` of this provider.
-  int get houseId;
+  String get houseId;
 }
 
 class _HouseUnitsProviderElement
@@ -154,10 +154,10 @@ class _HouseUnitsProviderElement
   _HouseUnitsProviderElement(super.provider);
 
   @override
-  int get houseId => (origin as HouseUnitsProvider).houseId;
+  String get houseId => (origin as HouseUnitsProvider).houseId;
 }
 
-String _$availableUnitsHash() => r'2c2c7130cc01a5dd7efbe46eff2ab3413b08c860';
+String _$availableUnitsHash() => r'd61481e7117867501bd37bdec0266ad353b9acb6';
 
 /// See also [availableUnits].
 @ProviderFor(availableUnits)
@@ -170,7 +170,7 @@ class AvailableUnitsFamily extends Family<AsyncValue<List<Unit>>> {
 
   /// See also [availableUnits].
   AvailableUnitsProvider call(
-    int houseId,
+    String houseId,
   ) {
     return AvailableUnitsProvider(
       houseId,
@@ -205,7 +205,7 @@ class AvailableUnitsFamily extends Family<AsyncValue<List<Unit>>> {
 class AvailableUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
   /// See also [availableUnits].
   AvailableUnitsProvider(
-    int houseId,
+    String houseId,
   ) : this._internal(
           (ref) => availableUnits(
             ref as AvailableUnitsRef,
@@ -233,7 +233,7 @@ class AvailableUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
     required this.houseId,
   }) : super.internal();
 
-  final int houseId;
+  final String houseId;
 
   @override
   Override overrideWith(
@@ -276,7 +276,7 @@ class AvailableUnitsProvider extends AutoDisposeFutureProvider<List<Unit>> {
 // ignore: unused_element
 mixin AvailableUnitsRef on AutoDisposeFutureProviderRef<List<Unit>> {
   /// The parameter `houseId` of this provider.
-  int get houseId;
+  String get houseId;
 }
 
 class _AvailableUnitsProviderElement
@@ -285,10 +285,10 @@ class _AvailableUnitsProviderElement
   _AvailableUnitsProviderElement(super.provider);
 
   @override
-  int get houseId => (origin as AvailableUnitsProvider).houseId;
+  String get houseId => (origin as AvailableUnitsProvider).houseId;
 }
 
-String _$houseStatsHash() => r'b0a353bcea1f57c08db69f9b633e1f07b5be2992';
+String _$houseStatsHash() => r'cebf3b7e6864aee21c9f725a1166fd37aa6e0d02';
 
 /// See also [houseStats].
 @ProviderFor(houseStats)
@@ -301,7 +301,7 @@ class HouseStatsFamily extends Family<AsyncValue<Map<String, dynamic>>> {
 
   /// See also [houseStats].
   HouseStatsProvider call(
-    int houseId,
+    String houseId,
   ) {
     return HouseStatsProvider(
       houseId,
@@ -337,7 +337,7 @@ class HouseStatsProvider
     extends AutoDisposeFutureProvider<Map<String, dynamic>> {
   /// See also [houseStats].
   HouseStatsProvider(
-    int houseId,
+    String houseId,
   ) : this._internal(
           (ref) => houseStats(
             ref as HouseStatsRef,
@@ -365,7 +365,7 @@ class HouseStatsProvider
     required this.houseId,
   }) : super.internal();
 
-  final int houseId;
+  final String houseId;
 
   @override
   Override overrideWith(
@@ -408,7 +408,7 @@ class HouseStatsProvider
 // ignore: unused_element
 mixin HouseStatsRef on AutoDisposeFutureProviderRef<Map<String, dynamic>> {
   /// The parameter `houseId` of this provider.
-  int get houseId;
+  String get houseId;
 }
 
 class _HouseStatsProviderElement
@@ -417,10 +417,10 @@ class _HouseStatsProviderElement
   _HouseStatsProviderElement(super.provider);
 
   @override
-  int get houseId => (origin as HouseStatsProvider).houseId;
+  String get houseId => (origin as HouseStatsProvider).houseId;
 }
 
-String _$houseControllerHash() => r'468485f8230206c1b77bc9c6aa27d9da32f9e914';
+String _$houseControllerHash() => r'056882118273f581aca0e8c27c30f053d7c4d082';
 
 /// See also [HouseController].
 @ProviderFor(HouseController)

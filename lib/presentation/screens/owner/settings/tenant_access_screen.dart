@@ -15,11 +15,17 @@ class TenantAccessScreen extends ConsumerStatefulWidget {
 }
 
 class _TenantAccessScreenState extends ConsumerState<TenantAccessScreen> {
-  final Map<int, bool> _visiblePasswords = {};
+  final Set<String> _hiddenTenantIds = {};
 
-  void _toggleVisibility(int id) {
+  Future<void> _toggleVisibility(String tenantId) async {
+    // Logic to toggle visibility
+    // e.g. ref.read(controller).toggle(tenantId);
     setState(() {
-      _visiblePasswords[id] = !(_visiblePasswords[id] ?? false);
+      if (_hiddenTenantIds.contains(tenantId)) {
+        _hiddenTenantIds.remove(tenantId);
+      } else {
+        _hiddenTenantIds.add(tenantId);
+      }
     });
   }
 
@@ -33,32 +39,28 @@ class _TenantAccessScreenState extends ConsumerState<TenantAccessScreen> {
 
   void _shareCredentials(Tenant tenant) {
     final email = tenant.email ?? 'Not Set';
-    final password = tenant.password ?? 'Not Set';
     
     final message = '''
 Hello ${tenant.name},
-Here are your login credentials for the RentPilot Tenant App:
+Here are your login credentials for the KirayaBook Tenant App:
 
 Email: $email
-Password: $password
 
-Please download the app and log in.
+Please download the app and use "Sign in with Google" or "Forgot Password" to set up your access.
 ''';
     Share.share(message);
   }
 
   void _shareViaWhatsApp(Tenant tenant) async {
     final email = tenant.email ?? 'Not Set';
-    final password = tenant.password ?? 'Not Set';
     
     final message = '''
 Hello ${tenant.name},
-Here are your login credentials for the RentPilot Tenant App:
+Here are your login credentials for the KirayaBook Tenant App:
 
 Email: $email
-Password: $password
 
-Please download the app and log in.
+Please download the app and use "Sign in with Google" or "Forgot Password" to set up your access.
 ''';
 
     final url = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(message)}");
@@ -126,9 +128,8 @@ Please download the app and log in.
   }
 
   Widget _buildTenantCard(Tenant tenant, ThemeData theme, bool isDark) {
-    final isPasswordVisible = _visiblePasswords[tenant.id] ?? false;
+    final isPasswordVisible = !_hiddenTenantIds.contains(tenant.id.toString());
     final email = tenant.email ?? 'N/A';
-    final password = tenant.password ?? 'N/A';
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -188,17 +189,6 @@ Please download the app and log in.
               onCopy: () => _copyToClipboard(email, 'Email'),
               theme: theme,
             ),
-            const SizedBox(height: 12),
-            _buildCredentialRow(
-              icon: Icons.lock_outline,
-              label: 'Password',
-              value: isPasswordVisible ? password : '••••••••',
-              isPassword: true,
-              isVisible: isPasswordVisible,
-              onToggleVisibility: () => _toggleVisibility(tenant.id),
-              onCopy: () => _copyToClipboard(password, 'Password'),
-              theme: theme,
-            ),
             
             const SizedBox(height: 16),
             Container(
@@ -209,7 +199,7 @@ Please download the app and log in.
                  borderRadius: BorderRadius.circular(8)
                ),
                child: Text(
-                 'To change password, delete and re-add tenant.',
+                 'Password is hidden for security. Tenant can use "Sign in with Google" or reset password if forgotten.',
                  textAlign: TextAlign.center,
                  style: GoogleFonts.outfit(fontSize: 11, color: theme.textTheme.bodySmall?.color),
                ),

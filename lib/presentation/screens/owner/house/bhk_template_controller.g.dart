@@ -7,7 +7,7 @@ part of 'bhk_template_controller.dart';
 // **************************************************************************
 
 String _$bhkTemplateControllerHash() =>
-    r'0f885aa3f81bf0c9377f3b78b212c9773e66e91d';
+    r'db277ed5d22cbfe62bd616a53433eaa744c31735';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -32,10 +32,10 @@ class _SystemHash {
 
 abstract class _$BhkTemplateController
     extends BuildlessAutoDisposeStreamNotifier<List<BhkTemplate>> {
-  late final int houseId;
+  late final String houseId;
 
   Stream<List<BhkTemplate>> build(
-    int houseId,
+    String houseId,
   );
 }
 
@@ -51,7 +51,7 @@ class BhkTemplateControllerFamily
 
   /// See also [BhkTemplateController].
   BhkTemplateControllerProvider call(
-    int houseId,
+    String houseId,
   ) {
     return BhkTemplateControllerProvider(
       houseId,
@@ -88,7 +88,7 @@ class BhkTemplateControllerProvider
         List<BhkTemplate>> {
   /// See also [BhkTemplateController].
   BhkTemplateControllerProvider(
-    int houseId,
+    String houseId,
   ) : this._internal(
           () => BhkTemplateController()..houseId = houseId,
           from: bhkTemplateControllerProvider,
@@ -113,7 +113,7 @@ class BhkTemplateControllerProvider
     required this.houseId,
   }) : super.internal();
 
-  final int houseId;
+  final String houseId;
 
   @override
   Stream<List<BhkTemplate>> runNotifierBuild(
@@ -165,7 +165,7 @@ class BhkTemplateControllerProvider
 mixin BhkTemplateControllerRef
     on AutoDisposeStreamNotifierProviderRef<List<BhkTemplate>> {
   /// The parameter `houseId` of this provider.
-  int get houseId;
+  String get houseId;
 }
 
 class _BhkTemplateControllerProviderElement
@@ -174,7 +174,7 @@ class _BhkTemplateControllerProviderElement
   _BhkTemplateControllerProviderElement(super.provider);
 
   @override
-  int get houseId => (origin as BhkTemplateControllerProvider).houseId;
+  String get houseId => (origin as BhkTemplateControllerProvider).houseId;
 }
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

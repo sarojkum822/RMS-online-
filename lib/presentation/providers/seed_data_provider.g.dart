@@ -6,7 +6,7 @@ part of 'seed_data_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$seedDataHash() => r'6c6e1e18e53fc310f54a993042c36d39280bf163';
+String _$seedDataHash() => r'6c09c585a2e1dc45ba9a4889f90e7ebfc9bf988b';
 
 /// See also [seedData].
 @ProviderFor(seedData)

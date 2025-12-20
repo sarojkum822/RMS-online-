@@ -2,12 +2,13 @@ import 'dart:convert'; // NEW
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart'; // NEW
+// Removed unused import: image_picker
 import '../../../../../domain/entities/house.dart';
 import '../../../../../core/utils/dialog_utils.dart'; // NEW
 import '../../../../providers/data_providers.dart';
 import '../bhk_template_controller.dart';
 import '../house_controller.dart';
+import '../../rent/rent_controller.dart'; // For latestReadingProvider
 
 class UnitListTile extends ConsumerStatefulWidget {
   final Unit unit;
@@ -22,8 +23,10 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
   // Controllers
   late TextEditingController _baseRentCtrl;
   late TextEditingController _carpetAreaCtrl;
+  late TextEditingController _parkingCtrl;
+  late TextEditingController _meterCtrl;
   
-  int? _selectedBhkTemplateId;
+  String? _selectedBhkTemplateId;
   String? _selectedBhkType;
   String? _furnishingStatus;
   
@@ -35,6 +38,8 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
     super.initState();
     _baseRentCtrl = TextEditingController(text: widget.unit.baseRent.toString());
     _carpetAreaCtrl = TextEditingController(text: widget.unit.carpetArea?.toString() ?? '');
+    _parkingCtrl = TextEditingController(text: widget.unit.parkingSlot ?? '');
+    _meterCtrl = TextEditingController(text: widget.unit.meterNumber ?? '');
     
     _selectedBhkTemplateId = widget.unit.bhkTemplateId;
     _selectedBhkType = widget.unit.bhkType;
@@ -51,6 +56,9 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
        if (!_isExpanded) {
           _baseRentCtrl.text = widget.unit.baseRent.toString();
           _carpetAreaCtrl.text = widget.unit.carpetArea?.toString() ?? '';
+          _parkingCtrl.text = widget.unit.parkingSlot ?? '';
+          _meterCtrl.text = widget.unit.meterNumber ?? '';
+          
           _selectedBhkTemplateId = widget.unit.bhkTemplateId;
           _selectedBhkType = widget.unit.bhkType;
           _furnishingStatus = widget.unit.furnishingStatus;
@@ -62,6 +70,8 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
   void dispose() {
     _baseRentCtrl.dispose();
     _carpetAreaCtrl.dispose();
+    _parkingCtrl.dispose();
+    _meterCtrl.dispose();
     super.dispose();
   }
 
@@ -70,6 +80,9 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
     final bhkTemplatesAsync = ref.watch(bhkTemplateControllerProvider(widget.unit.houseId));
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    
+    // Watch latest meter reading for this unit
+    final latestReadingAsync = ref.watch(latestReadingProvider(widget.unit.id));
 
     return Container(
       decoration: BoxDecoration(
@@ -87,13 +100,41 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           shape: const Border(), // Remove borders when expanded
-          leading: _buildLeadingPreview(context), // NEW: Thumbnail
+          leading: _buildLeadingPreview(context), // Thumbnail
           title: Text(widget.unit.nameOrNumber, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: theme.textTheme.titleMedium?.color)),
-          subtitle: _buildSubtitle(theme),
+          subtitle: Text(
+            '₹${widget.unit.baseRent.toStringAsFixed(0)}',
+            style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 13),
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.edit, size: 20, color: theme.iconTheme.color),
+              // Occupied/Vacant Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: widget.unit.isOccupied 
+                      ? const Color(0xFFE8F5E9) // Light green
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: widget.unit.isOccupied 
+                        ? const Color(0xFF4CAF50) 
+                        : Colors.grey.shade400,
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  widget.unit.isOccupied ? 'Occupied' : 'Vacant',
+                  style: GoogleFonts.outfit(
+                    color: widget.unit.isOccupied 
+                        ? const Color(0xFF2E7D32) 
+                        : Colors.grey.shade600,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
             ],
           ),
           onExpansionChanged: (expanded) {
@@ -108,15 +149,15 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
             
             // BHK Dropdown
             bhkTemplatesAsync.when(
-              data: (templates) => DropdownButtonFormField<int>(
-                   initialValue: _selectedBhkTemplateId,
+              data: (templates) => DropdownButtonFormField<String>(
+                   value: _selectedBhkTemplateId,
                    dropdownColor: theme.cardColor,
                    decoration: const InputDecoration(
                      labelText: 'BHK Type',
                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                      border: OutlineInputBorder(),
                    ),
-                   items: templates.map((t) => DropdownMenuItem(
+                   items: templates.map((t) => DropdownMenuItem<String>(
                      value: t.id,
                      child: Text('${t.bhkType} (₹${t.defaultRent})', style: TextStyle(color: theme.textTheme.bodyLarge?.color)),
                    )).toList(),
@@ -161,10 +202,67 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
             ),
             
             const SizedBox(height: 12),
+
+            // Parking & Meter Row
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _parkingCtrl,
+                    decoration: const InputDecoration(labelText: 'Parking Slot', border: OutlineInputBorder()),
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _meterCtrl,
+                    decoration: const InputDecoration(labelText: 'Meter Number', border: OutlineInputBorder()),
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Last Meter Reading Display
+            latestReadingAsync.when(
+              data: (reading) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.amber.withValues(alpha: 0.1) : Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.amber.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.flash_on, color: Colors.amber.shade700, size: 20),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Last Meter Reading', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                          Text(
+                            reading != null ? '${reading.toStringAsFixed(1)} units' : 'N/A', 
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14, color: theme.textTheme.bodyLarge?.color),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+            
+            const SizedBox(height: 12),
             
             // Furnishing
             DropdownButtonFormField<String>(
-              initialValue: _furnishingStatus,
+              value: _furnishingStatus,
               dropdownColor: theme.cardColor,
               decoration: const InputDecoration(labelText: 'Furnishing', border: OutlineInputBorder()),
               items: ['Unfurnished', 'Semi-Furnished', 'Fully-Furnished']
@@ -174,30 +272,147 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
             
             const SizedBox(height: 16),
             
+            // Save Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _save,
-                style: ElevatedButton.styleFrom(backgroundColor: theme.colorScheme.primary, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary, 
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 child: _isSaving 
                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
                    : const Text('Save Changes'),
               ),
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Duplicate & Delete Unit Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () => _duplicateUnit(context),
+                    icon: Icon(Icons.copy, size: 18, color: theme.colorScheme.primary),
+                    label: Text('Duplicate Unit', style: GoogleFonts.outfit(color: theme.colorScheme.primary, fontWeight: FontWeight.w500)),
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                  ),
+                ),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () => _deleteUnit(context),
+                    icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    label: Text('Delete Unit', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.w500)),
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildSubtitle(ThemeData theme) {
-    final parts = [
-      if(widget.unit.bhkType != null) widget.unit.bhkType!,
-      if(widget.unit.furnishingStatus != null) widget.unit.furnishingStatus!,
-      '₹${widget.unit.baseRent.toStringAsFixed(0)}',
-    ];
-    return Text(parts.join(' • '), style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 13));
+  
+  Future<void> _duplicateUnit(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Duplicate Unit'),
+        content: Text('Create a copy of "${widget.unit.nameOrNumber}" with the same settings?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Duplicate'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm == true && mounted) {
+      try {
+        await DialogUtils.runWithLoading(context, () async {
+          // Get existing units using the provider
+          final existingUnits = ref.read(houseUnitsProvider(widget.unit.houseId)).valueOrNull ?? [];
+          
+          // Generate new unit name (append copy number)
+          final baseName = widget.unit.nameOrNumber.replaceAll(RegExp(r'\s*\(Copy.*\)'), '');
+          int copyNum = 1;
+          String newName = '$baseName (Copy)';
+          while (existingUnits.any((u) => u.nameOrNumber == newName)) {
+            copyNum++;
+            newName = '$baseName (Copy $copyNum)';
+          }
+          
+          // Create duplicate unit (without occupied status)
+          await ref.read(houseControllerProvider.notifier).addUnit(
+            widget.unit.houseId,
+            newName,
+            baseRent: widget.unit.baseRent,
+            bhkTemplateId: widget.unit.bhkTemplateId,
+            bhkType: widget.unit.bhkType,
+          );
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unit duplicated successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
   }
+  
+  Future<void> _deleteUnit(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Unit'),
+        content: Text('Are you sure you want to delete "${widget.unit.nameOrNumber}"? This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm == true && mounted) {
+      try {
+        await DialogUtils.runWithLoading(context, () async {
+          await ref.read(houseControllerProvider.notifier).deleteUnit(widget.unit.id);
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unit deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  // Note: Subtitle is now inline in the build method
 
   Future<void> _save() async {
     setState(() => _isSaving = true);
@@ -210,6 +425,8 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
         bhkType: _selectedBhkType,
         furnishingStatus: _furnishingStatus,
         carpetArea: double.tryParse(_carpetAreaCtrl.text),
+        parkingSlot: _parkingCtrl.text.trim().isEmpty ? null : _parkingCtrl.text.trim(),
+        meterNumber: _meterCtrl.text.trim().isEmpty ? null : _meterCtrl.text.trim(),
       );
       
       await repo.updateUnit(updatedUnit);
@@ -242,9 +459,9 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         clipBehavior: Clip.antiAlias,
         child: previewData != null

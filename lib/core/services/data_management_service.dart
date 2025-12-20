@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import '../constants/firebase_collections.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 class DataManagementService {
   final FirebaseFirestore _firestore;
@@ -12,7 +14,7 @@ class DataManagementService {
   Future<void> resetAllData(String uid) async {
     // 1. Delete Tenant Auth Accounts FIRST
     try {
-      final tenantSnapshot = await _firestore.collection('tenants')
+      final tenantSnapshot = await _firestore.collection(FirebaseCollections.tenants)
           .where('ownerId', isEqualTo: uid)
           .get();
 
@@ -22,7 +24,10 @@ class DataManagementService {
         final password = data['password'] as String?;
         
         if (email != null && password != null && email.isNotEmpty && password.isNotEmpty) {
-           await _deleteTenantAuth(email, password);
+           final rawPassword = _decryptPassword(password);
+           if (rawPassword != null) {
+              await _deleteTenantAuth(email, rawPassword);
+           }
         }
       }
     } catch (e) {
@@ -31,16 +36,25 @@ class DataManagementService {
     }
 
     final collections = [
-      'houses', 
-      'units',
-      'bhkTemplates',
-      'tenants',
+      // New Collections
+      FirebaseCollections.properties, 
+      FirebaseCollections.units,
+      FirebaseCollections.bhkTemplates,
+      FirebaseCollections.tenants,
+      FirebaseCollections.contracts, 
+      FirebaseCollections.invoices,
+      FirebaseCollections.transactions, 
+      FirebaseCollections.expenses,
+      FirebaseCollections.electricReadings,
+      FirebaseCollections.tickets,
+      'notices',
+      
+      // Old Collections (Legacy cleanup)
+      'houses',
+      'tenancies',
       'rent_cycles',
       'payments',
-      'expenses',
-      'electric_readings',
       'maintenance',
-      'notices',
     ];
 
     for (final collection in collections) {
@@ -105,4 +119,20 @@ class DataManagementService {
     // Double Check: Verify if any documents remain?
     // Usually not needed if commit succeeds.
   }
+
+  // --- Encryption Helpers (Must match TenantRepositoryImpl) ---
+  final _key = encrypt.Key.fromUtf8('KirayaBookProSecretKey32CharsLong'); 
+  final _iv = encrypt.IV.fromUtf8('KirayaBookProIV16'); 
+
+  String? _decryptPassword(String? encryptedPassword) {
+    if (encryptedPassword == null || encryptedPassword.isEmpty) return null;
+    try {
+      final encrypter = encrypt.Encrypter(encrypt.AES(_key));
+      return encrypter.decrypt64(encryptedPassword, iv: _iv);
+    } catch (e) {
+      // Maybe it wasn't encrypted? Or key mismatch.
+      return encryptedPassword;
+    }
+  }
 }
+
