@@ -6,7 +6,6 @@ import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
 import '../../owner/tenant/tenant_controller.dart';
-import '../../owner/house/house_controller.dart';
 import 'package:go_router/go_router.dart';
 
 class TenantProfileDocsView extends ConsumerWidget {
@@ -16,7 +15,6 @@ class TenantProfileDocsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final ownerId = tenant.ownerId;
     
     final tenancyAsync = ref.watch(activeTenancyForTenantAccessProvider(tenant.id, ownerId));

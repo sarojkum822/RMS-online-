@@ -14,8 +14,6 @@ class SnackbarUtils {
   }
 
   static void _show(BuildContext context, String message, {required bool isError}) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     
     // Clear current snackbars to avoid stacking
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -23,19 +21,23 @@ class SnackbarUtils {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
+          mainAxisSize: MainAxisSize.min, // Added
           children: [
             Icon(
               isError ? Icons.error_outline : Icons.check_circle_outline,
               color: Colors.white,
+              size: 20, // Slightly smaller for better fit
             ),
-            const SizedBox(width: 12),
-            Expanded(
+            const SizedBox(width: 8), // Reduced spacing
+            Flexible( // Changed from Expanded for better shrinking
               child: Text(
                 message,
+                maxLines: 2, // Added safety limit
+                overflow: TextOverflow.ellipsis, // Added
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
-                  fontSize: 14,
+                  fontSize: 13, // Slightly smaller for better fit
                 ),
               ),
             ),
@@ -48,11 +50,16 @@ class SnackbarUtils {
         elevation: 4,
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 2),
+        dismissDirection: DismissDirection.horizontal,
         action: SnackBarAction(
           label: 'DISMISS',
           textColor: Colors.white,
-          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+          onPressed: () {
+             try {
+                ScaffoldMessenger.of(context).removeCurrentSnackBar();
+             } catch (_) {}
+          },
         ),
       ),
     );

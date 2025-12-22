@@ -1,22 +1,25 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import '../../../core/extensions/maintenance_extensions.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:kirayabook/presentation/providers/data_providers.dart';
 import '../../../domain/entities/maintenance_request.dart';
 
-class MaintenanceDetailScreen extends StatelessWidget {
+class MaintenanceDetailScreen extends ConsumerWidget {
   final MaintenanceRequest request;
 
   const MaintenanceDetailScreen({super.key, required this.request});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Repair Details', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text('tenant.maintenance_details'.tr(), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
       ),
@@ -30,20 +33,20 @@ class MaintenanceDetailScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _getStatusColor(request.status).withValues(alpha: 0.1),
+                color: request.status.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: _getStatusColor(request.status).withValues(alpha: 0.2)),
+                border: Border.all(color: request.status.color.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [
-                  Icon(_getCategoryIcon(request.category), color: _getStatusColor(request.status), size: 40),
+                  Icon(request.category.maintenanceCategoryIcon, color: request.status.color, size: 40),
                   const SizedBox(height: 12),
                   Text(
-                    request.status.name.toUpperCase(),
+                    request.status.label.toUpperCase(),
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: _getStatusColor(request.status),
+                      color: request.status.color,
                     ),
                   ),
                   Text(
@@ -57,16 +60,15 @@ class MaintenanceDetailScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             // Timeline
-            Text('Status Timeline', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('tenant.status_timeline'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             _buildTimeline(theme),
 
             const SizedBox(height: 32),
 
-            // Description Section
             _buildSection(
               theme,
-              'Issue Description',
+              'tenant.issue_description_label'.tr(),
               request.description,
               Icons.description_outlined,
             ),
@@ -75,7 +77,7 @@ class MaintenanceDetailScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _buildSection(
                 theme,
-                'Owner Resolution',
+                'tenant.owner_resolution'.tr(),
                 request.resolutionNotes!,
                 Icons.check_circle_outline_rounded,
                 color: Colors.green,
@@ -89,12 +91,21 @@ class MaintenanceDetailScreen extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: OutlinedButton.icon(
-                onPressed: () {
-                   // Placeholder for contact owner
-                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact feature coming soon!')));
+                onPressed: () async {
+                   final owner = await ref.read(ownerByIdProvider(request.ownerId).future);
+                   if (owner?.phone != null) {
+                      final uri = Uri.parse('tel:${owner!.phone}');
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      }
+                   } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Owner contact not available')));
+                      }
+                   }
                 },
-                icon: const Icon(Icons.chat_bubble_outline_rounded),
-                label: const Text('Contact Owner about this request'),
+                icon: const Icon(Icons.call_outlined),
+                label: Text('tenant.contact_owner'.tr()),
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
@@ -125,7 +136,7 @@ class MaintenanceDetailScreen extends StatelessWidget {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: isCompleted ? _getStatusColor(s) : theme.dividerColor,
+                    color: isCompleted ? s.color : theme.dividerColor,
                     shape: BoxShape.circle,
                   ),
                   child: isCompleted 
@@ -136,7 +147,7 @@ class MaintenanceDetailScreen extends StatelessWidget {
                   Container(
                     width: 2,
                     height: 40,
-                    color: isCompleted ? _getStatusColor(s) : theme.dividerColor,
+                    color: isCompleted ? s.color : theme.dividerColor,
                   ),
               ],
             ),
@@ -146,7 +157,7 @@ class MaintenanceDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _getStatusLabel(s),
+                    s.label,
                     style: GoogleFonts.outfit(
                       fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
                       color: isCompleted ? theme.textTheme.bodyLarge?.color : theme.textTheme.bodySmall?.color,
@@ -154,7 +165,7 @@ class MaintenanceDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _getStatusDescription(s),
+                    s.description,
                     style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
                   ),
                 ],
@@ -190,39 +201,5 @@ class MaintenanceDetailScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  IconData _getCategoryIcon(String cat) {
-    if (cat.contains('Plumb')) return Icons.water_drop;
-    if (cat.contains('Electr')) return Icons.electric_bolt;
-    if (cat.contains('Appliance')) return Icons.kitchen;
-    return Icons.build;
-  }
-
-  Color _getStatusColor(MaintenanceStatus status) {
-    switch(status) {
-      case MaintenanceStatus.pending: return Colors.orange;
-      case MaintenanceStatus.inProgress: return Colors.blue;
-      case MaintenanceStatus.completed: return Colors.green;
-      case MaintenanceStatus.rejected: return Colors.red;
-    }
-  }
-
-  String _getStatusLabel(MaintenanceStatus s) {
-    switch(s) {
-      case MaintenanceStatus.pending: return 'Request Received';
-      case MaintenanceStatus.inProgress: return 'In Progress';
-      case MaintenanceStatus.completed: return 'Resolved';
-      case MaintenanceStatus.rejected: return 'Rejected / Closed';
-    }
-  }
-
-  String _getStatusDescription(MaintenanceStatus s) {
-    switch(s) {
-      case MaintenanceStatus.pending: return 'The owner has been notified of your request.';
-      case MaintenanceStatus.inProgress: return 'A technician or contractor has been assigned.';
-      case MaintenanceStatus.completed: return 'The issue has been marked as fixed.';
-      case MaintenanceStatus.rejected: return 'The request could not be fulfilled at this time.';
-    }
   }
 }

@@ -38,6 +38,39 @@ class OwnerRepositoryImpl implements IOwnerRepository {
     }
   }
 
+  /// Check if an email is registered as an owner (for tenant email uniqueness)
+  Future<bool> isEmailRegisteredAsOwner(String email) async {
+    try {
+      final snapshot = await _firestore
+          .collection('owners')
+          .where('email', isEqualTo: email.toLowerCase())
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 10));
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking owner email: $e');
+      return false; // Fail-safe: allow if we can't check
+    }
+  }
+
+  /// Check if a phone number is registered as an owner (for global phone uniqueness)
+  Future<bool> isPhoneRegisteredAsOwner(String phone) async {
+    try {
+      final normalizedPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      final snapshot = await _firestore
+          .collection('owners')
+          .where('phone', isEqualTo: normalizedPhone)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 10));
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error checking owner phone: $e');
+      return false; // Fail-safe: allow if we can't check
+    }
+  }
+
 
   @override
   Future<void> saveOwner(Owner owner) async {

@@ -9,6 +9,7 @@ import '../../../../domain/entities/house.dart';
 import '../../../../core/extensions/string_extensions.dart';
 import '../../../../presentation/providers/data_providers.dart'; // storageServiceProvider
 import '../settings/owner_controller.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 
 class HouseFormScreen extends ConsumerStatefulWidget {
   final House? house; // Optional for Edit
@@ -116,13 +117,13 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
             imageBase64: imageBase64,
           );
         }
-        if (mounted) context.pop();
+        if (mounted) {
+          SnackbarUtils.showSuccess(context, widget.house != null ? 'Property updated successfully' : 'Property created successfully');
+          context.pop();
+        }
       } catch (e) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-             content: Text('Error: ${e.toString().replaceAll("Exception: ", "")}'),
-             backgroundColor: Colors.red,
-           ));
+          SnackbarUtils.showError(context, e.toString().replaceAll('Exception: ', ''));
         }
       } finally {
         if (mounted) setState(() => _isLoading = false);

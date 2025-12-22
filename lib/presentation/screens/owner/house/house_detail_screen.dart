@@ -1,12 +1,11 @@
-import 'dart:convert'; // NEW
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart'; // NEW: For photo upload
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../domain/entities/house.dart';
 import 'house_controller.dart';
-import 'bhk_template_screen.dart'; // Import
+import 'bhk_template_screen.dart';
 
 import 'widgets/unit_list_tile.dart';
 import 'bhk_template_controller.dart'; 
@@ -14,10 +13,10 @@ import '../../../../domain/entities/bhk_template.dart';
 import '../../../../core/utils/dialog_utils.dart'; 
 
 import 'package:kirayabook/presentation/providers/data_providers.dart';
-import '../../notice/notice_controller.dart'; 
+import '../../notice/widgets/broadcast_center_sheet.dart';
 import 'package:kirayabook/presentation/screens/notice/notice_history_screen.dart';
-import 'package:go_router/go_router.dart'; // Added
-import '../settings/owner_controller.dart'; // Added
+import 'package:go_router/go_router.dart';
+import '../settings/owner_controller.dart';
 import 'package:kirayabook/presentation/widgets/empty_state_widget.dart';
 import '../../../../core/utils/currency_utils.dart';
 
@@ -41,228 +40,17 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
   String? _bulkFurnishing;
 
   void _showBroadcastDialog() {
-    final titleController = TextEditingController();
-    final msgController = TextEditingController();
-    String selectedPriority = 'medium';
-    
-    showGeneralDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Dismiss',
-      barrierColor: Colors.black.withValues(alpha: 0.5),
-      transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (ctx, anim1, anim2) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final theme = Theme.of(context);
-            // Glass Dialog Container
-            return Center(
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.85,
-                margin: const EdgeInsets.only(bottom: 40), // Keyboard spacing
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.95), // High opacity for readability
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      blurRadius: 40,
-                      offset: const Offset(0, 20),
-                    )
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: SingleChildScrollView( // Fix Overflow
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade50,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.campaign_outlined, color: Colors.orange, size: 24),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Broadcast Notice',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.textTheme.titleLarge?.color
-                                    ),
-                                  ),
-                                  Text(
-                                    'To: ${widget.house.name}',
-                                    style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                                    maxLines: 1, 
-                                    overflow: TextOverflow.ellipsis
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 24),
-                  
-                        // Subject Input
-                        TextFormField(
-                          controller: titleController,
-                          textCapitalization: TextCapitalization.sentences,
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
-                          decoration: InputDecoration(
-                            labelText: 'Subject',
-                            hintText: 'e.g. Water Tank Cleaning',
-                            filled: true,
-                            fillColor: theme.scaffoldBackgroundColor,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            labelStyle: GoogleFonts.outfit(color: Colors.grey),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Message Input
-                        TextFormField(
-                          controller: msgController,
-                          textCapitalization: TextCapitalization.sentences,
-                          maxLines: 4,
-                          style: GoogleFonts.outfit(),
-                          decoration: InputDecoration(
-                            labelText: 'Message',
-                            hintText: 'Enter all details...',
-                            filled: true,
-                            fillColor: theme.scaffoldBackgroundColor,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            alignLabelWithHint: true,
-                            labelStyle: GoogleFonts.outfit(color: Colors.grey),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Priority Selector
-                        Text('Priority Level', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey[700])),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            _buildGlassPriorityChip('High', 'high', Colors.red, selectedPriority, (val) => setDialogState(() => selectedPriority = val)),
-                            const SizedBox(width: 8),
-                            _buildGlassPriorityChip('Medium', 'medium', Colors.orange, selectedPriority, (val) => setDialogState(() => selectedPriority = val)),
-                            const SizedBox(width: 8),
-                            _buildGlassPriorityChip('Low', 'low', Colors.green, selectedPriority, (val) => setDialogState(() => selectedPriority = val)),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 32),
-                        
-                        // Actions
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: Text('Cancel', style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  if (titleController.text.isNotEmpty && msgController.text.isNotEmpty) {
-                                     Navigator.pop(ctx);
-                                     final user = ref.read(userSessionServiceProvider).currentUser;
-                                     if (user == null) return;
-                                     
-                                     await DialogUtils.runWithLoading(context, () async {
-                                        await ref.read(noticeControllerProvider.notifier).sendNotice(
-                                          houseId: widget.house.id.toString(),
-                                          ownerId: user.uid,
-                                          subject: titleController.text.trim(),
-                                          message: msgController.text.trim(),
-                                          priority: selectedPriority,
-                                        );
-                                     });
-                                     if (context.mounted) {
-                                       ScaffoldMessenger.of(context).showSnackBar(
-                                         const SnackBar(content: Text('Notice Broadcasted Successfully!'), backgroundColor: Colors.green)
-                                       );
-                                     }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: theme.colorScheme.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  elevation: 0,
-                                ),
-                                child: Text('Broadcast', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }
-        );
-      },
-      transitionBuilder: (ctx, anim1, anim2, child) {
-        return ScaleTransition(
-          scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack), // Nice bounce
-          child: child,
-        );
-      },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BroadcastCenterSheet(initialHouseId: widget.house.id),
     );
   }
-  
-  Widget _buildGlassPriorityChip(String label, String value, Color color, String current, Function(String) onSelect) {
-    final isSelected = current == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => onSelect(value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: isSelected ? 1.5 : 1),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: isSelected ? color : Colors.grey.shade600,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              fontSize: 13
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
+
+
+  // Legacy code removed - using BroadcastCenterSheet.
 
 
 
@@ -298,28 +86,6 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
               color: theme.textTheme.bodyMedium?.color,
             ),
           ),
-          // Notification Icon
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-             decoration: BoxDecoration(
-              color: theme.cardColor,
-              shape: BoxShape.circle,
-               boxShadow: [
-                 BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-              ]
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.notifications_none, size: 22),
-              tooltip: 'Notifications',
-              onPressed: () {
-                 Navigator.push(context, MaterialPageRoute(builder: (_) => NoticeHistoryScreen(
-                   houseId: widget.house.id.toString(),
-                   ownerId: ref.read(userSessionServiceProvider).currentUser?.uid ?? '',
-                 )));
-              },
-               color: theme.textTheme.bodyMedium?.color,
-            ),
-          ),
         ],
         backgroundColor: Colors.transparent,
       ),
@@ -352,11 +118,15 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
               children: [
                 Icon(Icons.location_on_outlined, size: 16, color: theme.colorScheme.primary),
                 const SizedBox(width: 4),
-                Text(
-                  widget.house.address,
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                Expanded(
+                  child: Text(
+                    widget.house.address,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -466,6 +236,40 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                  loading: () => const Center(child: CircularProgressIndicator()),
                  error: (e, s) => Text('Error: $e', style: TextStyle(color: theme.colorScheme.error)),
                ),
+
+              // Communications Section
+              const SizedBox(height: 32),
+              Text('Communications', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildCommChip(
+                      context: context,
+                      icon: Icons.campaign_outlined,
+                      label: 'Notices',
+                      color: Colors.blue,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => NoticeHistoryScreen(
+                          houseId: widget.house.id.toString(),
+                          ownerId: ref.read(userSessionServiceProvider).currentUser?.uid ?? '',
+                        ),
+                      )),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildCommChip(
+                      context: context,
+                      icon: Icons.build_outlined,
+                      label: 'Maintenance',
+                      color: Colors.orange,
+                      onTap: () => context.push('/maintenance'),
+                    ),
+                  ),
+                ],
+              ),
+
               
               const SizedBox(height: 80), // Fab spacing
           ],
@@ -691,7 +495,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                     data: (templates) {
                       if (templates.isEmpty) return const SizedBox.shrink();
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(labelText: 'BHK Type', border: OutlineInputBorder()),
                         items: templates.map((t) => DropdownMenuItem<String>(value: t.id, child: Text('${t.bhkType} - ₹${t.defaultRent}'))).toList(),
                         onChanged: (val) {
@@ -738,7 +542,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                     children: [
                        DropdownButtonFormField<String>(
                          decoration: const InputDecoration(labelText: 'Furnishing Status', border: OutlineInputBorder()),
-                         value: furnishingStatus,
+                         initialValue: furnishingStatus,
                          items: ['Unfurnished', 'Semi-Furnished', 'Fully Furnished']
                              .map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.outfit(fontSize: 14))))
                              .toList(),
@@ -886,7 +690,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                     data: (templates) {
                       if (templates.isEmpty) return const SizedBox.shrink();
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(labelText: 'BHK Type', border: OutlineInputBorder()),
                         items: templates.map((t) => DropdownMenuItem<String>(value: t.id, child: Text(t.bhkType))).toList(),
                         onChanged: (val) {
@@ -1181,7 +985,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                       ];
                       
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(labelText: 'BHK Type', border: OutlineInputBorder()),
                         items: items,
                         onChanged: (val) {
@@ -1482,7 +1286,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                         );
                       }
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(
                           labelText: 'BHK Type (Optional)',
                           border: OutlineInputBorder(),
@@ -1618,7 +1422,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
            
            templatesAsync.when(
               data: (templates) => DropdownButtonFormField<String>(
-                   value: _bulkBhkTemplateId,
+                   initialValue: _bulkBhkTemplateId,
                    decoration: InputDecoration(
                      labelText: 'Select BHK Type', 
                      border: const OutlineInputBorder(), 
@@ -1752,6 +1556,56 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
   }
 }
 
+
+  Widget _buildCommChip({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label, 
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: theme.hintColor, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 class _GlassStat extends StatelessWidget {
   final String label;
   final String value;
@@ -1804,12 +1658,16 @@ class _GlassStat extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
           ),
            const SizedBox(height: 4),
@@ -1819,9 +1677,13 @@ class _GlassStat extends StatelessWidget {
                children: [
                  Icon(Icons.trending_up, size: 14, color: color),
                  const SizedBox(width: 4),
-                 Text(
-                   'Stable', 
-                   style: GoogleFonts.outfit(fontSize: 10, color: color, fontWeight: FontWeight.bold)
+                 Flexible(
+                   child: Text(
+                     'Stable', 
+                     style: GoogleFonts.outfit(fontSize: 10, color: color, fontWeight: FontWeight.bold),
+                     maxLines: 1,
+                     overflow: TextOverflow.ellipsis,
+                   ),
                  )
                ],
              )

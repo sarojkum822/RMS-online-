@@ -1,11 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:encrypt/encrypt.dart' as encrypt;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../../domain/entities/tenant.dart' as domain;
 import '../../domain/repositories/i_tenant_repository.dart';
@@ -17,20 +15,11 @@ import '../../core/constants/firebase_collections.dart'; // Import Constants
 class TenantRepositoryImpl implements ITenantRepository {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
-  final FirebaseStorage _storage;
-  final encrypt.Key _key;
-  final encrypt.IV _iv;
 
   TenantRepositoryImpl(
     this._firestore, {
     FirebaseAuth? auth,
-    FirebaseStorage? storage,
-    String? encryptionKey,
-    String? encryptionIv,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _storage = storage ?? FirebaseStorage.instance,
-        _key = encrypt.Key.fromUtf8(encryptionKey ?? 'KirayaBookProSecretKey32CharsLong'),
-        _iv = encrypt.IV.fromUtf8(encryptionIv ?? 'KirayaBookProIV16');
+  })  : _auth = auth ?? FirebaseAuth.instance;
 
   String? get _uid => _auth.currentUser?.uid;
 
@@ -142,6 +131,34 @@ class TenantRepositoryImpl implements ITenantRepository {
 
     if (duplicateSnapshot.docs.isNotEmpty) {
       throw Exception('A tenant with this email already exists.');
+    }
+
+    // GLOBAL PHONE UNIQUENESS: Check if phone exists in ANY tenant (across all owners)
+    if (tenant.phone.isNotEmpty) {
+      final normalizedPhone = tenant.phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      
+      // Check across ALL tenants (global uniqueness)
+      final phoneInTenants = await _firestore.collection(FirebaseCollections.tenants)
+          .where('phone', isEqualTo: normalizedPhone)
+          .where('isDeleted', isEqualTo: false)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 10));
+
+      if (phoneInTenants.docs.isNotEmpty) {
+        throw Exception('This phone number is already registered with another tenant.');
+      }
+
+      // Check across ALL owners (global uniqueness)
+      final phoneInOwners = await _firestore.collection('owners')
+          .where('phone', isEqualTo: normalizedPhone)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 10));
+
+      if (phoneInOwners.docs.isNotEmpty) {
+        throw Exception('This phone number is already registered with an owner account.');
+      }
     }
     
     // Use the ID passed from the controller (ensures consistency with contract)

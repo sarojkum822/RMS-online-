@@ -75,14 +75,7 @@ IPropertyRepository propertyRepository(PropertyRepositoryRef ref) {
 @Riverpod(keepAlive: true)
 ITenantRepository tenantRepository(TenantRepositoryRef ref) {
   final firestore = ref.watch(firestoreProvider);
-  const key = String.fromEnvironment('ENCRYPTION_KEY', defaultValue: 'KirayaBookProSecretKey32CharsLong');
-  const iv = String.fromEnvironment('ENCRYPTION_IV', defaultValue: 'KirayaBookProIV16');
-  
-  return TenantRepositoryImpl(
-    firestore,
-    encryptionKey: key,
-    encryptionIv: iv,
-  );
+  return TenantRepositoryImpl(firestore);
 }
 
 @Riverpod(keepAlive: true)
@@ -132,7 +125,7 @@ final biometricServiceProvider = Provider<BiometricService>((ref) {
 final userSessionServiceProvider = Provider<UserSessionService>((ref) {
   final firestore = ref.watch(firestoreProvider);
   final notificationService = ref.watch(notificationServiceProvider);
-  return UserSessionService(firestore: firestore, notificationService: notificationService);
+  return UserSessionService(notificationService: notificationService);
 });
 
 final dataManagementServiceProvider = Provider<DataManagementService>((ref) {
@@ -168,6 +161,12 @@ final unitDetailsProvider = FutureProvider.family<Unit?, String>((ref, unitId) a
   return repo.getUnit(unitId);
 });
 
+// House Details Provider
+final houseDetailsProvider = FutureProvider.family<House?, String>((ref, houseId) async {
+  final repo = ref.watch(propertyRepositoryProvider);
+  return repo.getHouse(houseId);
+});
+
 // Unit Details Provider for Tenant Access
 final unitDetailsForTenantProvider = FutureProvider.family<Unit?, ({String unitId, String ownerId}) >((ref, arg) async {
   final repo = ref.watch(propertyRepositoryProvider);
@@ -184,7 +183,20 @@ final noticesForHouseProvider = StreamProvider.family<List<Notice>, ({String hou
   return repo.watchNoticesForHouse(arg.houseId, arg.ownerId);
 });
 
+/// Notices provider for tenant dashboard - includes global, house, and unit-level broadcasts
+final noticesForTenantProvider = StreamProvider.family<List<Notice>, ({String houseId, String? unitId, String ownerId}) >((ref, arg) {
+  final repo = ref.watch(noticeRepositoryProvider);
+  return repo.watchNoticesForTenant(arg.houseId, arg.unitId, arg.ownerId);
+});
+
+/// ALL notices for owner - unified history view (used in BroadcastCenterSheet History tab)
+final allOwnerNoticesProvider = StreamProvider.family<List<Notice>, String>((ref, ownerId) {
+  final repo = ref.watch(noticeRepositoryProvider);
+  return repo.watchNoticesForOwner(ownerId);
+});
+
 final databaseMigrationServiceProvider = Provider<DatabaseMigrationService>((ref) {
   final firestore = ref.watch(firestoreProvider);
   return DatabaseMigrationService(firestore);
 });
+

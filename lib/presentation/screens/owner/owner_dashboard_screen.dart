@@ -1,42 +1,32 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // NEW
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../../domain/entities/tenant.dart';
 import '../../../features/rent/domain/entities/rent_cycle.dart';
-import 'house/house_list_screen.dart';
-import 'tenant/tenant_list_screen.dart';
-import 'tenant/tenant_list_screen.dart';
-import '../../../../features/vault/presentation/screens/secure_vault_screen.dart'; // Import Vault Screen
+import '../../../../features/vault/presentation/screens/secure_vault_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'rent/rent_controller.dart';
 import 'package:animated_flip_counter/animated_flip_counter.dart';
-import '../../../../core/theme/app_theme.dart';
 import 'settings/settings_screen.dart'; 
 import 'reports/reports_screen.dart'; 
 import '../../../core/utils/currency_utils.dart';
 import 'tenant/tenant_controller.dart';
-// For DashboardStats
 import '../../providers/data_providers.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/empty_state_widget.dart';
-import '../../../../core/utils/currency_utils.dart';
 import 'settings/owner_controller.dart';
 import 'package:kirayabook/presentation/screens/notice/notice_controller.dart';
+import 'package:kirayabook/presentation/screens/notice/widgets/broadcast_center_sheet.dart';
 import '../maintenance/maintenance_controller.dart';
 import '../maintenance/maintenance_reports_screen.dart';
 import '../../../../domain/entities/maintenance_request.dart';
 import '../../widgets/ads/banner_ad_widget.dart';
-import '../../widgets/charts/revenue_chart_widget.dart'; // NEW
-import '../../providers/revenue_provider.dart'; // NEW
-import 'dart:ui'; // For ImageFilter
-
-import 'package:easy_localization/easy_localization.dart'; // NEW
+import 'package:easy_localization/easy_localization.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -48,21 +38,27 @@ class OwnerDashboardScreen extends StatefulWidget {
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   int _currentIndex = 0;
 
-
+  /// Lazy-load screens only when selected (prevents Vault biometric on dashboard load)
+  Widget _buildCurrentScreen() {
+    switch (_currentIndex) {
+      case 0:
+        return _DashboardTab(onTabSwitch: (index) => setState(() => _currentIndex = index));
+      case 1:
+        return const SecureVaultScreen();
+      case 2:
+        return const ReportsScreen();
+      case 3:
+        return const SettingsScreen();
+      default:
+        return _DashboardTab(onTabSwitch: (index) => setState(() => _currentIndex = index));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _DashboardTab(onTabSwitch: (index) => setState(() => _currentIndex = index)),
-          const SecureVaultScreen(), // Replaces Properties & Tenants
-          const ReportsScreen(),
-          const SettingsScreen(),
-        ],
-      ),
+      body: _buildCurrentScreen(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -125,6 +121,55 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     });
   }
 
+  void _shareRentDetails(Tenant tenant, RentCycle c) async {
+    final monthStr = DateFormat('MMMM yyyy').format(c.billPeriodStart ?? c.billGeneratedDate);
+    final message = '''
+Dear ${tenant.name},
+
+Hope you are having a good day! 🌟
+
+This is a gentle reminder regarding the rent for *$monthStr*.
+
+*Bill Details:*
+• Rent: ₹${c.baseRent.toStringAsFixed(0)}
+• Electricity: ${c.electricAmount > 0 ? '₹${c.electricAmount.toStringAsFixed(0)}' : 'Not calculated yet'}
+${c.otherCharges > 0 ? '• Other Charges: ₹${c.otherCharges.toStringAsFixed(0)}\n' : ''}
+*Total Payable: ₹${c.totalDue.toStringAsFixed(0)}*
+
+Please arrange to pay at your earliest convenience.
+
+Thank you!
+''';
+    try {
+      // 1. Trigger App Push Notification (FCM) if tenant is registered
+      if (tenant.authId != null && tenant.authId!.isNotEmpty) {
+        final notificationService = ref.read(notificationServiceProvider);
+        unawaited(notificationService.triggerPushNotification(
+          userIds: [tenant.authId!],
+          title: 'Rent Reminder',
+          body: 'Rent for $monthStr is pending. Total: ₹${c.totalDue.toStringAsFixed(0)}',
+          data: {'route': '/tenant/dashboard'},
+        ));
+      }
+
+      // 2. Open WhatsApp (Manual)
+      String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
+      if (phone.length == 10) phone = '91$phone';
+      final url = Uri.parse("whatsapp://send?phone=$phone&text=${Uri.encodeComponent(message)}");
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp not detected. Opening options...'), duration: Duration(seconds: 2)));
+        }
+        await Share.share(message);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch WhatsApp: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rentAsync = ref.watch(rentControllerProvider);
@@ -135,9 +180,31 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final isDark = theme.brightness == Brightness.dark;
     
     // Watch Maintenance Requests for Popup/Badge
-    final user = ref.watch(userSessionServiceProvider).currentUser;
+    final user = ref.read(userSessionServiceProvider).currentUser;
     final maintenanceAsync = user != null ? ref.watch(ownerMaintenanceProvider(user.uid)) : const AsyncValue<List<MaintenanceRequest>>.loading();
     final pendingMaintenanceCount = maintenanceAsync.valueOrNull?.where((r) => r.status == MaintenanceStatus.pending).length ?? 0;
+
+    // --- REAL-TIME FOREGROUND ALERTS ---
+    if (user != null) {
+      ref.listen(ownerMaintenanceProvider(user.uid), (previous, next) {
+        if (next is AsyncData<List<MaintenanceRequest>> && previous is AsyncData<List<MaintenanceRequest>>) {
+           final newRequests = next.value.where((r) => 
+             !previous.value.any((pr) => pr.id == r.id) && 
+             r.status == MaintenanceStatus.pending
+           ).toList();
+
+           if (newRequests.isNotEmpty) {
+             final req = newRequests.first;
+             ref.read(notificationServiceProvider).showLocalNotification(
+               id: req.id.hashCode,
+               title: 'New Maintenance Request',
+               body: '${req.category} request for unit ${req.unitId}',
+               payload: '/maintenance',
+             );
+           }
+        }
+      });
+    }
 
     // Show Popup for Pending Maintenance
     if (pendingMaintenanceCount > 0 && !_hasShownMaintenancePopup) {
@@ -150,6 +217,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     // --- Metrics for Dashboard (Moved to build scope) ---
     final unitsAsync = ref.watch(allUnitsProvider);
     final tenantsAsync = ref.watch(tenantControllerProvider);
+    final tenanciesAsync = ref.watch(allTenanciesProvider);
     
     final totalProperties = unitsAsync.valueOrNull?.length ?? 0;
     final occupiedCount = tenantsAsync.valueOrNull?.where((t) => t.isActive).length ?? 0;
@@ -226,12 +294,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
            // Wait for all to complete
            await Future.wait([
              r1, 
-             // r2 is void/future depending on implementation, rent controller usually updates state. 
-             // If generateRent returns Future, we wait. If not, we assume it kicks off.
-             // Actually rentControllerProvider is a generic provider? 
-             // Let's just refresh the provider itself to be safe if it's a stream/future.
-             // But it is likely a Notifier. We called generateRentForCurrentMonth() in InitState.
-             // Let's just await a small delay or the futures we have.
+             r2, 
              r3, 
              r4, 
              if(r5 != null) r5
@@ -364,7 +427,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                          final lateTenantIds = lateCycles.map((c) => c.tenancyId).toSet();
                          final lateTenantCount = lateTenantIds.length;
                          
-                         return Container(
+                         return GestureDetector(
+                           onTap: () => context.push('/owner/rent/pending'),
+                           child: Container(
                            width: double.infinity,
                            margin: const EdgeInsets.only(bottom: 16),
                            padding: const EdgeInsets.all(16),
@@ -419,16 +484,28 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                        ],
                                      ),
                                    ),
+                                   // Arrow indicator for tap
+                                   const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 24),
                                  ],
                                ),
                                const SizedBox(height: 12),
                                SizedBox(
                                  width: double.infinity,
                                  child: ElevatedButton(
-                                   onPressed: () {
-                                     // TODO: Implement bulk reminders or upgrade prompt
+                                   onPressed: () async {
                                      if (ownerPlan == 'free') {
                                        context.push('/owner/settings/subscription');
+                                     } else {
+                                       // BULK REMINDERS for Power/Pro
+                                       for (final cycle in lateCycles) {
+                                         final tenancy = tenanciesAsync.valueOrNull?.where((t) => t.id == cycle.tenancyId).firstOrNull;
+                                         final tenant = tenantsAsync.valueOrNull?.where((t) => t.id == tenancy?.tenantId).firstOrNull;
+                                         if (tenant != null) {
+                                           _shareRentDetails(tenant, cycle);
+                                           // Small delay to prevent OS/WhatsApp from choking
+                                           await Future.delayed(const Duration(milliseconds: 300));
+                                         }
+                                       }
                                      }
                                    },
                                    style: ElevatedButton.styleFrom(
@@ -441,15 +518,16 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                    child: Row(
                                      mainAxisAlignment: MainAxisAlignment.center,
                                      children: [
-                                       const Icon(Icons.lock_outline, size: 16),
+                                       Icon(ownerPlan == 'free' ? Icons.lock_outline : Icons.campaign_rounded, size: 16),
                                        const SizedBox(width: 8),
-                                       Text('Unlock Bulk Reminders', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                                       Text(ownerPlan == 'free' ? 'Unlock Bulk Reminders' : 'Send Bulk Reminders', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                                      ],
                                    ),
                                  ),
                                ),
                              ],
                            ),
+                         ),
                          );
                        },
                      ),
@@ -460,43 +538,63 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                           // 1. Top Grid (4 Cards)
                               Builder(
                                   builder: (context) {
-                                      // Calculate overdue/arrears
-                                      final rentCycles = rentAsync.valueOrNull ?? [];
-                                      final now = DateTime.now();
-                                      final currentMonthStart = DateTime(now.year, now.month, 1);
-                                      
-                                      // Logic: Unpaid AND BillStart < CurrentMonthStart (Arrears)
-                                      final overdueCount = rentCycles.where((c) {
-                                        final date = c.billPeriodStart ?? c.billGeneratedDate;
-                                        return c.status.name != 'paid' && date.isBefore(currentMonthStart);
-                                      }).length;
-
+                                      // Calculate arrears check
                                       final allCards = [
-                                         if (ownerPlan == 'power') _buildStatGridCard(theme, Icons.home_outlined, '$totalProperties', 'Total Properties', null),
-                                         if (ownerPlan == 'power') _buildStatGridCard(theme, Icons.people_outline, '$occupiedCount', 'Occupied', null),
-                                         _buildStatGridCard(theme, Icons.currency_rupee, '$currencySymbol${CurrencyUtils.formatNumber(collected)}', 'Collected This Month', const Color(0xFF22C55E)),
-                                         if (ownerPlan == 'power') 
-                                            _buildStatGridCard(
-                                               theme, 
-                                               Icons.error_outline, 
-                                               '$currencySymbol${CurrencyUtils.formatNumber(pending)}', 
-                                               'Pending Payments', 
-                                               const Color(0xFFF59E0B),
-                                               badgeCount: overdueCount,
-                                               onTap: () => context.push('/owner/rent/pending')
+                                         _buildStatGridCard(
+                                           theme, 
+                                           Icons.home_outlined, 
+                                           '$totalProperties', 
+                                           'Total Properties', 
+                                           null,
+                                           onTap: () => context.push('/owner/portfolio')
+                                         ),
+                                         _buildStatGridCard(
+                                           theme, 
+                                           Icons.people_outline, 
+                                           '$occupiedCount', 
+                                           'Occupied', 
+                                           null,
+                                           onTap: () => context.push('/owner/portfolio')
+                                         ),
+                                         _buildStatGridCard(
+                                           theme, 
+                                           Icons.currency_rupee, 
+                                           '$currencySymbol${CurrencyUtils.formatNumber(collected)}', 
+                                           'Collected', 
+                                           const Color(0xFF22C55E)
+                                         ),
+                                         if (ownerPlan != 'free' || pending > 0) 
+                                            Builder(
+                                              builder: (ctx) {
+                                                final cycles = rentAsync.valueOrNull ?? [];
+                                                final tenancies = ref.watch(allTenanciesProvider).valueOrNull ?? [];
+                                                final tenants = ref.watch(tenantControllerProvider).valueOrNull ?? [];
+                                                
+                                                final Map<String, double> duesByTenant = {};
+                                                final Set<String> pendingTenantIds = {};
+
+                                                for (final c in cycles.where((c) => c.status.name != 'paid' && !c.isDeleted)) {
+                                                  final tcy = tenancies.where((t) => t.id == c.tenancyId).firstOrNull;
+                                                  if (tcy != null) {
+                                                      pendingTenantIds.add(tcy.tenantId);
+                                                      duesByTenant[tcy.tenantId] = (duesByTenant[tcy.tenantId] ?? 0) + (c.totalDue - c.totalPaid);
+                                                  }
+                                                }
+                                                
+                                                final pendingTenantsList = tenants.where((t) => pendingTenantIds.contains(t.id)).toList();
+
+                                                return _buildStatGridCard(
+                                                   theme, 
+                                                   Icons.error_outline, 
+                                                   '$currencySymbol${CurrencyUtils.formatNumber(pending)}', 
+                                                   'Pending', 
+                                                   const Color(0xFFF59E0B),
+                                                   badgeCount: pendingTenantsList.length,
+                                                   onTap: () => _showPendingDetailsBottomSheet(context, pendingTenantsList, duesByTenant, currencySymbol)
+                                                );
+                                              }
                                             ),
                                       ];
-
-                                      // If only 1 card (Free/Basic plans), show full width
-                                      if (allCards.length == 1) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 24),
-                                          child: SizedBox(
-                                            height: 120,
-                                            child: allCards.first,
-                                          ),
-                                        );
-                                      }
 
                                       return SingleChildScrollView(
                                         scrollDirection: Axis.horizontal,
@@ -515,6 +613,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                       );
                                   }
                               ),
+
+                        // Portfolio Management Entry (Fixes user confusion)
+                        _buildPortfolioHeroCard(context, theme, totalProperties, occupiedCount, isDark),
+                        const SizedBox(height: 32),
                         
                         // 2. Quick Actions Section
                         Padding(
@@ -522,7 +624,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Quick Actions', 
+                              Text('Shortcuts', 
                                 style: GoogleFonts.playfairDisplay(
                                   fontSize: 22, 
                                   fontWeight: FontWeight.bold, 
@@ -536,13 +638,15 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                 physics: const BouncingScrollPhysics(),
                                 child: Row(
                                   children: [
-                                    _buildCompactAction(context, 'Add Property', Icons.add_business_rounded, theme.colorScheme.primary, () => context.push('/owner/houses/add')),
+                                    _buildCompactAction(context, 'Broadcast', Icons.campaign_rounded, Colors.orange, () => _showGlobalBroadcastDialog(context, ref)),
                                     const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Add Tenant', Icons.person_add_rounded, const Color(0xFF10B981), () => context.push('/owner/tenants/add')),
+                                    _buildCompactAction(context, 'Record Expense', Icons.receipt_long_rounded, const Color(0xFFF59E0B), () => context.push('/owner/expenses/add')),
                                     const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Expenses', Icons.receipt_long_rounded, const Color(0xFFF59E0B), () => context.push('/owner/expenses')),
+                                    _buildCompactAction(context, 'Maintenance', Icons.build_circle_rounded, const Color(0xFFEF4444), () => Navigator.push(context, CupertinoPageRoute(builder: (_) => const MaintenanceReportsScreen()))),
                                     const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Portfolio', Icons.folder_shared_rounded, const Color(0xFF6366F1), () => context.push('/owner/portfolio')),
+                                    _buildCompactAction(context, 'Secure Vault', Icons.lock_person_rounded, const Color(0xFF6366F1), () => widget.onTabSwitch?.call(1)),
+                                    const SizedBox(width: 12),
+                                    _buildCompactAction(context, 'Reports', Icons.bar_chart_rounded, const Color(0xFF10B981), () => widget.onTabSwitch?.call(2)),
                                   ],
                                 ),
                               ),
@@ -593,7 +697,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () => context.push('/owner/rent/pending'),
                           child: Text('dashboard.view_all'.tr(), 
                             style: GoogleFonts.outfit(
                               color: theme.colorScheme.primary,
@@ -611,273 +715,219 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
             // Rent List
             rentAsync.when(
               data: (cycles) {
-                final tenantsAsync = ref.watch(tenantControllerProvider);
-                return tenantsAsync.when(
-                  data: (tenants) {
-                    // Sort Logic
-                    final sortedCycles = List.of(cycles);
-                    final now = DateTime.now();
-                    final currentMonthStart = DateTime(now.year, now.month, 1);
+                // Get tenants - use empty list if loading or error
+                final tenants = ref.watch(tenantControllerProvider).valueOrNull ?? [];
+                final tenancies = tenanciesAsync.valueOrNull ?? [];
+                
+                // Sort Logic
+                final sortedCycles = List.of(cycles);
+                final now = DateTime.now();
+                final currentMonthStart = DateTime(now.year, now.month, 1);
 
-                    sortedCycles.sort((a, b) {
-                       final aIsPending = a.status.name != 'paid';
-                       final bIsPending = b.status.name != 'paid';
-                       if (aIsPending && !bIsPending) return -1;
-                       if (!aIsPending && bIsPending) return 1;
-                       if (aIsPending && bIsPending) {
-                          final dateA = a.billPeriodStart ?? a.billGeneratedDate;
-                          final dateB = b.billPeriodStart ?? b.billGeneratedDate;
-                          return dateA.compareTo(dateB);
-                       }
-                       final dateA = a.billPeriodStart ?? a.billGeneratedDate;
-                       final dateB = b.billPeriodStart ?? b.billGeneratedDate;
-                       return dateB.compareTo(dateA);
-                    });
+                sortedCycles.sort((a, b) {
+                   final aIsPending = a.status.name != 'paid';
+                   final bIsPending = b.status.name != 'paid';
+                   if (aIsPending && !bIsPending) return -1;
+                   if (!aIsPending && bIsPending) return 1;
+                   if (aIsPending && bIsPending) {
+                      final dateA = a.billPeriodStart ?? a.billGeneratedDate;
+                      final dateB = b.billPeriodStart ?? b.billGeneratedDate;
+                      return dateA.compareTo(dateB);
+                   }
+                   final dateA = a.billPeriodStart ?? a.billGeneratedDate;
+                   final dateB = b.billPeriodStart ?? b.billGeneratedDate;
+                   return dateB.compareTo(dateA);
+                });
 
-                    // RentCycles use tenancyId, so we need to filter based on tenancies
-                    final tenanciesAsync = ref.watch(allTenanciesProvider);
-                    final tenancies = tenanciesAsync.valueOrNull ?? [];
-                    final validCycles = sortedCycles.where((cycle) {
-                      final tenancy = tenancies.where((t) => t.id == cycle.tenancyId).firstOrNull;
-                      if (tenancy == null) return false;
-                      return tenants.any((t) => t.id == tenancy.tenantId);
-                    }).toList();
+                // Show ALL cycles, not just those with matched tenants
+                // If tenant not found, use fallback info
+                if (sortedCycles.isEmpty) {
+                   return SliverToBoxAdapter(
+                    child: EmptyStateWidget(
+                      title: 'All Caught Up!',
+                      subtitle: 'No pending rent payments or active bills.',
+                      icon: Icons.check_circle_outline,
+                    ),
+                  );
+                }
+                
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final c = sortedCycles[index];
+                        final isPaid = c.status.name == 'paid';
+                        final cycleDate = c.billPeriodStart ?? c.billGeneratedDate;
+                        final isPastDue = !isPaid && cycleDate.isBefore(currentMonthStart);
+                        
+                        // Find tenancy first, then tenant (with fallback)
+                        final tenancy = tenancies.where((t) => t.id == c.tenancyId).firstOrNull;
+                        final tenant = tenants.where((t) => t.id == tenancy?.tenantId).firstOrNull;
+                        
+                        // Fallback name if tenant not found
+                        final tenantName = tenant?.name ?? 'Tenant';
+                        final initials = tenantName.trim().split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
+                        final tenantPhone = tenant?.phone;
+                        
+                        // Color Logic
+                        final statusColor = isPaid 
+                            ? const Color(0xFF10B981) // Green
+                            : (isPastDue ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)); // Red or Amber
 
-                    if (validCycles.isEmpty) {
-                       return SliverToBoxAdapter(
-                        child: EmptyStateWidget(
-                          title: 'All Caught Up!',
-                          subtitle: 'No pending rent payments or active bills.',
-                          icon: Icons.check_circle_outline,
-                        ),
-                      );
-                    }
-                    
-                    return SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final c = validCycles[index];
-                            final isPaid = c.status.name == 'paid';
-                            final cycleDate = c.billPeriodStart ?? c.billGeneratedDate;
-                            final isPastDue = !isPaid && cycleDate.isBefore(currentMonthStart);
-                            // Find tenancy first, then tenant
-                            final tenancy = tenancies.where((t) => t.id == c.tenancyId).firstOrNull;
-                            final tenant = tenants.firstWhere((t) => t.id == tenancy?.tenantId, orElse: () => tenants.first);
-                            
-                            // Color Logic
-                            final statusColor = isPaid 
-                                ? const Color(0xFF10B981) // Green
-                                : (isPastDue ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)); // Red or Amber
-                            
-                            final bgGradient = isDark 
-                                ? LinearGradient(colors: [theme.cardColor, theme.cardColor.withValues(alpha: 0.8)])
-                                : LinearGradient(colors: [Colors.white, Colors.grey.shade50]);
 
-                            // Initial Avatar
-                            final initials = tenant.name.trim().split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
-
-                            // Helper for WhatsApp (Keep logic same, UI different)
-                             void _shareRentDetails(Tenant tenant, RentCycle c) async {
-                                  final monthStr = DateFormat('MMMM yyyy').format(c.billPeriodStart ?? c.billGeneratedDate);
-                                  final message = '''
-Dear ${tenant.name},
-
-Hope you are having a good day! 🌟
-
-This is a gentle reminder regarding the rent for *$monthStr*.
-
-*Bill Details:*
-• Rent: ₹${c.baseRent.toStringAsFixed(0)}
-${c.electricAmount > 0 ? '• Electricity: ₹${c.electricAmount.toStringAsFixed(0)}\n' : ''}${c.otherCharges > 0 ? '• Other Charges: ₹${c.otherCharges.toStringAsFixed(0)}\n' : ''}
-*Total Payable: ₹${c.totalDue.toStringAsFixed(0)}*
-
-Please arrange to pay at your earliest convenience.
-
-Thank you!
-''';
-                                  try {
-                                     String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
-                                     if (phone.length == 10) phone = '91$phone';
-                                     final url = Uri.parse("whatsapp://send?phone=$phone&text=${Uri.encodeComponent(message)}");
-                                     if (await canLaunchUrl(url)) {
-                                       await launchUrl(url, mode: LaunchMode.externalApplication);
-                                     } else {
-                                        if(context.mounted) {
-                                           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp not detected. Opening options...'), duration: Duration(seconds: 2)));
-                                        }
-                                        await Share.share(message);
-                                     }
-                                  } catch (e) {
-                                     if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch WhatsApp: $e')));
-                                  }
-                                }
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {}, // Can open detail
-                                  borderRadius: BorderRadius.circular(24),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center, // Center vertically
-                                      children: [
-                                        // 1. Avatar
-                                        Container(
-                                          width: 50, height: 50,
-                                          decoration: BoxDecoration(
-                                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            initials,
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {}, // Can open detail
+                              borderRadius: BorderRadius.circular(24),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center, // Center vertically
+                                  children: [
+                                    // 1. Avatar
+                                    Container(
+                                      width: 50, height: 50,
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        initials.isNotEmpty ? initials : '?',
+                                        style: GoogleFonts.outfit(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    
+                                    // 2. Info Column
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            tenantName,
                                             style: GoogleFonts.outfit(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                              color: theme.colorScheme.primary,
+                                              fontSize: 17,
+                                              color: theme.textTheme.bodyLarge?.color,
                                             ),
+                                            maxLines: 1, overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        
-                                        // 2. Info Column
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                          const SizedBox(height: 4),
+                                          Row(
                                             children: [
                                               Text(
-                                                tenant.name,
+                                                DateFormat('MMM yyyy').format(cycleDate),
                                                 style: GoogleFonts.outfit(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 17,
-                                                  color: theme.textTheme.bodyLarge?.color,
+                                                  fontSize: 13,
+                                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                                maxLines: 1, overflow: TextOverflow.ellipsis,
                                               ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  Text(
-                                                    DateFormat('MMM yyyy').format(cycleDate),
-                                                    style: GoogleFonts.outfit(
-                                                      fontSize: 13,
-                                                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                  if (c.electricAmount > 0) ...[
-                                                    Padding(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                                                      child: Icon(Icons.circle, size: 4, color: theme.disabledColor),
-                                                    ),
-                                                    Icon(Icons.electric_bolt_rounded, size: 12, color: theme.colorScheme.tertiary),
-                                                    const SizedBox(width: 2),
-                                                    Text(
-                                                      '$currencySymbol${c.electricAmount.toInt()}',
-                                                      style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color),
-                                                    )
-                                                  ]
-                                                ],
-                                              ),
+                                              if (c.electricAmount > 0) ...[
+                                                Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                                  child: Icon(Icons.circle, size: 4, color: theme.disabledColor),
+                                                ),
+                                                Icon(Icons.electric_bolt_rounded, size: 12, color: theme.colorScheme.tertiary),
+                                                const SizedBox(width: 2),
+                                                Text(
+                                                  '$currencySymbol${c.electricAmount.toInt()}',
+                                                  style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+                                                )
+                                              ]
                                             ],
                                           ),
-                                        ),
+                                        ],
+                                      ),
+                                    ),
 
-                                        // 3. Amount & Status Column
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                    // 3. Amount & Status Column
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                          Text(
+                                          '$currencySymbol${c.totalDue.toStringAsFixed(0)}',
+                                          style: GoogleFonts.outfit(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 18,
+                                            color: theme.textTheme.bodyLarge?.color,
+                                            letterSpacing: -0.5
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                              Text(
-                                              '$currencySymbol${c.totalDue.toStringAsFixed(0)}',
-                                              style: GoogleFonts.outfit(
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 18,
-                                                color: theme.textTheme.bodyLarge?.color,
-                                                letterSpacing: -0.5
+                                            // Status Badge
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: statusColor.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                isPaid ? 'dashboard.paid'.tr() : (isPastDue ? 'dashboard.overdue'.tr() : 'dashboard.due'.tr()),
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: statusColor,
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                // Status Badge
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            
+                                            // Share Button (Only if not paid and tenant has phone)
+                                            if (!isPaid && tenant != null) ...[
+                                              const SizedBox(width: 8),
+                                              InkWell(
+                                                onTap: () => _shareRentDetails(tenant, c),
+                                                borderRadius: BorderRadius.circular(12),
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(6),
                                                   decoration: BoxDecoration(
-                                                    color: statusColor.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(12),
+                                                    color: const Color(0xFF25D366).withValues(alpha: 0.1), // WhatsApp Light
+                                                    borderRadius: BorderRadius.circular(10),
+                                                    border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.2)),
                                                   ),
-                                                  child: Text(
-                                                    isPaid ? 'dashboard.paid'.tr() : (isPastDue ? 'dashboard.overdue'.tr() : 'dashboard.due'.tr()),
-                                                    style: GoogleFonts.outfit(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: statusColor,
-                                                    ),
-                                                  ),
+                                                  child: const Icon(Icons.share_outlined, size: 14, color: Color(0xFF25D366)), // WhatsApp Color
                                                 ),
-                                                
-                                                // Share Button (Only if not paid)
-                                                if (!isPaid) ...[
-                                                  const SizedBox(width: 8),
-                                                  InkWell(
-                                                    onTap: () => _shareRentDetails(tenant, c),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    child: Container(
-                                                      padding: const EdgeInsets.all(6),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(0xFF25D366).withValues(alpha: 0.1), // WhatsApp Light
-                                                        borderRadius: BorderRadius.circular(10),
-                                                        border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.2)),
-                                                      ),
-                                                      child: const Icon(Icons.share_outlined, size: 14, color: Color(0xFF25D366)), // WhatsApp Color
-                                                    ),
-                                                  )
-                                                ]
-                                              ],
-                                            )
+                                              )
+                                            ]
                                           ],
                                         )
                                       ],
-                                    ),
-                                  ),
+                                    )
+                                  ],
                                 ),
                               ),
-                            );
-                          },
-                          childCount: validCycles.length,
-                        ),
-                      ),
-                    );
-                  },
-                  loading: () => SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Column(
-                        children: List.generate(3, (index) => const SkeletonCard()),
-                      ),
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: sortedCycles.length,
                     ),
                   ),
-                  error: (e, _) => const SliverToBoxAdapter(child: SizedBox.shrink()),
-                ); 
+                );
               },
               error: (e, st) => SliverToBoxAdapter(child: Center(child: Text('Error: $e'))),
               loading: () => SliverToBoxAdapter(
@@ -900,63 +950,6 @@ Thank you!
              ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDetailCard(BuildContext context, String title, String value, IconData icon, Color bgColor, Color iconColor) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white, // Glass base
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2563EB).withValues(alpha: 0.05), // Subtle blue tint shadow
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: 0.9),
-            Colors.white.withValues(alpha: 0.6),
-          ],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: bgColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1049,35 +1042,17 @@ Thank you!
       );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, IconData? icon, bool isPrimary, VoidCallback onTap) {
-      final theme = Theme.of(context);
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: isPrimary ? theme.colorScheme.primary : theme.cardColor,
-            borderRadius: BorderRadius.circular(8),
-            border: isPrimary ? null : Border.all(color: theme.dividerColor),
-          ),
-          child: Row(
-            children: [
-               if(icon != null) ...[
-                 Icon(icon, size: 16, color: isPrimary ? Colors.white : theme.textTheme.bodyLarge?.color),
-                 const SizedBox(width: 8),
-               ],
-               Text(label, style: GoogleFonts.outfit(
-                 color: isPrimary ? Colors.white : theme.textTheme.bodyLarge?.color,
-                 fontWeight: FontWeight.w500,
-                 fontSize: 13
-               ))
-            ],
-          ),
-        ),
-      );
+    void _showGlobalBroadcastDialog(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const BroadcastCenterSheet(),
+    );
   }
 
+
+  // Legacy broadcast code removed - using BroadcastCenterSheet instead.
   Widget _buildCompactAction(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap) {
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
@@ -1122,52 +1097,6 @@ Thank you!
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      );
-  }
-
-  Widget _buildQuickActionCard(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap) {
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03), blurRadius: 10, offset: const Offset(0, 4))
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label, 
-                  style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 13,
-                    color: theme.textTheme.bodyLarge?.color
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ),
             ],
           ),
@@ -1235,31 +1164,136 @@ Thank you!
     );
   }
 
-  void _showUpgradePrompt(BuildContext context) {
-    showDialog(
+  void _showPendingDetailsBottomSheet(BuildContext context, List<Tenant> tenants, Map<String, double> dues, String currency) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
           children: [
-            Icon(Icons.lock_outline, color: Colors.amber.shade700),
-            const SizedBox(width: 8),
-            const Text('Pro Feature'),
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Pending Payments', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text('${tenants.length} tenants outstanding', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 14)),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: tenants.isEmpty 
+              ? Center(child: Text('No pending payments!', style: GoogleFonts.outfit(color: Colors.grey)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: tenants.length,
+                  itemBuilder: (context, index) {
+                    final tenant = tenants[index];
+                    final amount = dues[tenant.id] ?? 0.0;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48, height: 48,
+                            decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                            alignment: Alignment.center,
+                            child: Text(tenant.name.isNotEmpty ? tenant.name[0].toUpperCase() : '?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(tenant.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                                Text('Total Due: $currency${CurrencyUtils.formatNumber(amount)}', style: GoogleFonts.outfit(color: Colors.red.shade400, fontSize: 13, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                               // Find latest pending cycle for this tenant
+                               final cycles = ref.read(rentControllerProvider).valueOrNull ?? [];
+                               final tenancies = ref.read(allTenanciesProvider).valueOrNull ?? [];
+                               final tenancy = tenancies.where((t) => t.tenantId == tenant.id).firstOrNull;
+                               final pendingCycle = cycles.where((c) => c.tenancyId == tenancy?.id && c.status.name != 'paid').firstOrNull;
+                               
+                               if (pendingCycle != null) {
+                                  _shareRentDetails(tenant, pendingCycle);
+                               }
+                            },
+                            child: Text('Notify', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final cycles = ref.read(rentControllerProvider).valueOrNull ?? [];
+                    final tenancies = ref.read(allTenanciesProvider).valueOrNull ?? [];
+                    
+                    for (final tenant in tenants) {
+                      final tenancy = tenancies.where((t) => t.tenantId == tenant.id).firstOrNull;
+                      final pendingCycle = cycles.where((c) => c.tenancyId == tenancy?.id && c.status.name != 'paid').firstOrNull;
+                      
+                      if (pendingCycle != null) {
+                        _shareRentDetails(tenant, pendingCycle);
+                        // Delay to allow user to handle WhatsApp sequential opening
+                        await Future.delayed(const Duration(milliseconds: 500));
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.notifications_active_outlined, color: Colors.white),
+                  label: const Text('Notify All Tenants', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
-        content: const Text('This feature is available for Pro and Power users. Upgrade to unlock!'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Later')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.push('/owner/settings/subscription');
-            },
-            child: const Text('Upgrade Now'),
-          ),
-        ],
       ),
     );
   }
+
 
   void _showMaintenancePopup(int count) {
     showDialog(
@@ -1274,11 +1308,10 @@ Thank you!
                Navigator.pop(ctx);
                Navigator.push(context, CupertinoPageRoute(builder: (_) => const MaintenanceReportsScreen()));
             },
-            child: const Text('View All')
-          )
+            child: const Text('View All'),
+          ),
         ],
-      )
+      ),
     );
   }
 }
-

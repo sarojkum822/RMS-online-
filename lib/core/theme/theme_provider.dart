@@ -1,32 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/app_prefs_cache.dart';
 
-// Optimized ThemeNotifier for instant theme switching
+// Optimized ThemeNotifier for INSTANT theme switching
+// Uses unified AppPrefsCache (pre-initialized in main.dart)
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.light) {
-    _loadTheme();
+  ThemeNotifier() : super(_getInitialTheme()) {
+    _updateSystemUI(state == ThemeMode.dark);
   }
 
-  static const _key = 'theme_mode';
-
-  // Load saved theme (runs once at startup)
-  Future<void> _loadTheme() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedTheme = prefs.getString(_key);
-      if (savedTheme == 'dark') {
-        state = ThemeMode.dark;
-        _updateSystemUI(true);
-      } else {
-        state = ThemeMode.light;
-        _updateSystemUI(false);
-      }
-    } catch (e) {
-      // If SharedPreferences fails, stay on light mode
-      debugPrint('Theme load error: $e');
-    }
+  // Get theme SYNCHRONOUSLY from cached prefs (instant, no flicker)
+  static ThemeMode _getInitialTheme() {
+    final savedTheme = AppPrefsCache.theme;
+    if (savedTheme == 'dark') return ThemeMode.dark;
+    if (savedTheme == 'system') return ThemeMode.system;
+    return ThemeMode.light;
   }
 
   // Toggle theme (simpler API for switch)
@@ -44,7 +33,7 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
     final isDark = mode == ThemeMode.dark;
     _updateSystemUI(isDark);
     
-    // 3. Save to preferences in BACKGROUND (fire-and-forget)
+    // 3. Save to preferences in BACKGROUND (fire-and-forget, uses cached prefs)
     _saveTheme(mode);
   }
   
@@ -58,14 +47,10 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
     ));
   }
 
-  // Save to prefs in background (don't await)
-  Future<void> _saveTheme(ThemeMode mode) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, mode == ThemeMode.dark ? 'dark' : 'light');
-    } catch (e) {
-      debugPrint('Theme save error: $e');
-    }
+  // Save to prefs in background (uses cached instance - no async getInstance())
+  void _saveTheme(ThemeMode mode) {
+    final value = mode == ThemeMode.dark ? 'dark' : (mode == ThemeMode.system ? 'system' : 'light');
+    AppPrefsCache.theme = value;
   }
 }
 
@@ -73,3 +58,4 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
   return ThemeNotifier();
 });
+

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/services/auth_service.dart';
 import '../owner/settings/owner_controller.dart';
 import '../owner/tenant/tenant_controller.dart';
@@ -35,7 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _biometricService = BiometricService();
   final _storageService = SecureStorageService();
   bool _canCheckBiometrics = false;
-  bool _isBiometricEnabled = false;
+  bool _obscurePassword = true; // Password visibility toggle
 
   bool get isOwner => widget.role == 'owner';
 
@@ -48,15 +49,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _checkBiometrics() async {
     final available = await _biometricService.isBiometricAvailable();
     final enabled = await _storageService.isBiometricEnabled();
-    final creds = await _storageService.getCredentials();
+    final role = isOwner ? 'owner' : 'tenant';
+    final creds = await _storageService.getCredentials(role: role);
     
     if (mounted) {
       setState(() {
         _canCheckBiometrics = available && enabled && creds != null;
         
-        _isBiometricEnabled = enabled; // Track preference
         
-        // AUTOFILL: Populate fields if credentials exist
+        // AUTOFILL: Populate fields if credentials exist for THIS ROLE
         if (creds != null) {
           _emailCtrl.text = creds['email']!;
           _passwordCtrl.text = creds['password']!;
@@ -71,13 +72,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _loginWithBiometrics() async {
-    final authenticated = await _biometricService.authenticate();
-    if (authenticated) {
-      final creds = await _storageService.getCredentials();
-      if (creds != null) {
-        _emailCtrl.text = creds['email']!;
-        _passwordCtrl.text = creds['password']!;
-        _submit(); 
+    try {
+      final authenticated = await _biometricService.authenticate();
+      
+      if (authenticated) {
+        // After biometric success, use full-screen loading for the actual login/network part
+        if (mounted) {
+          await DialogUtils.runWithLoading(context, () async {
+            final role = isOwner ? 'owner' : 'tenant';
+            final creds = await _storageService.getCredentials(role: role);
+            if (creds != null) {
+              _emailCtrl.text = creds['email']!;
+              _passwordCtrl.text = creds['password']!;
+              await _submit(); // Now _submit is wrapped in loading
+            } else {
+              throw Exception('No saved credentials found for this account type. Please login with your email and password first.');
+            }
+          });
+        }
+      }
+      // If cancelled, do nothing - user may want to use password login instead
+    } catch (e) {
+      // Biometric error - show dialog without logging sensitive details
+      if (mounted) {
+        DialogUtils.showErrorDialog(
+          context, 
+          title: 'Authentication Failed', 
+          message: e.toString().replaceAll('Exception: ', '')
+        );
       }
     }
   }
@@ -90,133 +112,106 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       });
 
       try {
-        final auth = ref.read(authServiceProvider);
-        
-        // OWNER LOGIN
-        if (isOwner) {
-            if (_isLogin) {
-              try {
-                await auth.signIn(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
-                _handleOwnerLoginSuccess(auth);
-              } catch (e) {
-                // Smart error handling: Show helpful dialog with recovery options
-                final email = _emailCtrl.text.trim();
-                final errorMessage = e.toString().toLowerCase();
-                
-                // Check if this is a credential error (wrong password or no password provider)
-                if (errorMessage.contains('invalid') || 
-                    errorMessage.contains('wrong') ||
-                    errorMessage.contains('credential')) {
-                  // Show dialog with recovery options
-                  if (mounted) {
-                    _showLoginFailedWithOptionsDialog(email, e.toString().replaceAll('Exception: ', ''));
+        // Use runWithLoading for better UX (full screen modal)
+        await DialogUtils.runWithLoading(context, () async {
+          final auth = ref.read(authServiceProvider);
+          
+          // OWNER LOGIN
+          if (isOwner) {
+              if (_isLogin) {
+                try {
+                  await auth.signIn(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
+                  await _handleOwnerLoginSuccess(auth);
+                } catch (e) {
+                  // Specific handling for credential errors (wrong password etc)
+                  final errorMessage = e.toString().toLowerCase();
+                  if (errorMessage.contains('invalid') || 
+                      errorMessage.contains('wrong') ||
+                      errorMessage.contains('credential')) {
+                    if (mounted) {
+                      _showLoginFailedWithOptionsDialog(_emailCtrl.text.trim(), e.toString().replaceAll('Exception: ', ''));
+                    }
+                    return; // Stop here, dialog handles next steps
                   }
-                  return;
+                  rethrow; // For other errors, let outer catch handle it
                 }
-                rethrow; // Let outer catch handle other errors
+              } else {
+                await auth.signUp(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
+                if (mounted) {
+                   await showDialog(
+                     context: context,
+                     builder: (context) => AlertDialog(
+                       title: const Text('Account Created'),
+                       content: const Text('Your account has been successfully created.\nPlease login with your new credentials to continue.'),
+                       actions: [
+                         TextButton(
+                           onPressed: () {
+                             Navigator.pop(context);
+                             setState(() {
+                               _isLogin = true;
+                               _passwordCtrl.clear();
+                             });
+                           }, 
+                           child: const Text('Login Now')
+                         ),
+                       ],
+                     ),
+                   );
+                }
               }
-            } else {
-              await auth.signUp(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
-              
-              if (mounted) {
-                 await showDialog(
-                   context: context,
-                   builder: (context) => AlertDialog(
-                     title: const Text('Account Created'),
-                     content: const Text('Your account has been successfully created.\n\nPlease login with your new credentials to continue.'),
-                     actions: [
-                       TextButton(
-                         onPressed: () {
-                           Navigator.pop(context);
-                           setState(() {
-                             _isLogin = true;
-                             _passwordCtrl.clear();
-                           });
-                         }, 
-                         child: const Text('Login Now')
-                       ),
-                     ],
-                   ),
-                 );
-                 // Stop further execution, let user login manually
-                 return;
-              }
-            }
-        } else {
-            // TENANT LOGIN
-            try {
+          } else {
+              // TENANT LOGIN
               await auth.signIn(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
-            } catch (e) {
-               // Rethrow to catch block (Invalid Credential etc)
-               rethrow;
-            }
-            
-            // Verify Tenant Profile
-            final tenantRepo = ref.read(tenantRepositoryProvider);
-            print('LoginScreen: Fetching tenant profile for Auth UID: ${auth.currentUser!.uid}');
-            final tenant = await tenantRepo.getTenantByAuthId(auth.currentUser!.uid);
-            
-            if (tenant != null) {
-                 print('LoginScreen: Tenant found: ${tenant.name}. Saving session...');
-                 await ref.read(userSessionServiceProvider).saveSession(role: 'tenant', tenantId: tenant.id);
-                 
-                 // Save credentials and enable biometric for next login
-                 final email = _emailCtrl.text.trim();
-                 final password = _passwordCtrl.text.trim();
-                 if (email.isNotEmpty && password.isNotEmpty) {
-                   await _storageService.saveCredentials(email, password);
+              
+              final tenantRepo = ref.read(tenantRepositoryProvider);
+              final tenant = await tenantRepo.getTenantByAuthId(auth.currentUser!.uid);
+              
+              if (tenant != null) {
+                   await ref.read(userSessionServiceProvider).saveSession(role: 'tenant', tenantId: tenant.id);
+                   
+                   // Save credentials for biometric with UID for identity verification
+                   await _storageService.saveCredentials(
+                     _emailCtrl.text.trim(), 
+                     _passwordCtrl.text.trim(), 
+                     role: 'tenant',
+                     uid: auth.currentUser!.uid,
+                   );
                    if (await _biometricService.isBiometricAvailable()) {
                      await _storageService.setBiometricEnabled(true);
                    }
-                 }
-                 
-                 // Push Notifications
-                 await ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid);
-                 await ref.read(notificationServiceProvider).scheduleMonthlyRentReminder();
-                 
-                 print('LoginScreen: Navigating to Tenant Dashboard');
-                 if (mounted) context.go('/tenant/dashboard', extra: tenant);
-            } else {
-                 print('LoginScreen: Tenant profile NOT FOUND in Firestore for UID: ${auth.currentUser!.uid}');
-                 // ORPHANED ACCOUNT DETECTED
-                 // The Auth User exists, but the Firestore Profile is gone (likely deleted by Owner).
-                 if (mounted) {
-                    final shouldDelete = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Account Mismatch'),
-                        content: const Text(
-                          'This login exists, but your Tenant Profile was not found (it may have been deleted by the Owner).\n\n'
-                          'Do you want to DELETE this login account so you can allow the Owner to register this email again?',
+                   
+                   await ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid, 'tenant');
+                   if (mounted) context.go('/tenant/dashboard', extra: tenant);
+              } else {
+                   if (mounted) {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Profile Not Found'),
+                          content: const Text('This account exists but no tenant profile was found.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+                          ],
                         ),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true), 
-                            style: TextButton.styleFrom(foregroundColor: Colors.red),
-                            child: const Text('Delete Account'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (shouldDelete == true) {
-                       await auth.currentUser?.delete();
-                       DialogUtils.showInfoDialog(context, title: 'Account Deleted', message: 'The email is now free to be registered again.');
-                    } else {
-                       await auth.signOut();
-                    }
-                 }
-                 // Return to stop further processing, loading state will be cleared in finally
-                 return;
-            }
-        }
-        
-        } catch (e) {
+                      );
+                      await auth.signOut();
+                   }
+              }
+          }
+        });
+      } catch (e) {
         if (mounted) {
-          final message = e.toString().replaceAll('Exception: ', '');
+          String message = e.toString().replaceAll('Exception: ', '');
+          
+          // Enhance network error message
+          if (message.toLowerCase().contains('network') || 
+              message.toLowerCase().contains('connection') ||
+              message.toLowerCase().contains('unreachable') ||
+              message.toLowerCase().contains('timeout')) {
+            message = "Network error detected. Please check your internet connection or try connecting to a different network.";
+          }
+          
           DialogUtils.showErrorDialog(context, title: 'Authentication Failed', message: message);
-          setState(() { _errorMessage = null; });
         }
       } finally {
         if (mounted) {
@@ -342,10 +337,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 );
                 
                 try {
-                  debugPrint('Sending password reset to: ${emailController.text.trim()}');
                   final auth = ref.read(authServiceProvider);
                   await auth.sendPasswordResetEmail(emailController.text.trim());
-                  debugPrint('Password reset email sent successfully');
+                  
                   
                   if (context.mounted) {
                     Navigator.pop(context); // Close loading
@@ -357,7 +351,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     );
                   }
                 } catch (e) {
-                  debugPrint('Password reset error: $e');
                   if (context.mounted) {
                     Navigator.pop(context); // Close loading
                     Navigator.pop(context); // Close dialog
@@ -378,8 +371,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleOwnerLoginSuccess(AuthService auth) async {
-      debugPrint('LoginScreen: Owner login successful. Initializing session...');
-      
       try {
         // 1. Save Session (CRITICAL: Do this first so role is available for providers)
         await ref.read(userSessionServiceProvider).saveSession(role: 'owner');
@@ -402,21 +393,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final email = _emailCtrl.text.trim();
         final password = _passwordCtrl.text.trim();
         if (email.isNotEmpty && password.isNotEmpty) {
-          await _storageService.saveCredentials(email, password);
+          await _storageService.saveCredentials(
+            email, 
+            password, 
+            role: 'owner',
+            uid: auth.currentUser!.uid,
+          );
         }
 
         // 5. Background tasks (don't block the UI transition)
-        unawaited(ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid));
+        unawaited(ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid, 'owner'));
 
         // Let the state settle and show a brief success/loading state
         await Future.delayed(const Duration(milliseconds: 1000));
 
         if (mounted) {
-          debugPrint('LoginScreen: Navigating to Owner Dashboard');
           context.go('/owner/dashboard');
         }
       } catch (e) {
-        debugPrint('LoginScreen: Error in post-login initialization: $e');
         if (mounted) {
           context.go('/owner/dashboard'); // Still try to navigate if session was saved or if it's a minor error
         }
@@ -549,8 +543,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   controller: _passwordCtrl,
                                   style: GoogleFonts.outfit(fontSize: 15),
                                   decoration: InputDecoration(
-                                    labelText: 'Secure Password',
+                                    labelText: 'login.password_label'.tr(),
                                     prefixIcon: const Icon(Icons.lock_outlined),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                    ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(16),
                                       borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
@@ -562,7 +560,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     filled: true,
                                     fillColor: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF8FAFC),
                                   ),
-                                  obscureText: true,
+                                  obscureText: _obscurePassword,
                                   validator: (v) => v!.length < 6 ? 'Min 6 chars' : null,
                                 ),
                                 const SizedBox(height: 8),

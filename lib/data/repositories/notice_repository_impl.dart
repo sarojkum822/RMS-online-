@@ -31,6 +31,79 @@ class NoticeRepositoryImpl implements INoticeRepository {
             .map((doc) => Notice.fromFirestore(doc))
             .toList());
   }
+
+  /// Fetches notices relevant to a tenant: both house-specific AND global broadcasts
+  @override
+  Stream<List<Notice>> watchNoticesForTenant(String houseId, String? unitId, String ownerId) {
+    if (ownerId.isEmpty) return Stream.value([]);
+    
+    // Query 1: Owner's global notices (targetType = 'all')
+    final globalNoticesStream = _firestore
+        .collection('notices')
+        .where('ownerId', isEqualTo: ownerId)
+        .where('targetType', isEqualTo: 'all')
+        .snapshots();
+
+    // Query 2: House-specific notices
+    final houseNoticesStream = houseId.isNotEmpty
+        ? _firestore
+            .collection('notices')
+            .where('ownerId', isEqualTo: ownerId)
+            .where('houseId', isEqualTo: houseId)
+            .where('targetType', isEqualTo: 'house')
+            .snapshots()
+        : Stream.value(null);
+
+    // Query 3: Unit-specific notices (if unitId provided)
+    final unitNoticesStream = (unitId != null && unitId.isNotEmpty)
+        ? _firestore
+            .collection('notices')
+            .where('ownerId', isEqualTo: ownerId)
+            .where('targetId', isEqualTo: unitId)
+            .where('targetType', isEqualTo: 'unit')
+            .snapshots()
+        : Stream.value(null);
+
+    // Combine all streams
+    return globalNoticesStream.asyncMap((globalSnapshot) async {
+      final globalNotices = globalSnapshot.docs
+          .map((doc) => Notice.fromFirestore(doc))
+          .toList();
+
+      List<Notice> houseNotices = [];
+      List<Notice> unitNotices = [];
+
+      // Get house notices
+      await for (final houseSnapshot in houseNoticesStream.take(1)) {
+        if (houseSnapshot != null) {
+          houseNotices = houseSnapshot.docs
+              .map((doc) => Notice.fromFirestore(doc))
+              .toList();
+        }
+        break;
+      }
+
+      // Get unit notices
+      await for (final unitSnapshot in unitNoticesStream.take(1)) {
+        if (unitSnapshot != null) {
+          unitNotices = unitSnapshot.docs
+              .map((doc) => Notice.fromFirestore(doc))
+              .toList();
+        }
+        break;
+      }
+
+      // Merge all, remove duplicates by id, sort by date
+      final allNotices = <String, Notice>{};
+      for (var n in [...globalNotices, ...houseNotices, ...unitNotices]) {
+        allNotices[n.id] = n;
+      }
+      
+      final result = allNotices.values.toList()
+        ..sort((a, b) => b.date.compareTo(a.date));
+      return result;
+    });
+  }
   
   @override
   Stream<List<Notice>> watchNoticesForOwner(String ownerId) {

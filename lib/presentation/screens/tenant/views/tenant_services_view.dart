@@ -1,15 +1,14 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import '../../../../core/extensions/maintenance_extensions.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/maintenance_request.dart';
-import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../providers/data_providers.dart';
 import '../../maintenance/maintenance_controller.dart';
 import '../../owner/tenant/tenant_controller.dart';
-import '../../owner/house/house_controller.dart';
 import 'package:go_router/go_router.dart';
 
 class TenantServicesView extends ConsumerWidget {
@@ -19,7 +18,6 @@ class TenantServicesView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final ownerId = tenant.ownerId;
     
     // Find Tenancy/House/Unit for requests
@@ -34,7 +32,7 @@ class TenantServicesView extends ConsumerWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Services & Repairs', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text('tenant.services_title'.tr(), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -44,7 +42,7 @@ class TenantServicesView extends ConsumerWidget {
           children: [
             // Utility Usage Section
             const SizedBox(height: 20),
-            Text('Utility Usage (Electricity)', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('tenant.utility_usage'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (tenancy != null) 
               _buildUtilityChart(context, ref, tenancy.id, ownerId),
@@ -55,11 +53,11 @@ class TenantServicesView extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Repair Requests', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('tenant.repair_requests'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
                 TextButton.icon(
                   onPressed: (houseId != null && unitId != null) ? () => _showNewRequestDialog(context, ref, houseId, unitId) : null,
                   icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
-                  label: const Text('New Request'),
+                  label: Text('tenant.new_request'.tr()),
                 ),
               ],
             ),
@@ -213,10 +211,10 @@ class TenantServicesView extends ConsumerWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: _getStatusColor(r.status).withValues(alpha: 0.1),
+            color: r.status.color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(_getCategoryIcon(r.category), color: _getStatusColor(r.status), size: 20),
+          child: Icon(r.category.maintenanceCategoryIcon, color: r.status.color, size: 20),
         ),
         title: Text(r.category, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         subtitle: Text(
@@ -226,12 +224,12 @@ class TenantServicesView extends ConsumerWidget {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: _getStatusColor(r.status).withValues(alpha: 0.1),
+            color: r.status.color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            r.status.name.toUpperCase(),
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getStatusColor(r.status)),
+            r.status.label.toUpperCase(),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: r.status.color),
           ),
         ),
       ),
@@ -266,13 +264,13 @@ class TenantServicesView extends ConsumerWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text('Request Repair', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          title: Text('tenant.request_repair'.tr(), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: category,
-                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                initialValue: category,
+                decoration: InputDecoration(labelText: 'tenant.category'.tr(), border: const OutlineInputBorder()),
                 items: ['Plumbing', 'Electrical', 'Appliance', 'Carpentry', 'Other']
                   .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                 onChanged: (v) => setState(() => category = v!),
@@ -280,7 +278,7 @@ class TenantServicesView extends ConsumerWidget {
               const SizedBox(height: 16),
               TextField(
                 controller: descController,
-                decoration: const InputDecoration(labelText: 'What is the issue?', border: OutlineInputBorder(), hintText: 'Example: Tap is leaking in kitchen...'),
+                decoration: InputDecoration(labelText: 'tenant.issue_description'.tr(), border: const OutlineInputBorder(), hintText: 'tenant.issue_hint'.tr()),
                 maxLines: 4,
               )
             ],
@@ -302,7 +300,7 @@ class TenantServicesView extends ConsumerWidget {
                  if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request Submitted Successfullly!')));
               },
               style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('Submit Request'),
+              child: Text('tenant.submit_request'.tr()),
             )
           ],
         ),
@@ -310,21 +308,4 @@ class TenantServicesView extends ConsumerWidget {
     );
   }
 
-
-  IconData _getCategoryIcon(String cat) {
-    if (cat.contains('Plumb')) return Icons.water_drop;
-    if (cat.contains('Electr')) return Icons.electric_bolt;
-    if (cat.contains('Appliance')) return Icons.kitchen;
-    if (cat.contains('Carpentry')) return Icons.chair;
-    return Icons.build;
-  }
-
-  Color _getStatusColor(MaintenanceStatus status) {
-    switch(status) {
-      case MaintenanceStatus.pending: return Colors.orange;
-      case MaintenanceStatus.inProgress: return Colors.blue;
-      case MaintenanceStatus.completed: return Colors.green;
-      case MaintenanceStatus.rejected: return Colors.red;
-    }
-  }
 }

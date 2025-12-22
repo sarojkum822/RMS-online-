@@ -1,31 +1,40 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'presentation/screens/common/error_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/routes/app_router.dart';
 import 'core/services/notification_service.dart';
-// Corrected path
+import 'core/services/app_prefs_cache.dart'; // NEW: Unified prefs cache
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// NEW IMPORT
-import 'presentation/providers/data_providers.dart'; // NEW import
+import 'presentation/providers/data_providers.dart';
 import 'core/theme/theme_provider.dart';
 
-import 'package:easy_localization/easy_localization.dart'; // NEW
+import 'package:easy_localization/easy_localization.dart';
 
 void main() async {
-  // Ensure binding is initialized first
-  WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized(); // NEW: Initialize Localization
+  // Ensure binding is initialized first and preserve splash
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  await EasyLocalization.ensureInitialized();
+
+  // Pre-cache ALL preferences for INSTANT access (theme, locale, currency, stats)
+  await AppPrefsCache.init();
 
   try {
     await Firebase.initializeApp();
-    // 0. Enable Firestore Persistence (Offline Capabilities)
+    
+    // 1. Register background handler for FCM
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+    // 2. Enable Firestore Persistence (Offline Capabilities)
     FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
     
     // Initialize Notification Service
@@ -35,16 +44,15 @@ void main() async {
     // Initialize Ads
     MobileAds.instance.initialize().catchError((e) {
       debugPrint('AdMob Init Error: $e');
-      return InitializationStatus({}); // Return dummy status on error
+      return InitializationStatus({});
     });
 
-    // 1. Global Error Handling
+    // Global Error Handling
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details); 
-      // TODO: Add Crashlytics here when ready
     };
     
-    // 2. Custom Error Widget
+    // Custom Error Widget
     ErrorWidget.builder = (FlutterErrorDetails details) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -52,20 +60,23 @@ void main() async {
       );
     };
 
-    // 3. Async Error Handling
+    // Async Error Handling
     PlatformDispatcher.instance.onError = (error, stack) {
        debugPrint('Async Error: $error');
        return true;
     };
 
-    // Session Check is now handled in SplashScreen
-    String initialLocation = '/splash';
+    // Remove native splash - go directly to login
+    FlutterNativeSplash.remove();
+
+    // Go directly to login (native splash already showed branding)
+    String initialLocation = '/login';
     Object? initialExtra;
 
     runApp(
       EasyLocalization(
         supportedLocales: const [Locale('en', 'US'), Locale('hi', 'IN')],
-        path: 'assets/translations', // <-- change patch to your
+        path: 'assets/translations',
         fallbackLocale: const Locale('en', 'US'),
         child: ProviderScope(
           overrides: [
@@ -78,7 +89,7 @@ void main() async {
 
   } catch (e, stack) {
     debugPrint('Startup Error: $e');
-    // Run app with error screen if initialization fails
+    FlutterNativeSplash.remove();
     runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -87,7 +98,6 @@ void main() async {
     );
   }
 }
-
 
 
 class MyApp extends ConsumerStatefulWidget {
@@ -119,7 +129,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeProvider); // Watch Theme changes
+    final themeMode = ref.watch(themeProvider);
     
     return MaterialApp.router(
       title: 'KirayaBook',
@@ -128,10 +138,10 @@ class _MyAppState extends ConsumerState<MyApp> {
       locale: context.locale,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode, // Dynamic Config
+      themeMode: themeMode,
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
-      themeAnimationDuration: const Duration(milliseconds: 150), // Snappy transition (reduced from 300ms)
+      themeAnimationDuration: const Duration(milliseconds: 150),
       themeAnimationCurve: Curves.easeInOut,
     );
   }

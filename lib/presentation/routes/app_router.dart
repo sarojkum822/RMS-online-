@@ -13,7 +13,6 @@ import '../screens/owner/house/house_detail_container.dart';
 import '../screens/owner/expense/expense_screens.dart'; // NEW
 import '../screens/owner/rent/pending_payments_screen.dart'; // NEW
 import '../screens/owner/portfolio/portfolio_management_screen.dart'; // NEW
-import '../screens/owner/reports/reports_screen.dart';
 import '../screens/tenant/notice_history_screen.dart';
 import '../screens/tenant/maintenance_detail_screen.dart';
 import '../screens/tenant/house_info_screen.dart';
@@ -33,18 +32,13 @@ import '../screens/owner/settings/active_sessions_screen.dart';
 import '../screens/owner/settings/backup_restore_screen.dart'; // NEW
 import '../screens/owner/settings/subscription_screen.dart'; // NEW
 import '../screens/owner/settings/tekirayabook_privacy_screen.dart';
-import '../screens/splash/splash_screen.dart'; // NEW
-import '../../features/vault/presentation/screens/secure_vault_screen.dart'; // NEW
+import '../../features/vault/presentation/screens/secure_vault_screen.dart';
 
 GoRouter createRouter({required String initialLocation, Object? initialExtra}) {
   return GoRouter(
     initialLocation: initialLocation,
     initialExtra: initialExtra,
     routes: [
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashScreen(),
-      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const RoleSelectionScreen(),

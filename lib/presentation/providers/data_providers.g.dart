@@ -24,7 +24,7 @@ final propertyRepositoryProvider = Provider<IPropertyRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PropertyRepositoryRef = ProviderRef<IPropertyRepository>;
-String _$tenantRepositoryHash() => r'89c609241ead9cf9f31c3807c49e8243f5c2231e';
+String _$tenantRepositoryHash() => r'9529e6bb4311c7fca35ab986b7dd3768311ea3d7';
 
 /// See also [tenantRepository].
 @ProviderFor(tenantRepository)

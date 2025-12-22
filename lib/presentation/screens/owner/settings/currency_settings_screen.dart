@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'owner_controller.dart';
-import '../../../../core/utils/snackbar_utils.dart'; // Assuming this exists from Phase 2
 import '../../../../core/utils/currency_utils.dart';
 
 class CurrencySettingsScreen extends ConsumerStatefulWidget {

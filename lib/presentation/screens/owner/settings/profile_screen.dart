@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../domain/entities/owner.dart';
 import 'owner_controller.dart';
 
@@ -47,7 +48,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Listen for Errors to show SnackBar
     ref.listen<AsyncValue<Owner?>>(ownerControllerProvider, (previous, next) {
       if (next.hasError && !next.isLoading) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${next.error}')));
+        SnackbarUtils.showError(context, 'Error: ${next.error}');
       }
       if (!previous!.hasValue && next.hasValue) {
         // Initial load complete
@@ -77,7 +78,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   // Contact Email in Firestore can differ from Auth Email.
 
                   if (context.mounted && !ref.read(ownerControllerProvider).hasError) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile Updated Successfully')));
+                     SnackbarUtils.showSuccess(context, 'Profile Updated Successfully');
                   }
                 } catch (e) {
                    // Error is handled by ref.listen usually, but duplicate catch doesn't hurt
@@ -337,11 +338,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ElevatedButton(
             onPressed: () async {
               if (passwordController.text != confirmController.text) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+                SnackbarUtils.showError(context, 'Passwords do not match');
                 return;
               }
               if (passwordController.text.length < 6) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters')));
+                SnackbarUtils.showError(context, 'Password must be at least 6 characters');
                 return;
               }
               
@@ -350,11 +351,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               try {
                 await ref.read(authServiceProvider).updatePassword(passwordController.text.trim());
                 if (context.mounted) {
-                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password Changed Successfully')));
+                   SnackbarUtils.showSuccess(context, 'Password Changed Successfully');
                 }
               } catch (e) {
                  if (context.mounted) {
-                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                   SnackbarUtils.showError(context, 'Error: $e');
                  }
               }
             },
@@ -408,7 +409,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 }
                 
                 if (context.mounted) {
-                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                   SnackbarUtils.showError(context, 'Error: $e');
                 }
               }
             },

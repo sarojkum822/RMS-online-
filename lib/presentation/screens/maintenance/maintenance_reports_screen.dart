@@ -5,8 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../../domain/entities/maintenance_request.dart';
 import 'maintenance_controller.dart';
 import 'package:kirayabook/presentation/providers/data_providers.dart';
-import 'widgets/add_maintenance_sheet.dart' as widgets;
-import 'widgets/add_maintenance_sheet.dart' as widgets;
 import '../../widgets/empty_state_widget.dart';
 import '../../widgets/skeleton_loader.dart';
 
@@ -67,20 +65,7 @@ class _MaintenanceReportsScreenState extends ConsumerState<MaintenanceReportsScr
         loading: () => const SkeletonList(),
         error: (e, s) => Center(child: Text('Error: $e')),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context, 
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (ctx) => const widgets.AddMaintenanceSheet()
-          );
-        },
-        label: Text('New Request', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.add),
-        backgroundColor: theme.colorScheme.primary,
-        elevation: 4,
-      ),
+      floatingActionButton: null,
     );
   }
 
@@ -92,15 +77,8 @@ class _MaintenanceReportsScreenState extends ConsumerState<MaintenanceReportsScr
             ? 'Everything is running smoothly! No pending maintenance issues.' 
             : 'No resolved maintenance requests found in history.',
         icon: isPending ? Icons.check_circle_outline : Icons.history_toggle_off,
-        buttonText: isPending ? 'Create Request' : null,
-        onButtonPressed: isPending ? () {
-           showModalBottomSheet(
-            context: context, 
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (ctx) => const widgets.AddMaintenanceSheet()
-          );
-        } : null,
+        buttonText: null,
+        onButtonPressed: null,
       );
     }
 

@@ -101,10 +101,17 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
         child: ExpansionTile(
           shape: const Border(), // Remove borders when expanded
           leading: _buildLeadingPreview(context), // Thumbnail
-          title: Text(widget.unit.nameOrNumber, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: theme.textTheme.titleMedium?.color)),
+          title: Text(
+            widget.unit.nameOrNumber, 
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: theme.textTheme.titleMedium?.color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           subtitle: Text(
             '₹${widget.unit.baseRent.toStringAsFixed(0)}',
             style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 13),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -150,7 +157,7 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
             // BHK Dropdown
             bhkTemplatesAsync.when(
               data: (templates) => DropdownButtonFormField<String>(
-                   value: _selectedBhkTemplateId,
+                   initialValue: _selectedBhkTemplateId,
                    dropdownColor: theme.cardColor,
                    decoration: const InputDecoration(
                      labelText: 'BHK Type',
@@ -262,7 +269,7 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
             
             // Furnishing
             DropdownButtonFormField<String>(
-              value: _furnishingStatus,
+              initialValue: _furnishingStatus,
               dropdownColor: theme.cardColor,
               decoration: const InputDecoration(labelText: 'Furnishing', border: OutlineInputBorder()),
               items: ['Unfurnished', 'Semi-Furnished', 'Fully-Furnished']

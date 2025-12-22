@@ -1,17 +1,21 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../presentation/vault_controller.dart';
 import '../../data/vault_repository.dart';
-import '../../../../core/utils/dialog_utils.dart'; // Assuming this exists or use standard dialog
-import '../../../../presentation/providers/data_providers.dart'; // For userSessionServiceProvider
+import '../../../../presentation/providers/data_providers.dart';
+import '../../../../core/services/biometric_service.dart';
 
 // Session-level provider to track if user has authenticated for the Vault this session
 final vaultSessionAuthenticatedProvider = StateProvider<bool>((ref) => false);
+
+// Keys for SharedPreferences
+const String _kVaultRecoveryWarningShown = 'k_vault_recovery_warning_shown';
 
 class SecureVaultScreen extends ConsumerStatefulWidget {
   const SecureVaultScreen({super.key});
@@ -20,14 +24,117 @@ class SecureVaultScreen extends ConsumerStatefulWidget {
   ConsumerState<SecureVaultScreen> createState() => _SecureVaultScreenState();
 }
 
-class _SecureVaultScreenState extends ConsumerState<SecureVaultScreen> {
-  bool _isAuthenticating = true; 
-  final _localAuth = LocalAuthentication();
+class _SecureVaultScreenState extends ConsumerState<SecureVaultScreen> with WidgetsBindingObserver {
+  bool _isAuthenticating = true;
+  Timer? _autoLockTimer;
+  
+  // Auto-lock configuration
+  static const int _autoLockDurationSeconds = 120; // 2 minutes
+  DateTime? _lastInteractionTime;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _authenticateEntry();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoLockTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Lock vault when app goes to background
+      _lockVault();
+    } else if (state == AppLifecycleState.resumed) {
+      // Check if auto-lock timer expired while backgrounded
+      _checkAutoLock();
+    }
+  }
+
+  void _resetAutoLockTimer() {
+    _lastInteractionTime = DateTime.now();
+    _autoLockTimer?.cancel();
+    _autoLockTimer = Timer(const Duration(seconds: _autoLockDurationSeconds), () {
+      _lockVault();
+    });
+  }
+
+  void _lockVault() {
+    _autoLockTimer?.cancel();
+    ref.read(vaultSessionAuthenticatedProvider.notifier).state = false;
+    if (mounted) {
+      setState(() => _isAuthenticating = true);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
+  void _checkAutoLock() {
+    if (_lastInteractionTime != null) {
+      final elapsed = DateTime.now().difference(_lastInteractionTime!).inSeconds;
+      if (elapsed >= _autoLockDurationSeconds) {
+        _lockVault();
+      }
+    }
+  }
+
+  Future<void> _showRecoveryWarning() async {
+    final prefs = await SharedPreferences.getInstance();
+    final warningShown = prefs.getBool(_kVaultRecoveryWarningShown) ?? false;
+    
+    if (!warningShown && mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+              const SizedBox(width: 8),
+              const Text('Important Notice'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: const Text(
+                  '⚠️ Data Recovery Warning\n\n'
+                  'Your vault documents are encrypted with a key stored ONLY on this device.\n\n'
+                  'If you:\n'
+                  '• Uninstall the app\n'
+                  '• Factory reset your phone\n'
+                  '• Lose this device\n\n'
+                  'Your encrypted documents will be PERMANENTLY LOST and cannot be recovered.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () async {
+                await prefs.setBool(_kVaultRecoveryWarningShown, true);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('I Understand'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> _authenticateEntry() async {
@@ -37,45 +144,59 @@ class _SecureVaultScreenState extends ConsumerState<SecureVaultScreen> {
       if (alreadyAuthenticated) {
         debugPrint('Vault: Already authenticated this session.');
         if (mounted) setState(() { _isAuthenticating = false; });
+        _resetAutoLockTimer();
         return;
       }
 
       // Check if VAULT LOCK is enabled in user settings
       final isVaultLockEnabled = await ref.read(userSessionServiceProvider).isVaultLockEnabled();
       if (!isVaultLockEnabled) {
-        // If Vault Lock is OFF, skip prompt and grant access directly
         debugPrint('Vault: Vault Lock disabled in settings. Skipping prompt.');
         ref.read(vaultSessionAuthenticatedProvider.notifier).state = true;
         if (mounted) setState(() { _isAuthenticating = false; });
+        await _showRecoveryWarning();
+        _resetAutoLockTimer();
         return;
       }
 
-      final canCheck = await _localAuth.canCheckBiometrics;
-      if (!canCheck) {
-        // Fallback or Allow for simulators
+      // Use centralized BiometricService
+      final biometricService = ref.read(biometricServiceProvider);
+      final available = await biometricService.isBiometricAvailable();
+      
+      if (!available) {
+        // Fallback for devices without biometrics
         ref.read(vaultSessionAuthenticatedProvider.notifier).state = true;
         if (mounted) setState(() { _isAuthenticating = false; });
+        await _showRecoveryWarning();
+        _resetAutoLockTimer();
         return;
       }
 
-      final success = await _localAuth.authenticate(
-        localizedReason: 'Authenticate to unlock your Personal Vault',
+      final result = await biometricService.authenticateWithResult(
+        reason: 'Authenticate to unlock your Personal Vault',
       );
 
       if (mounted) {
-        if (success) {
+        if (result == BiometricResult.success) {
           ref.read(vaultSessionAuthenticatedProvider.notifier).state = true;
           setState(() { _isAuthenticating = false; });
+          await _showRecoveryWarning();
+          _resetAutoLockTimer();
+        } else if (result == BiometricResult.lockedOut) {
+          final remaining = await biometricService.getRemainingLockoutSeconds();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Too many failed attempts. Try again in ${remaining}s')),
+          );
+          Navigator.pop(context);
         } else {
-           Navigator.pop(context); // Go back if failed
+          Navigator.pop(context); // Go back if failed
         }
       }
     } catch (e) {
       debugPrint('Vault Auth Error: $e');
       if (mounted) {
-         // Handle error (e.g. no hardware)
-         ref.read(vaultSessionAuthenticatedProvider.notifier).state = true;
-         setState(() { _isAuthenticating = false; });
+        ref.read(vaultSessionAuthenticatedProvider.notifier).state = true;
+        setState(() { _isAuthenticating = false; });
       }
     }
   }

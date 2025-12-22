@@ -29,7 +29,7 @@ class DocumentViewerScreen extends StatelessWidget {
           if (pdfBytes != null)
             IconButton(
               icon: const Icon(Icons.share_rounded),
-              onPressed: () => Printing.sharePdf(bytes: pdfBytes!, filename: '${title}.pdf'),
+              onPressed: () => Printing.sharePdf(bytes: pdfBytes!, filename: '$title.pdf'),
             ),
         ],
       ),

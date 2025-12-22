@@ -118,26 +118,33 @@ class _PortfolioManagementScreenState extends ConsumerState<PortfolioManagementS
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
       appBar: AppBar(
         title: Text('Portfolio Hub', 
-          style: GoogleFonts.playfairDisplay(
+          style: GoogleFonts.outfit(
             fontWeight: FontWeight.bold, 
-            fontSize: 24, 
-            color: theme.textTheme.titleLarge?.color
+            fontSize: 22, 
+            color: isDark ? Colors.white : Colors.black87,
+            letterSpacing: -0.5,
           )
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: theme.colorScheme.primary,
+          indicatorSize: TabBarIndicatorSize.label,
+          indicator: UnderlineTabIndicator(
+            borderSide: BorderSide(width: 3, color: theme.colorScheme.primary),
+            borderRadius: BorderRadius.circular(3),
+          ),
           labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.disabledColor,
-          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+          unselectedLabelColor: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+          unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 16),
           tabs: const [
             Tab(text: 'Properties'),
             Tab(text: 'Tenants'),
@@ -147,15 +154,28 @@ class _PortfolioManagementScreenState extends ConsumerState<PortfolioManagementS
       body: TabBarView(
         controller: _tabController,
         children: const [
-          HouseListPanel(), // Refactored widget
-          TenantListPanel(), // Refactored widget
+          HouseListPanel(), 
+          TenantListPanel(), 
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddOptions(context),
-        label: Text('Quick Add', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
-        icon: const Icon(Icons.add, color: Colors.white),
-        backgroundColor: theme.colorScheme.primary,
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: () => _showAddOptions(context),
+          label: Text('Quick Add', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+          icon: const Icon(Icons.add, color: Colors.white),
+          backgroundColor: theme.colorScheme.primary,
+          elevation: 0,
+        ),
       ),
     );
   }

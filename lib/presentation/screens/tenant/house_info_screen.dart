@@ -1,10 +1,13 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kirayabook/presentation/providers/data_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../domain/entities/tenant.dart';
 import '../../../domain/entities/house.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-class HouseInfoScreen extends StatelessWidget {
+class HouseInfoScreen extends ConsumerWidget {
   final Tenant tenant;
   final House house;
   final Unit unit;
@@ -17,14 +20,14 @@ class HouseInfoScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Property Info', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text('tenant.property_info'.tr(), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
       ),
@@ -69,7 +72,7 @@ class HouseInfoScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Unit: ${unit.nameOrNumber}',
+                      '${'tenant.unit'.tr()}: ${unit.nameOrNumber}',
                       style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -80,14 +83,14 @@ class HouseInfoScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             // Emergency Contacts
-            Text('Emergency Contacts', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('tenant.emergency_contacts'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            _buildContactGrid(context),
+            _buildContactGrid(context, ref),
 
             const SizedBox(height: 32),
 
             // House Rules
-            Text('House Rules', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('tenant.house_rules'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             _buildRulesList(theme),
 
@@ -98,7 +101,10 @@ class HouseInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactGrid(BuildContext context) {
+  Widget _buildContactGrid(BuildContext context, WidgetRef ref) {
+    final ownerAsync = ref.watch(ownerByIdProvider(tenant.ownerId));
+    final owner = ownerAsync.valueOrNull;
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -107,15 +113,21 @@ class HouseInfoScreen extends StatelessWidget {
       mainAxisSpacing: 12,
       childAspectRatio: 2.2,
       children: [
-        _buildContactCard(context, 'Landlord', tenant.ownerId.substring(0, 5), Icons.person_outline), // Usually owner phone is needed
-        _buildContactCard(context, 'Electrician', 'Nearby', Icons.electric_bolt_outlined),
-        _buildContactCard(context, 'Plumber', 'Nearby', Icons.water_drop_outlined),
-        _buildContactCard(context, 'Security', 'Main Gate', Icons.admin_panel_settings_outlined),
+        _buildContactCard(
+          context, 
+          'tenant.landlord'.tr(), 
+          owner?.name ?? 'common.loading'.tr(), 
+          Icons.person_outline,
+          onTap: owner?.phone != null ? () => _makeCall(owner!.phone!) : null,
+        ),
+        _buildContactCard(context, 'tenant.electrician'.tr(), 'Nearby', Icons.electric_bolt_outlined),
+        _buildContactCard(context, 'tenant.plumber'.tr(), 'Nearby', Icons.water_drop_outlined),
+        _buildContactCard(context, 'tenant.security'.tr(), 'Main Gate', Icons.admin_panel_settings_outlined),
       ],
     );
   }
 
-  Widget _buildContactCard(BuildContext context, String label, String value, IconData icon) {
+  Widget _buildContactCard(BuildContext context, String label, String value, IconData icon, {VoidCallback? onTap}) {
     final theme = Theme.of(context);
     return Card(
       elevation: 0,
@@ -125,7 +137,7 @@ class HouseInfoScreen extends StatelessWidget {
       side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5)),
       ),
       child: InkWell(
-        onTap: () {
+        onTap: onTap ?? () {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Calling $label...')));
         },
         borderRadius: BorderRadius.circular(16),
@@ -154,12 +166,10 @@ class HouseInfoScreen extends StatelessWidget {
 
   Widget _buildRulesList(ThemeData theme) {
     final rules = [
-      'Rent is due by the 5th of every month.',
-      'Maintain cleanliness in common areas.',
-      'No loud music after 10:00 PM.',
-      'Notify owner of any plumbing/electrical leaks immediately.',
-      'Guests are allowed but overnight stays require prior notice.',
-      'Dispose of waste only in designated bins.',
+      'tenant.rule_1'.tr(),
+      'tenant.rule_2'.tr(),
+      'tenant.rule_3'.tr(),
+      'tenant.rule_4'.tr(),
     ];
 
     return Container(
@@ -183,5 +193,12 @@ class HouseInfoScreen extends StatelessWidget {
         )).toList(),
       ),
     );
+  }
+
+  Future<void> _makeCall(String phone) async {
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 }

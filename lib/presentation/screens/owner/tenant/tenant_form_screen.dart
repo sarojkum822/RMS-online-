@@ -10,9 +10,10 @@ import 'tenant_controller.dart';
 import '../house/house_controller.dart';
 import '../../../../core/extensions/string_extensions.dart';
 import '../../../../core/utils/dialog_utils.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../core/services/ocr_service.dart';
-import 'package:easy_localization/easy_localization.dart'; // NEW IMPORT
+import 'package:easy_localization/easy_localization.dart';
 
 class TenantFormScreen extends ConsumerStatefulWidget {
   final Tenant? tenant; // Optional for Edit Mode
@@ -448,7 +449,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                    child: DropdownButtonFormField<String>(
-                      value: _selectedGender,
+                      initialValue: _selectedGender,
                       decoration: InputDecoration(
                         labelText: 'Gender',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -670,7 +671,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_isEditing && (_selectedHouseId == null || _selectedUnitId == null)) {
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select property details')));
+       SnackbarUtils.showError(context, 'Please select property details');
        return;
     }
 
@@ -728,8 +729,8 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
       }
 
       if (mounted) {
+        SnackbarUtils.showSuccess(context, _isEditing ? 'Tenant updated successfully' : 'Tenant added successfully');
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isEditing ? 'Tenant updated' : 'Tenant added')));
       }
 
     } catch (e) {

@@ -22,11 +22,9 @@ class NoticeDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     // Fetch necessary data to map House -> Units -> Tenancies -> Tenants
     final unitsAsync = ref.watch(allUnitsProvider);
-    final tenanciesAsync = ref.watch(tenantRepositoryProvider).getAllTenancies(); // Stream
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,

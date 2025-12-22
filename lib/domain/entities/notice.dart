@@ -9,13 +9,15 @@ class Notice with _$Notice {
   const factory Notice({
     required String id,
     required String ownerId,
-    required String houseId, // Target Building
+    required String houseId, // Still needed for organization/permission
     required String subject,
     required String message,
     required DateTime date,
     @Default([]) List<String> readBy,
     @Default({}) Map<String, DateTime> readAt,
     @Default('medium') String priority,
+    @Default('house') String targetType, // all, house, unit
+    String? targetId, // houseId or unitId
   }) = _Notice;
 
   factory Notice.fromJson(Map<String, dynamic> json) => _$NoticeFromJson(json);

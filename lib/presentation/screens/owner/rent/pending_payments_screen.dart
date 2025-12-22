@@ -123,11 +123,11 @@ Thank you!
                     );
                  },
                  loading: () => const Center(child: CircularProgressIndicator()),
-                 error: (_,__) => const Center(child: Text('Error loading tenants')),
+                 error: (e, s) => Center(child: Text('Error loading tenants: $e')),
                );
              },
              loading: () => const Center(child: CircularProgressIndicator()),
-             error: (_,__) => const Center(child: Text('Error loading tenancies')),
+             error: (e, s) => Center(child: Text('Error loading tenancies: $e')),
            );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -140,82 +140,118 @@ Thank you!
     final theme = Theme.of(context);
     final currencySymbol = CurrencyUtils.getSymbol('INR'); // TODO: Get from Owner Prefs
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-        ],
-        border: Border.all(
-          color: isLate ? Colors.red.withValues(alpha: 0.3) : Colors.transparent,
-        )
+    return Dismissible(
+      key: Key(cycle.id),
+      direction: DismissDirection.startToEnd, // Swipe right to call
+      confirmDismiss: (direction) async {
+        // Launch phone dialer
+        final phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
+        final url = Uri.parse('tel:$phone');
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not launch dialer')),
+            );
+          }
+        }
+        return false; // Don't dismiss the card
+      },
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        decoration: BoxDecoration(
+          color: Colors.green,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            const Icon(Icons.phone, color: Colors.white, size: 28),
+            const SizedBox(width: 12),
+            Text('Call ${tenant.name.split(' ').first}', 
+              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
       ),
-      child: Column(
-        children: [
-          Row(
-             children: [
-                // Avatar
-                Container(
-                  width: 48, height: 48,
-                  decoration: BoxDecoration(
-                    color: isLate ? Colors.red.withValues(alpha: 0.1) : theme.colorScheme.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    tenant.name[0].toUpperCase(),
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: isLate ? Colors.red : theme.colorScheme.primary),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                       Text(tenant.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                       Text(
-                         DateFormat('MMMM yyyy').format(cycle.billPeriodStart ?? cycle.billGeneratedDate),
-                         style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 13),
-                       ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('$currencySymbol${cycle.totalDue.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
-                    if (isLate)
-                      Container(
-                        margin: const EdgeInsets.only(top: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-                        child: Text('Overdue', style: GoogleFonts.outfit(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                      )
-                  ],
-                )
-             ],
-          ),
-          const SizedBox(height: 16),
-          // Remind Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _sendReminder(tenant, cycle, currencySymbol),
-              icon: const Icon(Icons.chat_bubble_outline, size: 18),
-              label: Text('Send Secure Reminder', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366), // WhatsApp Green
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-            ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+          ],
+          border: Border.all(
+            color: isLate ? Colors.red.withValues(alpha: 0.3) : Colors.transparent,
           )
-        ],
+        ),
+        child: Column(
+          children: [
+            Row(
+               children: [
+                  // Avatar
+                  Container(
+                    width: 48, height: 48,
+                    decoration: BoxDecoration(
+                      color: isLate ? Colors.red.withValues(alpha: 0.1) : theme.colorScheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      tenant.name[0].toUpperCase(),
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: isLate ? Colors.red : theme.colorScheme.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                         Text(tenant.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                         Text(
+                           DateFormat('MMMM yyyy').format(cycle.billPeriodStart ?? cycle.billGeneratedDate),
+                           style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 13),
+                         ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('$currencySymbol${cycle.totalDue.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+                      if (isLate)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
+                          child: Text('Overdue', style: GoogleFonts.outfit(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        )
+                    ],
+                  )
+               ],
+            ),
+            const SizedBox(height: 16),
+            // Remind Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _sendReminder(tenant, cycle, currencySymbol),
+                icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                label: Text('Send Secure Reminder', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366), // WhatsApp Green
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

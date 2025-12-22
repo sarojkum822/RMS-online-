@@ -116,7 +116,7 @@ class ModernPropertyCard extends StatelessWidget {
   final ThemeData theme;
   final WidgetRef ref;
 
-  const ModernPropertyCard({
+  const ModernPropertyCard({super.key, 
     required this.house,
     required this.isDark,
     required this.theme,
@@ -189,15 +189,15 @@ class ModernPropertyCard extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.2), // Slight dark top
-                      Colors.black.withValues(alpha: 0.8), // Strong dark bottom
+                      Colors.black.withValues(alpha: 0.1), 
+                      Colors.black.withValues(alpha: 0.9), 
                     ],
-                    stops: const [0.5, 0.7, 1.0],
+                    stops: const [0.4, 0.6, 1.0],
                   ),
                 ),
               ),
 
-              // 3. Content Overlay (Glassmorphism Vibe)
+              // 3. Content Overlay (Aura Vibe)
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -219,25 +219,33 @@ class ModernPropertyCard extends StatelessWidget {
                                   Text(
                                     house.name,
                                     style: GoogleFonts.outfit(
-                                      fontSize: 24,
+                                      fontSize: 26,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
-                                      shadows: [Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))],
+                                      letterSpacing: -0.5,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black.withValues(alpha: 0.5),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 6),
                                   Row(
                                     children: [
-                                      const Icon(Icons.location_on, color: Colors.white70, size: 14),
+                                      const Icon(Icons.location_on, color: Colors.white70, size: 16),
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
                                           house.address,
                                           style: GoogleFonts.outfit(
                                             fontSize: 14,
-                                            color: Colors.white70,
+                                            color: Colors.white.withValues(alpha: 0.8),
+                                            fontWeight: FontWeight.w400,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -248,7 +256,8 @@ class ModernPropertyCard extends StatelessWidget {
                                ],
                              ),
                            ),
-                           // Stats Pills
+                           const SizedBox(width: 16),
+                           // Stats Pills with Aura Glow
                            Consumer(
                               builder: (context, ref, _) {
                                 final statsValue = ref.watch(houseStatsProvider(house.id));
@@ -256,32 +265,39 @@ class ModernPropertyCard extends StatelessWidget {
                                   data: (stats) {
                                     final occupancyRate = stats['occupancyRate'] as double;
                                     final isFull = occupancyRate >= 1.0;
+                                    final glowColor = isFull ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
                                     
                                     return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: isFull ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(20),
+                                        color: glowColor.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(16),
                                         border: Border.all(
-                                          color: isFull ? Colors.green.withValues(alpha: 0.5) : Colors.orange.withValues(alpha: 0.5),
-                                          width: 1,
+                                          color: glowColor.withValues(alpha: 0.5),
+                                          width: 1.5,
                                         ),
-                                        boxShadow: [BoxShadow(color: (isFull ? Colors.green : Colors.orange).withValues(alpha: 0.1), blurRadius: 10)],
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: glowColor.withValues(alpha: 0.15),
+                                            blurRadius: 15,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(
-                                            isFull ? Icons.check_circle : Icons.pie_chart, 
-                                            size: 14, 
-                                            color: isFull ? Colors.greenAccent : Colors.orangeAccent
+                                            isFull ? Icons.check_circle_rounded : Icons.pie_chart_rounded, 
+                                            size: 16, 
+                                            color: glowColor
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
                                             isFull ? 'Full' : '${(occupancyRate * 100).toInt()}%',
-                                            style: TextStyle(
-                                              color: isFull ? Colors.greenAccent : Colors.orangeAccent,
-                                              fontSize: 12, 
+                                            style: GoogleFonts.outfit(
+                                              color: glowColor,
+                                              fontSize: 13, 
                                               fontWeight: FontWeight.bold
                                             ),
                                           ),
@@ -369,7 +385,7 @@ class InfoBadge extends StatelessWidget {
   final String text;
   final Color? color;
 
-  const InfoBadge({required this.icon, required this.text, this.color});
+  const InfoBadge({super.key, required this.icon, required this.text, this.color});
 
   @override
   Widget build(BuildContext context) {

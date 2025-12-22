@@ -31,7 +31,7 @@ class DataManagementService {
         }
       }
     } catch (e) {
-      print('Error cleaning up tenant auth: $e');
+//      print('Error cleaning up tenant auth: $e');
       // Continue to delete data anyway
     }
 
@@ -62,7 +62,7 @@ class DataManagementService {
         await _deleteCollectionForOwner(collection, uid);
       } catch (e) {
         // Log but continue to try deleting other collections
-        print('Error deleting collection $collection: $e');
+//        print('Error deleting collection $collection: $e');
       }
     }
   }
@@ -79,9 +79,9 @@ class DataManagementService {
       try {
         await auth.signInWithEmailAndPassword(email: email, password: password);
         await auth.currentUser?.delete(); 
-        print('Deleted auth for $email');
+//        print('Deleted auth for $email');
       } catch (e) {
-        print('Warning: Failed to delete Auth user $email: $e');
+//        print('Warning: Failed to delete Auth user $email: $e');
       } finally {
          try { await auth.signOut(); } catch (_) {}
       }
@@ -98,12 +98,10 @@ class DataManagementService {
     // Delete in batches of 500
     WriteBatch batch = _firestore.batch();
     int count = 0;
-    int totalDeleted = 0;
 
     for (final doc in snapshot.docs) {
       batch.delete(doc.reference);
       count++;
-      totalDeleted++;
 
       if (count >= 400) { // Commit every 400 to be safe
         await batch.commit();
@@ -121,8 +119,8 @@ class DataManagementService {
   }
 
   // --- Encryption Helpers (Must match TenantRepositoryImpl) ---
-  final _key = encrypt.Key.fromUtf8('KirayaBookProSecretKey32CharsLong'); 
-  final _iv = encrypt.IV.fromUtf8('KirayaBookProIV16'); 
+  final _key = encrypt.Key.fromUtf8('KirayaBookProSecretKey32Chars!!'); // 32 chars
+  final _iv = encrypt.IV.fromUtf8('KirayaBookProIVx'); // 16 chars
 
   String? _decryptPassword(String? encryptedPassword) {
     if (encryptedPassword == null || encryptedPassword.isEmpty) return null;

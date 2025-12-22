@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'; // For debugPrint
 import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/tenancy.dart'; // Import
 import '../../../providers/data_providers.dart';
+import '../../../../data/repositories/owner_repository_impl.dart'; // For email uniqueness check
 import 'dart:io';
 import 'package:uuid/uuid.dart'; // import uuid
 import 'package:firebase_auth/firebase_auth.dart';
@@ -39,6 +40,7 @@ class TenantController extends _$TenantController {
   @override
   Stream<List<Tenant>> build() {
     final repo = ref.watch(tenantRepositoryProvider);
+    // Direct Firestore fetch - no local caching needed
     return repo.getAllTenants();
   }
 
@@ -98,6 +100,18 @@ class TenantController extends _$TenantController {
     String? gender,
     int memberCount = 1,
   }) async {
+    // 0. SECURITY: Check if email is already registered as an owner
+    if (email != null && email.isNotEmpty) {
+      final ownerRepo = ref.read(ownerRepositoryProvider);
+      // Need to cast to get the isEmailRegisteredAsOwner method
+      if (ownerRepo is OwnerRepositoryImpl) {
+        final isOwnerEmail = await ownerRepo.isEmailRegisteredAsOwner(email);
+        if (isOwnerEmail) {
+          throw Exception('This email is already registered as an owner. Owner and tenant emails cannot be the same.');
+        }
+      }
+    }
+
     // 1. Create Tenant Auth (Securely)
     String? authId;
     if (email != null && email.isNotEmpty && password != null && password.isNotEmpty) {

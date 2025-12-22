@@ -60,5 +60,7 @@
 		<string>ca-app-pub-3940256099942544~1458002511</string>
 		<key>NSFaceIDUsageDescription</key>
 		<string>Authenticate to access your Secure Vault.</string>
+		<key>UIViewControllerBasedStatusBarAppearance</key>
+		<false/>
 	</dict>
 </plist>

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../domain/entities/expense.dart';
-import '../../../widgets/ads/banner_ad_widget.dart';
 import '../../../providers/data_providers.dart'; 
 import 'expense_controller.dart';
 import '../../../../core/extensions/string_extensions.dart';

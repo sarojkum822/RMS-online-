@@ -747,7 +747,7 @@ class TenantCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onTap; // Optional override
 
-  const TenantCard({
+  const TenantCard({super.key, 
       required this.item, 
       this.isHistory = false,
       this.isSelected = false,
@@ -771,36 +771,63 @@ class TenantCard extends StatelessWidget {
         return InkWell(
           onLongPress: onLongPress,
           onTap: onTap ?? () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => TenantDetailScreen(tenant: tenant))),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           child: Stack(
-              children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isSelected ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3) : theme.cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: isSelected ? theme.colorScheme.primary : theme.dividerColor,
-                          width: isSelected ? 2 : 1,
-                      ),
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? theme.colorScheme.primary.withValues(alpha: 0.1) 
+                      : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected 
+                        ? theme.colorScheme.primary 
+                        : (isDark ? Colors.white.withValues(alpha: 0.1) : theme.dividerColor.withValues(alpha: 0.5)),
+                    width: isSelected ? 2 : 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.all(narrow ? 12.0 : 16.0),
-                      child: Opacity(
-                        opacity: isHistory ? 0.7 : 1.0,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // 1. Profile Image
-                            Container(
-                              width: narrow ? 40 : 50, height: narrow ? 40 : 50,
-                              margin: EdgeInsets.only(right: narrow ? 12 : 16),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: theme.dividerColor, width: 1),
+                    if (isSelected)
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(narrow ? 14.0 : 18.0),
+                  child: Opacity(
+                    opacity: isHistory ? 0.7 : 1.0,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 1. Profile Image with Aura Glow
+                        Container(
+                          width: narrow ? 44 : 54, height: narrow ? 44 : 54,
+                          margin: EdgeInsets.only(right: narrow ? 14 : 18),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (isDark ? Colors.white : theme.colorScheme.primary).withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                spreadRadius: 1,
                               ),
-                              child: CircleAvatar(
-                                radius: narrow ? 18 : 24,
-                            backgroundColor: theme.colorScheme.surface, 
+                            ],
+                            border: Border.all(
+                              color: isDark ? Colors.white.withValues(alpha: 0.2) : theme.dividerColor, 
+                              width: 1.5
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: narrow ? 20 : 25,
+                            backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade100, 
                             backgroundImage: (tenant.imageBase64 != null && tenant.imageBase64!.isNotEmpty)
                                 ? MemoryImage(base64Decode(tenant.imageBase64!))
                                 : ((tenant.imageUrl != null && tenant.imageUrl!.isNotEmpty)
@@ -812,9 +839,9 @@ class TenantCard extends StatelessWidget {
                                 ? Text(
                                     tenant.name.isNotEmpty ? tenant.name[0].toUpperCase() : '?',
                                     style: GoogleFonts.outfit(
-                                      fontSize: 18, 
+                                      fontSize: 20, 
                                       fontWeight: FontWeight.bold,
-                                      color: theme.textTheme.bodyMedium?.color
+                                      color: isDark ? Colors.white70 : Colors.black54,
                                     ),
                                   )
                                 : null,
@@ -830,25 +857,27 @@ class TenantCard extends StatelessWidget {
                                 Text(
                                   tenant.name,
                                   style: GoogleFonts.outfit(
-                                    fontSize: narrow ? 14 : 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: theme.textTheme.bodyLarge?.color,
+                                    fontSize: narrow ? 16 : 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                    letterSpacing: -0.3,
                                   ),
                                   maxLines: 1, 
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
                                // Property & ID
                               Row(
                                 children: [
-                                   Icon(Icons.location_on_outlined, size: 14, color: theme.hintColor),
+                                   Icon(Icons.location_on_rounded, size: 14, color: isDark ? Colors.white60 : Colors.black45),
                                    const SizedBox(width: 4),
                                    Flexible(
                                      child: Text(
                                         '${item.propertyName}, ${item.unitName}',
                                         style: GoogleFonts.outfit(
                                           fontSize: 13,
-                                          color: theme.hintColor,
+                                          color: isDark ? Colors.white60 : Colors.black45,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                         maxLines: 1, overflow: TextOverflow.ellipsis,
                                      ),
@@ -859,18 +888,16 @@ class TenantCard extends StatelessWidget {
                           ),
                         ),
 
-                        // 3. Amount Column (or Checkbox if selected mode?)
-                        // User design preference: Standard look but highlighted. 
-                        // Let's keep existing info but maybe checkmark overlay.
+                        // 3. Amount Column
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
                               currencyFormat.format(item.rentAmount),
                               style: GoogleFonts.outfit(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: theme.textTheme.bodyLarge?.color,
+                                fontSize: 19,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : theme.colorScheme.primary,
                                 letterSpacing: -0.5
                               ),
                             ),
@@ -878,18 +905,23 @@ class TenantCard extends StatelessWidget {
                               '/month',
                               style: GoogleFonts.outfit(
                                 fontSize: 11,
-                                color: theme.textTheme.bodySmall?.color,
+                                color: isDark ? Colors.white54 : Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 12),
                             if (!isHistory)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.chevron_left, size: 14, color: theme.disabledColor.withValues(alpha: 0.5)),
-                                  const SizedBox(width: 2),
-                                  Icon(Icons.phone, size: 12, color: theme.disabledColor.withValues(alpha: 0.5)),
-                                ],
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.chevron_right_rounded, 
+                                  size: 16, 
+                                  color: isDark ? Colors.white54 : Colors.grey.shade400
+                                ),
                               ),
                           ],
                         ),
@@ -902,15 +934,16 @@ class TenantCard extends StatelessWidget {
               // Selected Checkmark Overlay
               if (isSelected)
                  Positioned(
-                    top: 8, right: 8,
+                    top: -5, right: -5,
                     child: Container(
+                       padding: const EdgeInsets.all(2),
                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                       child: Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 24)
+                       child: Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 28)
                     ),
                  ),
-          ],
-        ),
-      );
+            ],
+          ),
+        );
     },
    );
   }

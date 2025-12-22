@@ -1,13 +1,12 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../providers/data_providers.dart';
 import '../../owner/tenant/tenant_controller.dart';
-import '../../owner/house/house_controller.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import '../../maintenance/maintenance_controller.dart';
 import '../../../../domain/entities/maintenance_request.dart';
@@ -18,7 +17,6 @@ import '../../../../domain/entities/notice.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import '../../../widgets/ads/banner_ad_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/services/pdf_generator_service.dart';
 import 'package:printing/printing.dart';
 
 class TenantHomeView extends ConsumerStatefulWidget {
@@ -49,7 +47,7 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
     final unit = unitAsync.valueOrNull;
     final houseId = unit?.houseId;
 
-    final noticesAsync = houseId != null ? ref.watch(noticesForHouseProvider((houseId: houseId, ownerId: ownerId))) : const AsyncValue.loading();
+    final noticesAsync = ref.watch(noticesForTenantProvider((houseId: houseId ?? '', unitId: unitId, ownerId: ownerId)));
     final unreadNotices = noticesAsync.valueOrNull?.where((n) => !n.readBy.contains(widget.tenant.id.toString())).toList() ?? [];
 
     if (noticesAsync.hasValue) {
@@ -73,10 +71,49 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
       ? ref.watch(tenantMaintenanceProvider((tenantId: widget.tenant.id.toString(), ownerId: ownerId))) 
       : const AsyncValue.loading();
 
+    // --- REAL-TIME FOREGROUND ALERTS ---
+
+    // 1. Listen for New Notices
+    ref.listen(noticesForTenantProvider((houseId: houseId ?? '', unitId: unitId, ownerId: ownerId)), (previous, next) {
+      if (next is AsyncData<List<Notice>> && previous is AsyncData<List<Notice>>) {
+        final newNotices = next.value.where((n) => 
+          !previous.value.any((pn) => pn.id == n.id) &&
+          !n.readBy.contains(widget.tenant.id.toString())
+        ).toList();
+
+        if (newNotices.isNotEmpty) {
+          final n = newNotices.first;
+          ref.read(notificationServiceProvider).showLocalNotification(
+            id: n.id.hashCode,
+            title: 'New Notice: ${n.subject}',
+            body: n.message,
+            payload: '/tenant/notices',
+          );
+        }
+      }
+    });
+
+    // 2. Listen for Maintenance Status Updates
+    ref.listen(tenantMaintenanceProvider((tenantId: widget.tenant.id.toString(), ownerId: ownerId)), (previous, next) {
+      if (next is AsyncData<List<MaintenanceRequest>> && previous is AsyncData<List<MaintenanceRequest>>) {
+        for (var req in next.value) {
+          final prevReq = previous.value.firstWhere((p) => p.id == req.id, orElse: () => req);
+          if (prevReq.status != req.status) {
+             ref.read(notificationServiceProvider).showLocalNotification(
+               id: req.id.hashCode,
+               title: 'Maintenance Update',
+               body: 'Your ${req.category} request is now ${req.status.name.toUpperCase()}',
+               payload: '/tenant/maintenance/${req.id}',
+             );
+          }
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Welcome, ${widget.tenant.name}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+        title: Text('${'dashboard.welcome'.tr()} ${widget.tenant.name}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         actions: [
@@ -103,14 +140,15 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
               await ref.read(userSessionServiceProvider).clearSession();
               if (context.mounted) context.go('/');
             }, 
-            icon: Icon(Icons.logout, color: theme.iconTheme.color)
+            icon: Icon(Icons.logout, color: theme.iconTheme.color),
+            tooltip: 'settings.logout'.tr(),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'tenant_repair_request',
         onPressed: (houseId != null && unitId != null) ? () => _showMaintenanceDialog(context, houseId, unitId) : null,
-        label: const Text('Request Repair'),
+        label: Text('tenant.new_request'.tr()),
         icon: const Icon(Icons.build),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
@@ -177,7 +215,7 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          totalDue < 0 ? 'Advance Balance' : 'Total Outstanding', 
+                                          totalDue < 0 ? 'tenant.advance_balance'.tr() : 'tenant.total_outstanding'.tr(), 
                                           style: GoogleFonts.outfit(
                                             color: isDark ? (totalDue < 0 ? Colors.greenAccent : Colors.white70) : const Color(0xFF64748B), 
                                             fontSize: 16, 
@@ -211,17 +249,17 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                                         width: double.infinity,
                                         height: 50,
                                         child: ElevatedButton(
-                                          onPressed: () {
-                                            _launchPayment(context, totalDue);
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: isDark ? Colors.white : theme.colorScheme.primary, 
-                                            foregroundColor: isDark ? theme.colorScheme.primary : Colors.white,
-                                            elevation: 0,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            onPressed: () {
+                                              _launchPayment(context, totalDue);
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: isDark ? Colors.white : theme.colorScheme.primary, 
+                                              foregroundColor: isDark ? theme.colorScheme.primary : Colors.white,
+                                              elevation: 0,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            ),
+                                            child: Text('tenant.pay_now'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                           ),
-                                          child: const Text('Pay Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                        ),
                                       ),
                                     ]
                                   ],
@@ -249,11 +287,11 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                                    child: ListTile(
                                      leading: Container(
                                        padding: const EdgeInsets.all(8),
-                                       decoration: BoxDecoration(color: _getStatusColor(r.status).withValues(alpha: 0.1), shape: BoxShape.circle),
-                                       child: Icon(_getCategoryIcon(r.category), color: _getStatusColor(r.status), size: 20),
+                                       decoration: BoxDecoration(color: r.status.color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                                       child: Icon(r.category.maintenanceCategoryIcon, color: r.status.color, size: 20),
                                      ),
                                      title: Text(r.category, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                                     subtitle: Text(r.status.name.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getStatusColor(r.status))),
+                                     subtitle: Text(r.status.label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: r.status.color)),
                                      trailing: Text(DateFormat('dd MMM').format(r.date), style: const TextStyle(fontSize: 12)),
                                      onTap: () => context.push('/tenant/maintenance/${r.id}', extra: r),
                                    ),
@@ -285,15 +323,15 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                                    child: Column(
                                      crossAxisAlignment: CrossAxisAlignment.start,
                                      children: [
-                                       Text('Lifetime Payment Summary', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+                                       Text('tenant.payment_summary'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                                        const SizedBox(height: 16),
                                        Row(
                                          children: [
-                                           Expanded(child: _buildSummaryItem('Total Paid', totalPaid, Colors.blue, theme)),
+                                           Expanded(child: _buildSummaryItem('tenant.total_paid'.tr(), totalPaid, Colors.blue, theme)),
                                            Container(width: 1, height: 40, color: theme.dividerColor),
-                                           Expanded(child: _buildSummaryItem('Cash', cashPaid, Colors.orange, theme)),
+                                           Expanded(child: _buildSummaryItem('reports.cash'.tr(), cashPaid, Colors.orange, theme)),
                                            Container(width: 1, height: 40, color: theme.dividerColor),
-                                           Expanded(child: _buildSummaryItem('Online/UPI', onlinePaid, Colors.green, theme)),
+                                           Expanded(child: _buildSummaryItem('tenant.online_upi'.tr(), onlinePaid, Colors.green, theme)),
                                          ],
                                        )
                                      ],
@@ -303,7 +341,7 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                             ),
                         
                             const SizedBox(height: 24),
-                            Text('Recent Bills', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+                            Text('tenant.recent_bills'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
                              
                             if (tenancy?.id != null)
                             StreamBuilder<List<RentCycle>>(
@@ -439,47 +477,6 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
         ),
       )
     );
-  }
-
-  void _showRequestDetails(BuildContext context, MaintenanceRequest r) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('${r.category} Request'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-             Text('Status: ${r.status.name.toUpperCase()}', style: TextStyle(fontWeight: FontWeight.bold, color: _getStatusColor(r.status))),
-             const SizedBox(height: 12),
-             Text(r.description),
-             if (r.resolutionNotes != null) ...[
-                const SizedBox(height: 12),
-                const Divider(),
-                Text('Resolution Note:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(r.resolutionNotes!)
-             ]
-          ],
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close'))],
-      )
-    );
-  }
-
-  IconData _getCategoryIcon(String cat) {
-    if (cat.contains('Plumb')) return Icons.water_drop;
-    if (cat.contains('Electr')) return Icons.electric_bolt;
-    if (cat.contains('Appliance')) return Icons.kitchen;
-    return Icons.build;
-  }
-
-  Color _getStatusColor(MaintenanceStatus status) {
-    switch(status) {
-      case MaintenanceStatus.pending: return Colors.orange;
-      case MaintenanceStatus.inProgress: return Colors.blue;
-      case MaintenanceStatus.completed: return Colors.green;
-      case MaintenanceStatus.rejected: return Colors.red;
-    }
   }
 
   void _showNoticePopup(Notice notice) {

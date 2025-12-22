@@ -10,12 +10,8 @@ import '../../../../features/rent/domain/usecases/generate_rent_use_case.dart';
 import '../../../../domain/entities/tenant.dart';
 
 import '../../../providers/data_providers.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../../../core/constants/firebase_collections.dart';
 import '../../../../domain/repositories/i_rent_repository.dart'; 
 
-import '../../../../domain/entities/house.dart'; 
 import '../reports/reports_controller.dart';
 import '../tenant/tenant_controller.dart';
 
@@ -51,9 +47,6 @@ class RentController extends _$RentController {
      return merged.values.toList();
   }
 
-  Future<List<RentCycle>> _fetchRentCycles(String month) async {
-     return ref.read(rentRepositoryProvider).getRentCyclesForMonth(month);
-  }
 
   Future<void> generateRentForCurrentMonth() async {
     final useCase = GenerateRentUseCase(
@@ -487,10 +480,6 @@ final electricReadingsProvider = FutureProvider.family<List<Map<String, dynamic>
 });
 
 
-
-final houseDetailsProvider = FutureProvider.family<House?, String>((ref, houseId) async {
-  return ref.read(propertyRepositoryProvider).getHouse(houseId); // Update propertyRepo too!
-});
 
 final tenantDetailsProvider = FutureProvider.family<Tenant?, String>((ref, tenantId) async {
   return ref.read(tenantRepositoryProvider).getTenant(tenantId);

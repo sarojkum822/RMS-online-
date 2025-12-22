@@ -80,7 +80,7 @@ class _AddMaintenanceSheetState extends ConsumerState<AddMaintenanceSheet> {
 
               // 1. Property Selector
               DropdownButtonFormField<String>(
-                value: _selectedHouseId,
+                initialValue: _selectedHouseId,
                 decoration: InputDecoration(
                   labelText: 'Select Property',
                   prefixIcon: const Icon(Icons.apartment),
@@ -105,7 +105,7 @@ class _AddMaintenanceSheetState extends ConsumerState<AddMaintenanceSheet> {
               // 2. Unit Selector
               if (_selectedHouseId != null)
                 DropdownButtonFormField<String>(
-                  value: _selectedUnitId,
+                  initialValue: _selectedUnitId,
                   decoration: InputDecoration(
                   labelText: 'Select Unit / Flat',
                   prefixIcon: const Icon(Icons.door_front_door),
@@ -124,7 +124,7 @@ class _AddMaintenanceSheetState extends ConsumerState<AddMaintenanceSheet> {
 
               // 3. Category
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: InputDecoration(
                   labelText: 'Issue Category',
                   prefixIcon: const Icon(Icons.category),

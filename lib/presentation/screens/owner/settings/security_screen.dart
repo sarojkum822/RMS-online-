@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../providers/data_providers.dart';
+import '../../../../core/services/biometric_service.dart';
 
 class SecurityScreen extends ConsumerStatefulWidget {
   const SecurityScreen({super.key});
@@ -83,8 +84,25 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                     }
                   }
                 } else {
-                  setState(() => _biometricEnabled = false);
-                  await ref.read(userSessionServiceProvider).saveBiometricPreference(false);
+                  // Require re-authentication before disabling
+                  final result = await biometricService.authenticateWithResult(
+                    reason: 'Verify identity to disable Biometric Login',
+                  );
+                  
+                  if (result == BiometricResult.success) {
+                    setState(() => _biometricEnabled = false);
+                    await ref.read(userSessionServiceProvider).saveBiometricPreference(false);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometric Login Disabled')));
+                    }
+                  } else if (result == BiometricResult.lockedOut) {
+                    final remaining = await biometricService.getRemainingLockoutSeconds();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Too many failed attempts. Try again in ${remaining}s')),
+                      );
+                    }
+                  }
                 }
               },
               activeThumbColor: theme.colorScheme.primary,
@@ -128,8 +146,25 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                     }
                   }
                 } else {
-                  setState(() => _vaultLockEnabled = false);
-                  await ref.read(userSessionServiceProvider).saveVaultLockPreference(false);
+                  // Require re-authentication before disabling
+                  final result = await biometricService.authenticateWithResult(
+                    reason: 'Verify identity to disable Vault Lock',
+                  );
+                  
+                  if (result == BiometricResult.success) {
+                    setState(() => _vaultLockEnabled = false);
+                    await ref.read(userSessionServiceProvider).saveVaultLockPreference(false);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vault Lock Disabled')));
+                    }
+                  } else if (result == BiometricResult.lockedOut) {
+                    final remaining = await biometricService.getRemainingLockoutSeconds();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Too many failed attempts. Try again in ${remaining}s')),
+                      );
+                    }
+                  }
                 }
               },
               activeThumbColor: Colors.amber,

@@ -23,7 +23,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   final _biometricService = BiometricService(); // NEW
   bool _isLoading = false;
   bool _canCheckBiometrics = false; // NEW
-  bool _isBiometricEnabled = false; // NEW
+  bool _obscurePassword = true; // Password visibility toggle
 
   @override
   void initState() {
@@ -34,12 +34,11 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   Future<void> _checkBiometrics() async {
     final available = await _biometricService.isBiometricAvailable();
     final enabled = await _storageService.isBiometricEnabled();
-    final creds = await _storageService.getCredentials();
+    final creds = await _storageService.getCredentials(role: 'tenant');
     
     if (mounted) {
       setState(() {
         _canCheckBiometrics = available && enabled && creds != null;
-        _isBiometricEnabled = enabled;
         
         if (creds != null) {
           _emailController.text = creds['email']!;
@@ -57,11 +56,17 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   Future<void> _loginWithBiometrics() async {
     final authenticated = await _biometricService.authenticate();
     if (authenticated) {
-      final creds = await _storageService.getCredentials();
+      final creds = await _storageService.getCredentials(role: 'tenant');
       if (creds != null) {
         _emailController.text = creds['email']!;
         _passwordController.text = creds['password']!;
         _submitLogin(); 
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No saved tenant credentials. Please login with email/password first.'))
+          );
+        }
       }
     }
   }
@@ -86,7 +91,14 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                         if (tenant != null && context.mounted) {
                            final sessionService = ref.read(userSessionServiceProvider);
                            await sessionService.saveSession(role: 'tenant', tenantId: tenant.id);
-                           await _storageService.saveCredentials(email, password); // SAVE CREDS
+                           
+                           // Save credentials with tenant's authId for identity verification
+                           await _storageService.saveCredentials(
+                             email, 
+                             password, 
+                             role: 'tenant',
+                             uid: tenant.authId, // Store authId for biometric verification
+                           );
 
                            // Save Token for Notifications
                            await sessionService.saveTenantFcmToken(tenant.id);
@@ -176,11 +188,15 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   style: GoogleFonts.outfit(fontSize: 15),
                   decoration: InputDecoration(
                     labelText: 'Password',
                     prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),

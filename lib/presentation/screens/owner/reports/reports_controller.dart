@@ -9,105 +9,69 @@ import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/expense.dart'; 
 
+import '../../../../domain/entities/report_range.dart';
 import '../../../providers/data_providers.dart';
+import '../../../../core/services/app_prefs_cache.dart';
+import 'reports_data.dart';
+import 'dart:convert';
 
 part 'reports_controller.g.dart';
 
-class MonthlyStats {
-  final String monthLabel; 
-  final double collected;
-  final double pending;
-
-  MonthlyStats({required this.monthLabel, required this.collected, required this.pending});
-}
-
-class TenantDue {
-  final String name;
-  final double amount;
-  final String phone;
-  TenantDue({required this.name, required this.amount, required this.phone});
-}
-
-class PropertyRevenue {
-  final String houseName;
-  final double revenue;
-  PropertyRevenue({required this.houseName, required this.revenue});
-}
-
-class ReportsData {
-  final double totalCollected;
-  final double totalPending;
-  final double totalExpected;
-  
-  // New Financials
-  final double totalExpenses;
-  final double netProfit;
-  
-  // Operational
-  final int totalUnits;
-  final int occupiedUnits;
-  final int vacantUnits;
-  
-  // Analysis
-  final List<Payment> recentPayments;
-  final List<MonthlyStats> revenueTrend;
-  final Map<String, double> paymentMethods;
-  final List<TenantDue> topDefaulters;
-  final List<PropertyRevenue> propertyPerformance;
-
-  ReportsData({
-    required this.totalCollected,
-    required this.totalPending,
-    required this.totalExpected,
-    required this.totalExpenses,
-    required this.netProfit,
-    required this.totalUnits,
-    required this.occupiedUnits,
-    required this.vacantUnits,
-    required this.recentPayments,
-    required this.revenueTrend,
-    required this.paymentMethods,
-    required this.topDefaulters,
-    required this.propertyPerformance,
-  });
-}
 
 @riverpod
 class ReportsController extends _$ReportsController {
   @override
-  FutureOr<ReportsData> build() async {
+  FutureOr<ReportsData> build(ReportRange range) async {
+    // 1. Try to load from cache first
+    final cachedJson = AppPrefsCache.getCachedReport(range.label);
+    if (cachedJson != null) {
+      try {
+        final Map<String, dynamic> json = jsonDecode(cachedJson);
+        final cachedData = ReportsData.fromJson(json);
+        // Trigger fresh fetch in background
+        Future.microtask(() => _fetchAndCache(range));
+        return cachedData;
+      } catch (e) {
+        debugPrint('Error decoding cached report: $e');
+      }
+    }
+
+    // 2. Fallback to full fetch if no cache or error
+    return await _fetchAndCache(range);
+  }
+
+  Future<ReportsData> _fetchAndCache(ReportRange range) async {
     final rentRepo = ref.watch(rentRepositoryProvider);
     final tenantRepo = ref.watch(tenantRepositoryProvider);
     final houseRepo = ref.watch(propertyRepositoryProvider);
 
-    // 0. Bulk Fetch
-    // We handle Futures and Streams appropriately here.
-    final rentCyclesFuture = rentRepo.getAllRentCycles();
-    final paymentsFuture = rentRepo.getAllPayments();
-    final expensesFuture = rentRepo.getAllExpenses();
-    
-    // Convert Streams to Futures (Snapshot) for Reports
-    final housesFuture = houseRepo.getHouses().first; // Get current state
-    final tenantsFuture = tenantRepo.getAllTenants().first; // Get current state
-
-
-    final results = await Future.wait([
-      rentCyclesFuture,          // [0]
-      paymentsFuture,            // [1]
-      expensesFuture,            // [2]
-      housesFuture,              // [3]
-      tenantsFuture,             // [4]
-      tenantRepo.getAllTenancies().first, // [5] Fixed
-      houseRepo.getAllUnits().first,      // [6] New
+    final results = await Future.wait<dynamic>([
+      rentRepo.getAllRentCycles(),
+      rentRepo.getAllPayments(),
+      rentRepo.getAllExpenses(),
+      houseRepo.getHouses().first,
+      tenantRepo.getAllTenants().first,
+      tenantRepo.getAllTenancies().first,
+      houseRepo.getAllUnits().first,
     ]);
 
-    // Offload heavy calculation to background isolate to keep UI smooth
-    return await compute(_processReportsData, results);
+    final freshData = await compute(_processReportsData, [results, range]);
+    
+    // Cache the fresh data
+    AppPrefsCache.setCachedReport(range.label, jsonEncode(freshData.toJson()));
+    
+    // Update state with fresh data
+    state = AsyncData(freshData);
+    
+    return freshData;
   }
 }
 
 // Top-level function for Isolate
-ReportsData _processReportsData(List<dynamic> results) {
+ReportsData _processReportsData(List<dynamic> input) {
+    final results = input[0] as List<dynamic>;
+    final range = input[1] as ReportRange;
+
     final allRentCycles = results[0] as List<RentCycle>;
     final allPayments = results[1] as List<Payment>;
     final allExpenses = results[2] as List<Expense>;
@@ -116,11 +80,12 @@ ReportsData _processReportsData(List<dynamic> results) {
     final allTenancies = results[5] as List<Tenancy>;
     final allUnits = results[6] as List<Unit>;
 
-    final now = DateTime.now();
-    final currentMonthStr = DateFormat('yyyy-MM').format(now);
-
-    // 1. Financials (Current Month)
-    final currentCycles = allRentCycles.where((c) => c.month == currentMonthStr).toList();
+    // 1. Financials (Selected Range)
+    final currentCycles = allRentCycles.where((c) {
+       final date = c.billPeriodStart ?? c.billGeneratedDate;
+       return date.isAfter(range.start.subtract(const Duration(seconds: 1))) && 
+              date.isBefore(range.end.add(const Duration(seconds: 1)));
+    }).toList();
     
     double totalExpected = 0;
     double accrualPaid = 0; // Paid specifically for this month's bills
@@ -132,22 +97,22 @@ ReportsData _processReportsData(List<dynamic> results) {
     final totalPending = max(0.0, totalExpected - accrualPaid);
 
     // 2. Expenses & Net Profit
-    final currentMonthExpenses = allExpenses.where((e) {
-       final eMonth = DateFormat('yyyy-MM').format(e.date);
-       return eMonth == currentMonthStr;
+    final rangeExpenses = allExpenses.where((e) {
+       return e.date.isAfter(range.start.subtract(const Duration(seconds: 1))) && 
+              e.date.isBefore(range.end.add(const Duration(seconds: 1)));
     }).toList();
     
-    final totalExpenses = currentMonthExpenses.fold(0.0, (sum, item) => sum + item.amount);
+    final totalExpenses = rangeExpenses.fold(0.0, (sum, item) => sum + item.amount);
 
-    // 3. Payment Methods (This Month) - CASH BASIS
-    final currentPayments = allPayments.where((p) {
-        final pMonth = DateFormat('yyyy-MM').format(p.date);
-        return pMonth == currentMonthStr;
+    // 3. Payment Methods (Selected Range) - CASH BASIS
+    final rangePayments = allPayments.where((p) {
+        return p.date.isAfter(range.start.subtract(const Duration(seconds: 1))) && 
+               p.date.isBefore(range.end.add(const Duration(seconds: 1)));
     }).toList();
 
     Map<String, double> paymentMethods = {};
     double totalCashCollected = 0;
-    for (final p in currentPayments) {
+    for (final p in rangePayments) {
         paymentMethods[p.method] = (paymentMethods[p.method] ?? 0) + p.amount;
         totalCashCollected += p.amount;
     }
@@ -155,10 +120,13 @@ ReportsData _processReportsData(List<dynamic> results) {
     // Net Profit = Cash In - Cash Out
     final netProfit = totalCashCollected - totalExpenses;
 
-    // 4. Revenue Trend (Last 6 Months)
+    // 4. Revenue Trend (Lookback from Range End)
     List<MonthlyStats> revenueTrend = [];
+    double previousMonthCollected = 0;
+    
+    final trendEnd = range.end;
     for (int i = 5; i >= 0; i--) {
-      final date = DateTime(now.year, now.month - i, 1);
+      final date = DateTime(trendEnd.year, trendEnd.month - i, 1);
       final monthKey = DateFormat('yyyy-MM').format(date);
       final monthLabel = DateFormat('MMM').format(date);
       
@@ -172,6 +140,28 @@ ReportsData _processReportsData(List<dynamic> results) {
         pending += max(0.0, c.totalDue - c.totalPaid);
       }
       revenueTrend.add(MonthlyStats(monthLabel: monthLabel, collected: collected, pending: pending));
+      
+      // Track previous month relative to the FIRST month in our current range
+      // (Simplified logic to maintain UI MoM badge)
+      if (i == 1) {
+        previousMonthCollected = collected;
+      }
+    }
+
+    // 4b. Expense Trend (Lookback from Range End)
+    List<MonthlyStats> expenseTrend = [];
+    for (int i = 5; i >= 0; i--) {
+      final date = DateTime(trendEnd.year, trendEnd.month - i, 1);
+      final monthKey = DateFormat('yyyy-MM').format(date);
+      final monthLabel = DateFormat('MMM').format(date);
+      
+      final monthExpenses = allExpenses.where((e) {
+        final eMonth = DateFormat('yyyy-MM').format(e.date);
+        return eMonth == monthKey;
+      }).toList();
+      
+      double total = monthExpenses.fold(0.0, (sum, e) => sum + e.amount);
+      expenseTrend.add(MonthlyStats(monthLabel: monthLabel, collected: total, pending: 0));
     }
 
     // 5. Occupancy & Property Performance
@@ -234,9 +224,10 @@ ReportsData _processReportsData(List<dynamic> results) {
     defaulters.sort((a, b) => b.amount.compareTo(a.amount));
     if (defaulters.length > 5) defaulters = defaulters.sublist(0, 5);
 
-    // 7. Recent Activity
-    allPayments.sort((a, b) => b.date.compareTo(a.date));
-    final recentPayments = allPayments.take(10).toList();
+    // 7. Recent Activity (Filtered by Range)
+    final filteredPayments = rangePayments;
+    filteredPayments.sort((a, b) => b.date.compareTo(a.date));
+    final recentPayments = filteredPayments.take(10).toList();
 
     return ReportsData(
       totalCollected: totalCashCollected,
@@ -244,11 +235,13 @@ ReportsData _processReportsData(List<dynamic> results) {
       totalExpected: totalExpected,
       totalExpenses: totalExpenses,
       netProfit: netProfit,
+      previousMonthCollected: previousMonthCollected,
       totalUnits: totalUnits,
       occupiedUnits: activeTenanciesCount,
       vacantUnits: vacantUnits,
       recentPayments: recentPayments,
       revenueTrend: revenueTrend,
+      expenseTrend: expenseTrend,
       paymentMethods: paymentMethods,
       topDefaulters: defaulters,
       propertyPerformance: propertyPerformance,

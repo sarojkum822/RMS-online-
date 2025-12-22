@@ -22,13 +22,17 @@ Notice _$NoticeFromJson(Map<String, dynamic> json) {
 mixin _$Notice {
   String get id => throw _privateConstructorUsedError;
   String get ownerId => throw _privateConstructorUsedError;
-  String get houseId => throw _privateConstructorUsedError; // Target Building
+  String get houseId =>
+      throw _privateConstructorUsedError; // Still needed for organization/permission
   String get subject => throw _privateConstructorUsedError;
   String get message => throw _privateConstructorUsedError;
   DateTime get date => throw _privateConstructorUsedError;
   List<String> get readBy => throw _privateConstructorUsedError;
   Map<String, DateTime> get readAt => throw _privateConstructorUsedError;
   String get priority => throw _privateConstructorUsedError;
+  String get targetType =>
+      throw _privateConstructorUsedError; // all, house, unit
+  String? get targetId => throw _privateConstructorUsedError;
 
   /// Serializes this Notice to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -53,7 +57,9 @@ abstract class $NoticeCopyWith<$Res> {
       DateTime date,
       List<String> readBy,
       Map<String, DateTime> readAt,
-      String priority});
+      String priority,
+      String targetType,
+      String? targetId});
 }
 
 /// @nodoc
@@ -80,6 +86,8 @@ class _$NoticeCopyWithImpl<$Res, $Val extends Notice>
     Object? readBy = null,
     Object? readAt = null,
     Object? priority = null,
+    Object? targetType = null,
+    Object? targetId = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -118,6 +126,14 @@ class _$NoticeCopyWithImpl<$Res, $Val extends Notice>
           ? _value.priority
           : priority // ignore: cast_nullable_to_non_nullable
               as String,
+      targetType: null == targetType
+          ? _value.targetType
+          : targetType // ignore: cast_nullable_to_non_nullable
+              as String,
+      targetId: freezed == targetId
+          ? _value.targetId
+          : targetId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -138,7 +154,9 @@ abstract class _$$NoticeImplCopyWith<$Res> implements $NoticeCopyWith<$Res> {
       DateTime date,
       List<String> readBy,
       Map<String, DateTime> readAt,
-      String priority});
+      String priority,
+      String targetType,
+      String? targetId});
 }
 
 /// @nodoc
@@ -163,6 +181,8 @@ class __$$NoticeImplCopyWithImpl<$Res>
     Object? readBy = null,
     Object? readAt = null,
     Object? priority = null,
+    Object? targetType = null,
+    Object? targetId = freezed,
   }) {
     return _then(_$NoticeImpl(
       id: null == id
@@ -201,6 +221,14 @@ class __$$NoticeImplCopyWithImpl<$Res>
           ? _value.priority
           : priority // ignore: cast_nullable_to_non_nullable
               as String,
+      targetType: null == targetType
+          ? _value.targetType
+          : targetType // ignore: cast_nullable_to_non_nullable
+              as String,
+      targetId: freezed == targetId
+          ? _value.targetId
+          : targetId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -217,7 +245,9 @@ class _$NoticeImpl implements _Notice {
       required this.date,
       final List<String> readBy = const [],
       final Map<String, DateTime> readAt = const {},
-      this.priority = 'medium'})
+      this.priority = 'medium',
+      this.targetType = 'house',
+      this.targetId})
       : _readBy = readBy,
         _readAt = readAt;
 
@@ -230,7 +260,7 @@ class _$NoticeImpl implements _Notice {
   final String ownerId;
   @override
   final String houseId;
-// Target Building
+// Still needed for organization/permission
   @override
   final String subject;
   @override
@@ -258,10 +288,16 @@ class _$NoticeImpl implements _Notice {
   @override
   @JsonKey()
   final String priority;
+  @override
+  @JsonKey()
+  final String targetType;
+// all, house, unit
+  @override
+  final String? targetId;
 
   @override
   String toString() {
-    return 'Notice(id: $id, ownerId: $ownerId, houseId: $houseId, subject: $subject, message: $message, date: $date, readBy: $readBy, readAt: $readAt, priority: $priority)';
+    return 'Notice(id: $id, ownerId: $ownerId, houseId: $houseId, subject: $subject, message: $message, date: $date, readBy: $readBy, readAt: $readAt, priority: $priority, targetType: $targetType, targetId: $targetId)';
   }
 
   @override
@@ -278,7 +314,11 @@ class _$NoticeImpl implements _Notice {
             const DeepCollectionEquality().equals(other._readBy, _readBy) &&
             const DeepCollectionEquality().equals(other._readAt, _readAt) &&
             (identical(other.priority, priority) ||
-                other.priority == priority));
+                other.priority == priority) &&
+            (identical(other.targetType, targetType) ||
+                other.targetType == targetType) &&
+            (identical(other.targetId, targetId) ||
+                other.targetId == targetId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -293,7 +333,9 @@ class _$NoticeImpl implements _Notice {
       date,
       const DeepCollectionEquality().hash(_readBy),
       const DeepCollectionEquality().hash(_readAt),
-      priority);
+      priority,
+      targetType,
+      targetId);
 
   /// Create a copy of Notice
   /// with the given fields replaced by the non-null parameter values.
@@ -321,7 +363,9 @@ abstract class _Notice implements Notice {
       required final DateTime date,
       final List<String> readBy,
       final Map<String, DateTime> readAt,
-      final String priority}) = _$NoticeImpl;
+      final String priority,
+      final String targetType,
+      final String? targetId}) = _$NoticeImpl;
 
   factory _Notice.fromJson(Map<String, dynamic> json) = _$NoticeImpl.fromJson;
 
@@ -330,7 +374,7 @@ abstract class _Notice implements Notice {
   @override
   String get ownerId;
   @override
-  String get houseId; // Target Building
+  String get houseId; // Still needed for organization/permission
   @override
   String get subject;
   @override
@@ -343,6 +387,10 @@ abstract class _Notice implements Notice {
   Map<String, DateTime> get readAt;
   @override
   String get priority;
+  @override
+  String get targetType; // all, house, unit
+  @override
+  String? get targetId;
 
   /// Create a copy of Notice
   /// with the given fields replaced by the non-null parameter values.

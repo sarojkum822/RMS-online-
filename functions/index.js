@@ -239,3 +239,78 @@ exports.migrateContractTenantIds = functions.https.onCall(async (data, context) 
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
+
+/**
+ * Triggered when a document is added to 'push_triggers'.
+ * Resolves userIds to FCM tokens and sends push notifications.
+ */
+exports.processPushTrigger = functions.firestore
+  .document("push_triggers/{triggerId}")
+  .onCreate(async (snap, context) => {
+    const trigger = snap.data();
+    const { userIds, title, body, data } = trigger;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      console.log("No userIds provided in trigger.");
+      return snap.ref.update({ status: "skipped", reason: "No userIds" });
+    }
+
+    try {
+      const db = admin.firestore();
+      const allTokens = new Set();
+
+      // 1. Resolve tokens for all userIds (checking both owners and tenants)
+      // We process in batches of 30 due to Firestore's 'whereIn' limit
+      for (let i = 0; i < userIds.length; i += 30) {
+        const batchIds = userIds.slice(i, i + 30);
+
+        const [ownerSnap, tenantSnap] = await Promise.all([
+          db.collection("owners").where(admin.firestore.FieldPath.documentId(), "in", batchIds).get(),
+          db.collection("tenants").where("authId", "in", batchIds).get(),
+        ]);
+
+        ownerSnap.docs.forEach((doc) => {
+          const tokens = doc.data().fcmTokens;
+          if (Array.isArray(tokens)) tokens.forEach((t) => allTokens.add(t));
+        });
+
+        tenantSnap.docs.forEach((doc) => {
+          const tokens = doc.data().fcmTokens;
+          if (Array.isArray(tokens)) tokens.forEach((t) => allTokens.add(t));
+        });
+      }
+
+      const tokensList = Array.from(allTokens);
+
+      if (tokensList.length === 0) {
+        console.log(`No FCM tokens found for users: ${userIds}`);
+        return snap.ref.update({ status: "failed", reason: "No tokens found" });
+      }
+
+      // 2. Send Multicast Message
+      const message = {
+        notification: { title, body },
+        data: {
+          ...data,
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+        },
+        tokens: tokensList,
+      };
+
+      const response = await admin.messaging().sendEachForMulticast(message);
+
+      console.log(`${response.successCount} messages were sent successfully.`);
+
+      // 3. Update trigger status
+      return snap.ref.update({
+        status: "sent",
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+    } catch (error) {
+      console.error("Error processing push trigger:", error);
+      return snap.ref.update({ status: "error", error: error.message });
+    }
+  });

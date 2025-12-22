@@ -96,16 +96,19 @@ flutter_icons:
   min_sdk_android: 21 # android min sdk min:16, default 21
 
 flutter_native_splash:
-  color: "#4A148C" # Deep Purple Base
-  color_dark: "#121212"
-  image: "assets/icon/icon.png"
+  color: "#FFFFFF"
+  color_dark: "#FFFFFF"
+  image: "assets/icon/splash_full.png"
   android_12:
-    image: "assets/icon/icon.png"
-    color: "#4A148C"
-    icon_background_color: "#4A148C"
+    image: "assets/icon/splash_full.png"
+    icon_background_color: "#FFFFFF"
+    color: "#FFFFFF"
+    icon_background_color_dark: "#FFFFFF"
+    color_dark: "#FFFFFF"
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/translations/
+    - assets/icon/

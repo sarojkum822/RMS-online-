@@ -3,6 +3,17 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `Firebase.initializeApp()` before using them.
+  // Note: For simple notification display, FCM handles it automatically in the background.
+  if (kDebugMode) {
+    print("Handling a background message: ${message.messageId}");
+  }
+}
 
 class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
@@ -48,13 +59,19 @@ class NotificationService {
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         if (message.notification != null) {
-          _showLocalNotification(
+          showLocalNotification(
             id: message.messageId.hashCode,
             title: message.notification!.title ?? 'New Message',
             body: message.notification!.body ?? '',
             payload: message.data['route'], // Example payload
           );
         }
+      });
+
+      // 5. Token Refresh Listener
+      _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        // This will be handled by UserSessionService which watches the token
+        if (kDebugMode) print('FCM Token Refreshed: $newToken');
       });
     } catch (e) {
       if (kDebugMode) print('NotificationService: Failed to initialize: $e');
@@ -91,8 +108,68 @@ class NotificationService {
     }
   }
 
+  Future<void> saveTokenToFirestore(String userId, String role) async {
+    try {
+      final token = await getFcmToken();
+      if (token == null) return;
+
+      if (role == 'owner') {
+        await FirebaseFirestore.instance.collection('owners').doc(userId).update({
+          'fcmTokens': FieldValue.arrayUnion([token]),
+          'lastTokenUpdate': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Tenants might have a different doc ID than their Auth UID.
+        // We find the tenant document where authId == userId
+        final snapshot = await FirebaseFirestore.instance
+            .collection('tenants')
+            .where('authId', isEqualTo: userId)
+            .where('isDeleted', isEqualTo: false)
+            .limit(1)
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          await snapshot.docs.first.reference.update({
+            'fcmTokens': FieldValue.arrayUnion([token]),
+            'lastTokenUpdate': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+      
+      if (kDebugMode) print('FCM Token saved for $role: $userId');
+    } catch (e) {
+      if (kDebugMode) print('Error saving FCM token to Firestore: $e');
+    }
+  }
+
+  /// Triggers a push notification by writing to a Firestore trigger collection.
+  /// This can be picked up by a Cloud Function to send the actual FCM.
+  Future<void> triggerPushNotification({
+    required List<String> userIds,
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      if (userIds.isEmpty) return;
+
+      await FirebaseFirestore.instance.collection('push_triggers').add({
+        'userIds': userIds,
+        'title': title,
+        'body': body,
+        'data': data,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (kDebugMode) print('Push notification triggered for ${userIds.length} users');
+    } catch (e) {
+      if (kDebugMode) print('Error triggering push notification: $e');
+    }
+  }
+
   // Define Channel for Android
-  Future<void> _showLocalNotification({required int id, required String title, required String body, String? payload}) async {
+  Future<void> showLocalNotification({required int id, required String title, required String body, String? payload}) async {
     const androidDetails = AndroidNotificationDetails(
       'high_importance_channel', 
       'High Importance Notifications',
