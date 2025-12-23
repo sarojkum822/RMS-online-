@@ -60,6 +60,10 @@
 		<string>ca-app-pub-3940256099942544~1458002511</string>
 		<key>NSFaceIDUsageDescription</key>
 		<string>Authenticate to access your Secure Vault.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>KirayaBook needs access to speech recognition to help you fill forms and search data via voice.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>KirayaBook needs access to the microphone to capture your voice commands.</string>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
 	</dict>

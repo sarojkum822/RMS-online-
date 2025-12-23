@@ -36,7 +36,10 @@ class _TenantMainScreenState extends ConsumerState<TenantMainScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: _views[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _views,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.black12)),

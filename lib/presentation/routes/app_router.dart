@@ -75,7 +75,10 @@ GoRouter createRouter({required String initialLocation, Object? initialExtra}) {
       ),
       GoRoute(
         path: '/owner/tenants/add',
-        builder: (context, state) => const TenantFormScreen(),
+        builder: (context, state) {
+           final extra = state.extra as Map<String, dynamic>?;
+           return TenantFormScreen(initialEntities: extra);
+        },
       ),
       GoRoute(
         path: '/owner/expenses',

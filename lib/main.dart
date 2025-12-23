@@ -1,5 +1,4 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,9 +30,6 @@ void main() async {
   try {
     await Firebase.initializeApp();
     
-    // 1. Register background handler for FCM
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
     // 2. Enable Firestore Persistence (Offline Capabilities)
     FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
     

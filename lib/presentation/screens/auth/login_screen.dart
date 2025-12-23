@@ -33,10 +33,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLogin = true;
   
   // Biometric
-  final _biometricService = BiometricService();
-  final _storageService = SecureStorageService();
+  BiometricService get _biometricService => ref.read(biometricServiceProvider);
+  SecureStorageService get _storageService => ref.read(secureStorageServiceProvider);
   bool _canCheckBiometrics = false;
   bool _obscurePassword = true; // Password visibility toggle
+  bool _biometricPreAuthorized = false; // Flag: Recorded fingerprint but waiting for password login
 
   bool get isOwner => widget.role == 'owner';
 
@@ -44,6 +45,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _checkBiometrics();
+    
+    // Check if this is a first-time login after signup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showBiometricSetupIfNeeded();
+    });
   }
 
   Future<void> _checkBiometrics() async {
@@ -151,6 +157,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                _isLogin = true;
                                _passwordCtrl.clear();
                              });
+                             // Trigger Biometric Onboarding immediately after signup -> login transition
+                             _showBiometricSetupIfNeeded();
                            }, 
                            child: const Text('Login Now')
                          ),
@@ -176,12 +184,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                      role: 'tenant',
                      uid: auth.currentUser!.uid,
                    );
-                   if (await _biometricService.isBiometricAvailable()) {
-                     await _storageService.setBiometricEnabled(true);
+                   // Check for Biometric Setup Completion
+                   if (_biometricPreAuthorized) {
+                      await _storageService.setBiometricEnabled(true);
                    }
                    
-                   await ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid, 'tenant');
-                   if (mounted) context.go('/tenant/dashboard', extra: tenant);
+                   // FCM Token saving removed as per user request
+                   
+                   if (mounted) {
+                      context.go('/tenant/dashboard', extra: tenant);
+                   }
               } else {
                    if (mounted) {
                       await showDialog(
@@ -371,13 +383,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleOwnerLoginSuccess(AuthService auth) async {
+      print('DEBUG: _handleOwnerLoginSuccess started');
       try {
         // 1. Save Session (CRITICAL: Do this first so role is available for providers)
         await ref.read(userSessionServiceProvider).saveSession(role: 'owner');
+        print('DEBUG: Session saved');
         
         // 2. CRITICAL: Wait for Firebase Auth token to propagate to Firestore
         // This fixes "Failed to Load Tenants" error when switching between users
         await Future.delayed(const Duration(milliseconds: 300));
+        print('DEBUG: First delay finished');
         
         // 3. Clear/Refresh ALL Controllers and Repository providers
         // Invalidating the repository providers forces new streams with the new UID
@@ -388,6 +403,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ref.invalidate(tenantRepositoryProvider);
         ref.invalidate(propertyRepositoryProvider);
         ref.invalidate(allUnitsProvider);
+        print('DEBUG: Providers invalidated');
 
         // 4. Save credentials for next login
         final email = _emailCtrl.text.trim();
@@ -399,18 +415,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             role: 'owner',
             uid: auth.currentUser!.uid,
           );
+          print('DEBUG: Credentials saved');
         }
 
         // 5. Background tasks (don't block the UI transition)
-        unawaited(ref.read(userSessionServiceProvider).saveFcmToken(auth.currentUser!.uid, 'owner'));
+        // FCM Token saving removed as per user request
 
         // Let the state settle and show a brief success/loading state
         await Future.delayed(const Duration(milliseconds: 1000));
+        print('DEBUG: Second delay finished');
 
         if (mounted) {
-          context.go('/owner/dashboard');
+          print('DEBUG: Widget still mounted, navigating...');
+          if (_biometricPreAuthorized) {
+            await _storageService.setBiometricEnabled(true);
+          }
+          if (mounted) {
+            context.go('/owner/dashboard');
+          }
+        } else {
+          print('DEBUG: Widget NOT mounted');
         }
       } catch (e) {
+        print('DEBUG: Error in _handleOwnerLoginSuccess: $e');
         if (mounted) {
           context.go('/owner/dashboard'); // Still try to navigate if session was saved or if it's a minor error
         }
@@ -664,6 +691,99 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showBiometricSetupIfNeeded() async {
+    // Logic: If it's the login form and biometric is available but NOT yet enabled
+    final available = await _biometricService.isBiometricAvailable();
+    final enabled = await _storageService.isBiometricEnabled();
+    
+    if (available && !enabled && _isLogin && mounted) {
+      _showBiometricSetupSheet();
+    }
+  }
+
+  void _showBiometricSetupSheet() {
+    final theme = Theme.of(context);
+    final primaryColor = isOwner 
+        ? const Color(0xFF4F46E5)
+        : const Color(0xFF059669);
+
+    showModalBottomSheet(
+      context: context,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: theme.dividerColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Icon(Icons.fingerprint, size: 64, color: primaryColor),
+            const SizedBox(height: 16),
+            Text(
+              'Set up Fingerprint Login',
+              style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'For a faster and more secure login next time, you can record your fingerprint now. You will still need to enter your password this one time for security.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(fontSize: 14, color: theme.hintColor),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                onPressed: () async {
+                  final success = await _biometricService.authenticate(reason: 'Verify your identity to enable fingerprint login');
+                  if (success && mounted) {
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+                    
+                    navigator.pop();
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Fingerprint recorded! Please log in once with your password to link it.')),
+                    );
+                    
+                    setState(() {
+                       _biometricPreAuthorized = true;
+                       _canCheckBiometrics = false; // Hide biometric login button for this first time
+                    });
+                  }
+                },
+                child: const Text('Record Fingerprint', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Not Now, Maybe Later', style: TextStyle(color: theme.hintColor)),
+            ),
+          ],
         ),
       ),
     );

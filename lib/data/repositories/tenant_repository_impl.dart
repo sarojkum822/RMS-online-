@@ -186,6 +186,7 @@ class TenantRepositoryImpl implements ITenantRepository {
       'idProof': tenant.idProof,
       'address': tenant.address,
       'memberCount': tenant.memberCount,
+      'isEmailVerified': tenant.isEmailVerified,
       'notes': tenant.notes,
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
@@ -332,6 +333,20 @@ class TenantRepositoryImpl implements ITenantRepository {
     return null; // Return null if not owned by current user (security)
   }
 
+  /// For TENANT-SIDE ACCESS: Uses provided ownerId instead of _uid
+  /// because tenants log in with their own credentials, not the owner's.
+  @override
+  Future<Tenancy?> getTenancyForAccess(String tenancyId, String ownerId) async {
+    final docSnap = await _firestore.collection(FirebaseCollections.contracts).doc(tenancyId).get();
+    if (!docSnap.exists) return null;
+    
+    final data = docSnap.data();
+    if (data != null && data['ownerId'] == ownerId) {
+       return mapToTenancyDomain(docSnap);
+    }
+    return null;
+  }
+
   @visibleForTesting
   Tenancy mapToTenancyDomain(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
@@ -388,6 +403,7 @@ class TenantRepositoryImpl implements ITenantRepository {
         'idProof': tenant.idProof,
         'address': tenant.address,
         'memberCount': tenant.memberCount,
+        'isEmailVerified': tenant.isEmailVerified,
         'notes': tenant.notes,
         'lastUpdated': FieldValue.serverTimestamp(),
       }).timeout(const Duration(seconds: 10));
@@ -570,7 +586,29 @@ class TenantRepositoryImpl implements ITenantRepository {
       idProof: data['idProof'] as String?,
       address: data['address'] as String?,
       memberCount: data['memberCount'] as int? ?? 1,
+      isEmailVerified: data['isEmailVerified'] ?? false,
       notes: data['notes'] as String?,
     );
+  }
+
+  @override
+  Future<bool> isEmailRegistered(String email) async {
+    final query = await _firestore.collection(FirebaseCollections.tenants)
+        .where('email', isEqualTo: email.trim().toLowerCase())
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+    return query.docs.isNotEmpty;
+  }
+
+  @override
+  Future<bool> isPhoneRegistered(String phone) async {
+    final normalizedPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final query = await _firestore.collection(FirebaseCollections.tenants)
+        .where('phone', isEqualTo: normalizedPhone)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+    return query.docs.isNotEmpty;
   }
 }

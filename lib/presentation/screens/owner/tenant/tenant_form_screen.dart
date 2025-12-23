@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,12 +14,13 @@ import '../../../../core/extensions/string_extensions.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import '../../../../core/utils/snackbar_utils.dart';
 import '../../../../domain/entities/tenant.dart';
-import '../../../../core/services/ocr_service.dart';
-import 'package:easy_localization/easy_localization.dart';
+import '../../../widgets/voice_assistant_sheet.dart';
+import 'dart:async';
 
 class TenantFormScreen extends ConsumerStatefulWidget {
   final Tenant? tenant; // Optional for Edit Mode
-  const TenantFormScreen({super.key, this.tenant});
+  final Map<String, dynamic>? initialEntities; // NEW: For Voice Assistant
+  const TenantFormScreen({super.key, this.tenant, this.initialEntities});
 
   @override
   ConsumerState<TenantFormScreen> createState() => _TenantFormScreenState();
@@ -52,11 +55,12 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   DateTime _startDate = DateTime.now();
   
   String _formatDate(DateTime d) => "${d.day}/${d.month}/${d.year}"; // Simple formatter
-  final bool _attendanceLoading = false; // Unused but kept if strictly needed, or just remove
   bool _isLoading = false;
-  bool _isScanning = false; // NEW: Track OCR progress
-  bool _obscurePassword = true; 
-  // OcrService managed by Riverpod
+  bool _obscurePassword = true;
+
+  Timer? _debounce;
+  String? _emailWarning;
+  String? _phoneWarning;
 
 
   bool get _isEditing => widget.tenant != null;
@@ -84,8 +88,54 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     _selectedGender = t?.gender;
     _policeVerification = t?.policeVerification ?? false;
     
+    // Handle Voice Assistant Entities
+    if (widget.initialEntities != null) {
+      if (widget.initialEntities!['name'] != null) {
+        _nameCtrl.text = widget.initialEntities!['name'];
+      }
+      if (widget.initialEntities!['rent'] != null) {
+        _rentCtrl.text = widget.initialEntities!['rent'].toString();
+      }
+    }
+
     if (_isEditing) {
        // ...
+    }
+
+    _emailCtrl.addListener(_onEmailChanged);
+    _phoneCtrl.addListener(_onPhoneChanged);
+  }
+
+  void _onEmailChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _checkDuplicate(_emailCtrl.text, true);
+    });
+  }
+
+  void _onPhoneChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _checkDuplicate(_phoneCtrl.text, false);
+    });
+  }
+
+  Future<void> _checkDuplicate(String value, bool isEmail) async {
+    if (value.isEmpty || _isEditing) return;
+    
+    final controller = ref.read(tenantControllerProvider.notifier);
+    final exists = isEmail 
+        ? await controller.checkEmailRegistered(value)
+        : await controller.checkPhoneRegistered(value);
+    
+    if (mounted) {
+      setState(() {
+        if (isEmail) {
+          _emailWarning = exists ? 'Tenant with this email already exists' : null;
+        } else {
+          _phoneWarning = exists ? 'Tenant with this phone already exists' : null;
+        }
+      });
     }
   }
 
@@ -108,129 +158,8 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     _dobCtrl.dispose();
     _initialReadingCtrl.dispose(); 
     _dateCtrl.dispose();
-    _dateCtrl.dispose();
-    // _ocrService disposed by provider
+    _debounce?.cancel();
     super.dispose();
-  }
-
-  Future<void> _scanIdCard({bool isBackSide = false}) async {
-    final ImageSource? source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(isBackSide ? 'Scan ID Back Side' : 'Scan ID Document', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_rounded, color: Colors.indigo),
-              title: const Text('Take Photo'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: Colors.indigo),
-              title: const Text('Choose from Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: source, 
-      maxWidth: 1200, 
-      maxHeight: 1200,
-    );
-    
-    if (pickedFile != null) {
-      if (!mounted) return;
-      setState(() => _isScanning = true);
-      try {
-        final ocrService = ref.read(ocrServiceProvider);
-        final result = await ocrService.scanImage(File(pickedFile.path));
-        
-        if (mounted) {
-          bool dataFound = false;
-          
-          if (!isBackSide) {
-             // Front Scan Logic
-             if (result.name != null && _nameCtrl.text.isEmpty) {
-                _nameCtrl.text = result.name!;
-                dataFound = true;
-             }
-             if (result.idNumber != null) {
-                _idProofCtrl.text = result.idNumber!;
-                dataFound = true;
-             }
-             if (result.dob != null) {
-                _dobCtrl.text = result.dob!;
-             }
-             if (result.gender != null) {
-                setState(() => _selectedGender = result.gender);
-             }
-             
-             // Check if address found on front (rare)
-             if (result.address != null && _addressCtrl.text.isEmpty) {
-                 _addressCtrl.text = result.address!;
-                 dataFound = true;
-             }
-          } else {
-             // Back Scan Logic (Focus on Address)
-             if (result.address != null) {
-                 _addressCtrl.text = result.address!;
-                 dataFound = true;
-             }
-          }
-          
-          
-          if (!dataFound && !isBackSide) {
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Could not extract details clearly. Please fill manually.'))
-             );
-          } else {
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('Details scanned successfully!'))
-             );
-          }
-          
-          // Trigger Back Side Scan if Address missing
-          if (!isBackSide && _addressCtrl.text.isEmpty) {
-               await showDialog(
-                 context: context, 
-                 builder: (ctx) => AlertDialog(
-                    title: const Text("Scan Back Side?"),
-                    content: const Text("Address was not detected on the front side. Would you like to scan the back side of the ID?"),
-                    actions: [
-                       TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Skip")),
-                       FilledButton(
-                          onPressed: () { 
-                             Navigator.pop(ctx); 
-                             _scanIdCard(isBackSide: true); 
-                          }, 
-                          child: const Text("Scan Back")
-                       )
-                    ],
-                 )
-               );
-          }
-
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Scan Error: $e'))
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _isScanning = false);
-      }
-    }
   }
 
   Future<void> _pickImage() async {
@@ -245,8 +174,6 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep OCR Service alive while screen is open
-    ref.watch(ocrServiceProvider);
 
     final theme = Theme.of(context);
     final housesValue = ref.watch(houseControllerProvider);
@@ -254,6 +181,14 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Tenant' : 'Add Tenant'), 
+        actions: [
+          if (!_isEditing)
+             IconButton(
+               icon: const Icon(Icons.mic_none_rounded),
+               onPressed: () => _showVoiceAssistant(context),
+               tooltip: 'Fill by Voice',
+             ),
+        ],
         elevation: 0, 
         backgroundColor: theme.appBarTheme.backgroundColor, 
         foregroundColor: theme.appBarTheme.foregroundColor
@@ -427,7 +362,11 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _phoneCtrl,
-              decoration: InputDecoration(labelText: 'Phone', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(
+                labelText: 'Phone', 
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                errorText: _phoneWarning,
+              ),
               keyboardType: TextInputType.phone,
               validator: (v) => (v ?? '').isEmpty ? 'Required' : null, 
             ),
@@ -472,38 +411,27 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
              TextFormField(
               controller: _idProofCtrl,
               decoration: InputDecoration(
-                labelText: 'ID Proof Number (Aadhaar/PAN)', 
+                labelText: 'ID Proof Number', 
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                suffixIcon: _isScanning 
-                  ? const Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.document_scanner_outlined, color: Colors.indigo),
-                      onPressed: () => _scanIdCard(isBackSide: false),
-                      tooltip: 'tenants.scan_id'.tr(),
-                    ),
               ),
             ),
-            if (!_isScanning)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'tenants.scan_tip'.tr(),
-                  style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor, fontStyle: FontStyle.italic),
-                ),
-              ),
             const SizedBox(height: 16),
             Row(
                children: [
-                 Expanded(
-                   child: TextFormField(
-                      controller: _memberCountCtrl,
-                      decoration: InputDecoration(labelText: 'Members Count', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                      keyboardType: TextInputType.number,
-                   ),
-                 ),
+                  Expanded(
+                    child: TextFormField(
+                       controller: _memberCountCtrl,
+                       decoration: InputDecoration(labelText: 'Members Count', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                       keyboardType: TextInputType.number,
+                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                       validator: (v) {
+                         if (v == null || v.isEmpty) return null;
+                         final val = int.tryParse(v);
+                         if (val == null || val <= 0) return 'Must be > 0';
+                         return null;
+                       },
+                    ),
+                  ),
                  const SizedBox(width: 16),
                  Expanded(
                    child: SwitchListTile(
@@ -518,7 +446,11 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _emailCtrl,
-              decoration: InputDecoration(labelText: 'Email (Login ID)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              decoration: InputDecoration(
+                labelText: 'Email (Login ID)', 
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                errorText: _emailWarning,
+              ),
               textCapitalization: TextCapitalization.none,
               autocorrect: false,
               keyboardType: TextInputType.emailAddress,
@@ -558,7 +490,14 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.currency_rupee),
                 ),
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  final val = double.tryParse(v);
+                  if (val == null || val < 0) return 'Invalid amount';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -569,7 +508,14 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.shield), 
                 ),
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  final val = double.tryParse(v);
+                  if (val == null || val < 0) return 'Cannot be negative';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               
@@ -580,7 +526,14 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.money), 
                 ),
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  final val = double.tryParse(v);
+                  if (val == null || val < 0) return 'Cannot be negative';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -594,6 +547,17 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                   prefixIcon: const Icon(Icons.account_balance_wallet), 
                 ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d+\.?\d{0,2}'))], // Allow negative for balance maybe? 
+                // Wait, User said "Restrictions or validating of all fields where the input is only in Numbers so that it should not be in Negative or zero"
+                // Actually balance can be negative (advance) but let's stick to non-negative as per user requested strictness if they meant debts.
+                // But usually balance in KirayaBook is "Dues". So negative = advance.
+                // I'll stick to non-negative for NOW if user said "should not be in Negative or zero" for NUMBERS.
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  final val = double.tryParse(v);
+                  if (val == null || val < 0) return 'Cannot be negative';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -607,6 +571,13 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
                   suffixText: 'units'
                 ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  final val = double.tryParse(v);
+                  if (val == null || val < 0) return 'Cannot be negative';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -729,8 +700,13 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
       }
 
       if (mounted) {
-        SnackbarUtils.showSuccess(context, _isEditing ? 'Tenant updated successfully' : 'Tenant added successfully');
-        Navigator.pop(context);
+        // UPDATED SAVE FEEDBACK
+        if (!_isEditing) {
+           _showSuccessDialog();
+        } else {
+           SnackbarUtils.showSuccess(context, 'Tenant updated successfully');
+           Navigator.pop(context);
+        }
       }
 
     } catch (e) {
@@ -741,5 +717,71 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Tenant Added!'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('The tenant has been successfully registered and a verification email has been sent.'),
+            const SizedBox(height: 16),
+            _buildDetailRow('Name', _nameCtrl.text),
+            _buildDetailRow('Phone', _phoneCtrl.text),
+            _buildDetailRow('Email', _emailCtrl.text),
+            const SizedBox(height: 16),
+            const Text('Would you like to review or edit the details?', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close Dialog
+              // Keep Form Open for editing
+            },
+            child: const Text('Edit Details'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close Dialog
+              Navigator.pop(this.context); // Close Form
+            },
+            child: const Text('OK, Finished'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(value),
+        ],
+      ),
+    );
+  }
+
+  void _showVoiceAssistant(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => VoiceAssistantSheet(),
+    );
   }
 }

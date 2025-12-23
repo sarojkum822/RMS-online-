@@ -15,6 +15,7 @@ import '../../data/repositories/property_repository_impl.dart';
 import '../../data/repositories/rent_repository_impl.dart';
 import '../../data/repositories/tenant_repository_impl.dart';
 import '../../core/services/storage_service.dart'; // NEW
+import '../../core/services/secure_storage_service.dart';
 import '../../domain/repositories/i_property_repository.dart';
 import '../../domain/repositories/i_rent_repository.dart';
 import '../../domain/repositories/i_tenant_repository.dart';
@@ -139,6 +140,10 @@ final pdfServiceProvider = Provider<PdfService>((ref) {
 
 final storageServiceProvider = Provider<StorageService>((ref) {
   return StorageService();
+});
+
+final secureStorageServiceProvider = Provider<SecureStorageService>((ref) {
+  return SecureStorageService();
 });
 
 final pdfGeneratorServiceProvider = Provider<PdfGeneratorService>((ref) {

@@ -77,7 +77,7 @@ void main() {
     setUp(() {
       mockAuth = MockFirebaseAuth();
       mockStorage = MockFirebaseStorage();
-      repository = TenantRepositoryImpl(MockFirebaseFirestore(), auth: mockAuth, storage: mockStorage);
+      repository = TenantRepositoryImpl(MockFirebaseFirestore(), auth: mockAuth);
     });
 
     test('mapToTenancyDomain should handle mixed date types without crashing', () {

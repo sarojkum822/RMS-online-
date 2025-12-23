@@ -105,7 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                  if (_phoneController.text != (owner.phone ?? '')) _phoneController.text = owner.phone ?? '';
                }
 
-               final plan = owner.subscriptionPlan ?? 'free';
+               final plan = owner.subscriptionPlan;
                final planColor = plan == 'power' ? Colors.purple : (plan == 'pro' ? Colors.blue : Colors.grey);
 
                return SingleChildScrollView(
@@ -383,32 +383,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () async {
-              Navigator.pop(ctx); // Close dialog
+              Navigator.pop(ctx); // Close confirmation dialog
               
               try {
-                // Show loading
+                // Show persistent progress loading
                 if (context.mounted) {
                   showDialog(
                     context: context, 
                     barrierDismissible: false,
-                    builder: (_) => const Center(child: CircularProgressIndicator())
+                    builder: (_) => PopScope(
+                      canPop: false, // Prevent back button
+                      child: AlertDialog(
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Account deletion in progress...',
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'We are securely backing up and deleting your data. Please do not close the app.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
                   );
                 }
 
-                await ref.read(authServiceProvider).deleteAccount();
+                await ref.read(ownerControllerProvider.notifier).deleteOwnerAccount();
                 
-                // Navigation to login is usually handled by authStateChanges stream in main.dart or router
-                // But we can force pop everything to be safe
                 if (context.mounted) {
-                   Navigator.of(context).popUntil((route) => route.isFirst); 
+                   // Force logout/redirect handled by global state usually, but explicit go is safer
+                   context.go('/'); 
                 }
               } catch (e) {
-                // Remove loading
-                if (context.mounted && Navigator.canPop(context)) {
-                   Navigator.pop(context);
-                }
-                
+                // Remove loading if error occurs
                 if (context.mounted) {
+                   Navigator.of(context, rootNavigator: true).pop(); // Close persistent dialog
                    SnackbarUtils.showError(context, 'Error: $e');
                 }
               }

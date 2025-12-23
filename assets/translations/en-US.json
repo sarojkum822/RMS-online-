@@ -130,6 +130,7 @@
         "danger_zone": "Danger Zone",
         "danger_warning": "These actions are irreversible. Please be certain.",
         "reset_data": "Reset All Data",
+        "delete_account": "Delete Account",
         "logout": "Logout",
         "version": "App Version"
     },

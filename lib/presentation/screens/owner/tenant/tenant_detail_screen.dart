@@ -610,13 +610,15 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
               
               TextField(
                 controller: amountController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                 decoration: const InputDecoration(labelText: 'Total Bill Amount (₹)', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: paidController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                 decoration: const InputDecoration(labelText: 'Amount Paid (Optional)', helperText: 'Leave empty if Unpaid', border: OutlineInputBorder()),
               ),
             ],
@@ -794,7 +796,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           children: [
              TextField(
                controller: amountCtrl,
-               keyboardType: TextInputType.number,
+               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                decoration: const InputDecoration(labelText: 'Total Due Amount (₹)', border: OutlineInputBorder()),
              ),
              const SizedBox(height: 12),
@@ -886,7 +889,8 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                 // Amount
                 TextField(
                   controller: amountController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                   decoration: InputDecoration(
                     labelText: 'Amount (₹)',
                     prefixIcon: const Icon(Icons.currency_rupee),
@@ -1095,6 +1099,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                             TextField(
                               controller: prevReadingController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                               decoration: InputDecoration(
                                 labelText: 'Previous Reading', 
                                 border: const OutlineInputBorder(),
@@ -1105,12 +1110,14 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                             TextField(
                               controller: currReadingController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                               decoration: const InputDecoration(labelText: 'Current Reading', border: OutlineInputBorder()),
                             ),
                             const SizedBox(height: 12),
                             TextField(
                               controller: rateController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                               decoration: const InputDecoration(labelText: 'Rate per Unit (₹)', border: OutlineInputBorder()),
                             ),
                             const Spacer(),
@@ -1154,6 +1161,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                             TextField(
                               controller: chargeAmountController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                               decoration: const InputDecoration(labelText: 'Amount (₹)', border: OutlineInputBorder()),
                             ),
                             const SizedBox(height: 12),
@@ -1371,8 +1379,25 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                     const Icon(Icons.phone_iphone, size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
                     Text(tenant.phone, style: GoogleFonts.outfit(color: Colors.white70)),
+                    const SizedBox(width: 12),
+                    _buildVerificationBadge(tenant),
                   ],
                 ),
+                if (tenant.email != null && !tenant.isEmailVerified)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: InkWell(
+                      onTap: () => _handleResendVerification(tenant),
+                      child: Text(
+                        'Resend Verification Email',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 12,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 20),
                 _buildQuickActions(tenant),
                 const SizedBox(height: 24), // Extra padding to keep above stats card
@@ -1536,6 +1561,54 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildVerificationBadge(Tenant tenant) {
+    final isVerified = tenant.isEmailVerified;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: isVerified ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isVerified ? Colors.green : Colors.orange, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isVerified ? Icons.verified : Icons.warning_amber_rounded,
+            size: 10,
+            color: isVerified ? Colors.green : Colors.orange,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isVerified ? 'Verified' : 'Unverified',
+            style: GoogleFonts.outfit(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: isVerified ? Colors.green : Colors.orange,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleResendVerification(Tenant tenant) async {
+    // We need the tenant's password to resend via secondary app login.
+    // However, we don't store it. 
+    // IF the password was JUST created (e.g. from Add Tenant success dialog), we might have it.
+    // In the detail screen, we likely DON'T have it.
+    
+    // TEMPORARY: Show a dialog explaining how it works or asking for a password if needed.
+    // Better: If the owner is the one who created the account, they might have set a default password.
+    
+    // For now, I'll use a placeholder or check if I can trigger it some other way.
+    // Since I can't trigger it without password/admin, I'll inform the user.
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Resending verification requires tenant login. This feature is being refined.'))
     );
   }
 }

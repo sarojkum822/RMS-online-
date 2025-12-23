@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../domain/entities/owner.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/data_management_service.dart';
 import '../../../providers/data_providers.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 class OwnerController extends AsyncNotifier<Owner?> {
   @override
@@ -49,7 +51,7 @@ class OwnerController extends AsyncNotifier<Owner?> {
        }
     }
     
-    return owner;
+     return owner;
   }
 
   Future<void> updateProfile({
@@ -80,6 +82,30 @@ class OwnerController extends AsyncNotifier<Owner?> {
     });
   }
 
+  Future<void> deleteOwnerAccount() async {
+    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('No user logged in');
+    
+    final uid = user.uid;
+    final dataManager = ref.read(dataManagementServiceProvider);
+    final session = ref.read(userSessionServiceProvider);
+
+    // 1. Clear Firestore Data (Archival removed as per user request)
+    await dataManager.resetAllData(uid);
+
+    // 3. Clear Local Session
+    await session.clearSession();
+
+    // 4. Delete Firebase Auth Account
+    try {
+      await user.delete();
+    } catch (e) {
+      if (e is firebase_auth.FirebaseAuthException && e.code == 'requires-recent-login') {
+         throw Exception('Please log out and log in again to delete your account.');
+      }
+      rethrow;
+    }
+  }
 
 }
 

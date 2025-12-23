@@ -100,8 +100,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                              uid: tenant.authId, // Store authId for biometric verification
                            );
 
-                           // Save Token for Notifications
-                           await sessionService.saveTenantFcmToken(tenant.id);
+                           // FCM Token saving removed as per user request
                            
                            if (context.mounted) context.go('/tenant/dashboard', extra: tenant);
                         } else if (context.mounted) {

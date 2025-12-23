@@ -16,7 +16,6 @@ import '../rent/rent_controller.dart';
 part 'tenant_controller.g.dart';
 
 @riverpod
-@riverpod
 Stream<Tenancy?> activeTenancy(ActiveTenancyRef ref, String tenantId) {
   final repo = ref.watch(tenantRepositoryProvider);
   // Efficiently stream only the active tenancy for this tenant (owner-side)
@@ -209,11 +208,44 @@ class TenantController extends _$TenantController {
     
     try {
       final userCred = await FirebaseAuth.instanceFor(app: app).createUserWithEmailAndPassword(email: email, password: password);
+      
+      // NEW: Send Email Verification
+      await userCred.user?.sendEmailVerification();
+      
       await FirebaseAuth.instanceFor(app: app).signOut(); 
       return userCred.user?.uid;
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<bool> checkEmailRegistered(String email) async {
+    final repo = ref.read(tenantRepositoryProvider);
+    return await repo.isEmailRegistered(email);
+  }
+
+  Future<bool> checkPhoneRegistered(String phone) async {
+    final repo = ref.read(tenantRepositoryProvider);
+    return await repo.isPhoneRegistered(phone);
+  }
+
+  Future<void> resendVerificationEmail(String email, String password) async {
+      FirebaseApp app;
+      try {
+        app = Firebase.app('secondary');
+      } catch (_) {
+        app = await Firebase.initializeApp(name: 'secondary', options: Firebase.app().options);
+      }
+      
+      final auth = FirebaseAuth.instanceFor(app: app);
+      try {
+        await auth.signInWithEmailAndPassword(email: email, password: password);
+        await auth.currentUser?.sendEmailVerification();
+        await auth.signOut();
+      } catch (e) {
+        await auth.signOut();
+        throw Exception('Failed to resend verification: $e');
+      }
   }
 
   Future<void> updateTenantAuth({

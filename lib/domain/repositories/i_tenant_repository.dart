@@ -23,5 +23,8 @@ abstract class ITenantRepository {
   Stream<Tenancy?> watchActiveTenancyForTenant(String tenantId); // For owner-side
   Stream<Tenancy?> watchActiveTenancyForTenantAccess(String tenantId, String ownerId); // For tenant-side (uses ownerId)
   Future<Tenancy?> getTenancy(String tenancyId);
+  Future<Tenancy?> getTenancyForAccess(String tenancyId, String ownerId); // For tenant-side
+  Future<bool> isEmailRegistered(String email);
+  Future<bool> isPhoneRegistered(String phone);
 }
 

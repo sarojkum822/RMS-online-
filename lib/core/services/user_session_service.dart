@@ -31,16 +31,7 @@ class UserSessionService {
     }
   }
 
-  Future<void> saveFcmToken(String uid, String role) async {
-    if (_notificationService == null) return;
-    await _notificationService.saveTokenToFirestore(uid, role);
-  }
-
-  // Deprecated: use saveFcmToken(uid, role) instead
-  Future<void> saveTenantFcmToken(String tenantId) async {
-     // This was using tenantId instead of Auth UID. 
-     // For consistency, we should use Auth UID everywhere for FCM tokens.
-  }
+  // FCM token saving logic removed as per user request
 
   Future<void> clearSession() async {
     try {

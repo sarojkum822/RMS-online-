@@ -25,6 +25,7 @@ class Tenant with _$Tenant {
     String? dob, // NEW
     String? gender, // NEW
     @Default(1) int memberCount,
+    @Default(false) bool isEmailVerified,
     String? notes,
   }) = _Tenant;
 

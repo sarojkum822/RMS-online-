@@ -6,7 +6,7 @@ part of 'tenant_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$activeTenancyHash() => r'f33167ba4bed5f9f212a2bd15382b2e5d51f9173';
+String _$activeTenancyHash() => r'a4d3348ffc78a69e2f546c7ba2630b35ee4f28c8';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -329,7 +329,7 @@ class _ActiveTenancyForTenantAccessProviderElement
       (origin as ActiveTenancyForTenantAccessProvider).ownerId;
 }
 
-String _$tenantControllerHash() => r'4f0a12e2e3981a855f53b007e7c7275c0a0e9769';
+String _$tenantControllerHash() => r'b85a5f0b3724c85ea1b965a19275e5c94ad7c9a9';
 
 /// See also [TenantController].
 @ProviderFor(TenantController)

@@ -8,6 +8,8 @@ import '../../../../core/theme/theme_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'owner_controller.dart'; // Import Owner Controller
+import '../../../../core/utils/dialog_utils.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -17,6 +19,7 @@ class SettingsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final ownerAsync = ref.watch(ownerControllerProvider);
+    final owner = ownerAsync.valueOrNull;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF000000) : Colors.white,
@@ -262,7 +265,7 @@ class SettingsScreen extends ConsumerWidget {
                          mainAxisSize: MainAxisSize.min,
                          children: [
                            Text(
-                             context.locale.languageCode == 'en' ? 'English' : 'हिंदी',
+                             _getLanguageName(context),
                              style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color),
                            ),
                            const SizedBox(width: 4),
@@ -456,6 +459,21 @@ class SettingsScreen extends ConsumerWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () => _showResetConfirmation(context, ref),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _showDeleteAccountConfirmation(context, ref, owner?.id.toString() ?? ''),
+                      icon: const Icon(Icons.person_remove_outlined, size: 20),
+                      label: Text('settings.delete_account'.tr(), style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
@@ -782,5 +800,119 @@ class SettingsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Repair failed: $e')));
       }
     }
+  }
+
+  Future<void> _showDeleteAccountConfirmation(BuildContext context, WidgetRef ref, String uid) async {
+    // Step 1: Initial Warning
+    final step1 = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('settings.delete_account'.tr(), style: const TextStyle(color: Colors.red)),
+        content: const Text('This will permanently delete your account and ALL associated data (properties, tenants, payments). \n\nThis action is irreversible. All data will be lost forever.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('properties.cancel'.tr())),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Next: Confirm Deletion'),
+          ),
+        ],
+      ),
+    );
+
+    if (step1 != true || !context.mounted) return;
+
+    // Step 2: Backup & Final Confirm
+    final step2 = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Final Confirmation'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Are you absolutely sure? This cannot be undone.'),
+            SizedBox(height: 12),
+            Text('To confirm permanent deletion, please type "DELETE" below.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+          ],
+        ),
+        actions: [
+          _ConfirmationActions(
+            onConfirm: () => Navigator.pop(ctx, true),
+            onCancel: () => Navigator.pop(ctx, false),
+          ),
+        ],
+      ),
+    );
+
+    if (step2 != true || !context.mounted) return;
+
+    // Step 3: Execution
+    try {
+      await DialogUtils.runWithLoading(context, () async {
+        await ref.read(ownerControllerProvider.notifier).deleteOwnerAccount();
+      });
+      
+      if (context.mounted) {
+        // Go back to login
+        context.go('/'); // Go to Role Selection
+        SnackbarUtils.showSuccess(context, 'Account deleted successfully');
+      }
+    } catch (e) {
+       if (context.mounted) SnackbarUtils.showError(context, 'Deletion failed: $e');
+    }
+  }
+
+  String _getLanguageName(BuildContext context) {
+    try {
+      return context.locale.languageCode == 'en' ? 'English' : 'हिंदी';
+    } catch (_) {
+      return 'English';
+    }
+  }
+}
+
+class _ConfirmationActions extends StatefulWidget {
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  const _ConfirmationActions({required this.onConfirm, required this.onCancel});
+
+  @override
+  State<_ConfirmationActions> createState() => _ConfirmationActionsState();
+}
+
+class _ConfirmationActionsState extends State<_ConfirmationActions> {
+  final _ctrl = TextEditingController();
+  bool _canDelete = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _ctrl,
+            decoration: const InputDecoration(hintText: 'DELETE', border: OutlineInputBorder()),
+            onChanged: (v) => setState(() => _canDelete = v.trim().toUpperCase() == 'DELETE'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(onPressed: widget.onCancel, child: const Text('Cancel')),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: _canDelete ? widget.onConfirm : null,
+              child: const Text('Delete Forever'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

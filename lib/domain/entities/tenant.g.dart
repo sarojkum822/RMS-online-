@@ -24,6 +24,7 @@ _$TenantImpl _$$TenantImplFromJson(Map<String, dynamic> json) => _$TenantImpl(
       dob: json['dob'] as String?,
       gender: json['gender'] as String?,
       memberCount: (json['memberCount'] as num?)?.toInt() ?? 1,
+      isEmailVerified: json['isEmailVerified'] as bool? ?? false,
       notes: json['notes'] as String?,
     );
 
@@ -46,5 +47,6 @@ Map<String, dynamic> _$$TenantImplToJson(_$TenantImpl instance) =>
       'dob': instance.dob,
       'gender': instance.gender,
       'memberCount': instance.memberCount,
+      'isEmailVerified': instance.isEmailVerified,
       'notes': instance.notes,
     };

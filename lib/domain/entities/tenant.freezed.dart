@@ -40,6 +40,7 @@ mixin _$Tenant {
   String? get dob => throw _privateConstructorUsedError; // NEW
   String? get gender => throw _privateConstructorUsedError; // NEW
   int get memberCount => throw _privateConstructorUsedError;
+  bool get isEmailVerified => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
 
   /// Serializes this Tenant to a JSON map.
@@ -74,6 +75,7 @@ abstract class $TenantCopyWith<$Res> {
       String? dob,
       String? gender,
       int memberCount,
+      bool isEmailVerified,
       String? notes});
 }
 
@@ -109,6 +111,7 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
     Object? dob = freezed,
     Object? gender = freezed,
     Object? memberCount = null,
+    Object? isEmailVerified = null,
     Object? notes = freezed,
   }) {
     return _then(_value.copyWith(
@@ -180,6 +183,10 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
           ? _value.memberCount
           : memberCount // ignore: cast_nullable_to_non_nullable
               as int,
+      isEmailVerified: null == isEmailVerified
+          ? _value.isEmailVerified
+          : isEmailVerified // ignore: cast_nullable_to_non_nullable
+              as bool,
       notes: freezed == notes
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
@@ -213,6 +220,7 @@ abstract class _$$TenantImplCopyWith<$Res> implements $TenantCopyWith<$Res> {
       String? dob,
       String? gender,
       int memberCount,
+      bool isEmailVerified,
       String? notes});
 }
 
@@ -246,6 +254,7 @@ class __$$TenantImplCopyWithImpl<$Res>
     Object? dob = freezed,
     Object? gender = freezed,
     Object? memberCount = null,
+    Object? isEmailVerified = null,
     Object? notes = freezed,
   }) {
     return _then(_$TenantImpl(
@@ -317,6 +326,10 @@ class __$$TenantImplCopyWithImpl<$Res>
           ? _value.memberCount
           : memberCount // ignore: cast_nullable_to_non_nullable
               as int,
+      isEmailVerified: null == isEmailVerified
+          ? _value.isEmailVerified
+          : isEmailVerified // ignore: cast_nullable_to_non_nullable
+              as bool,
       notes: freezed == notes
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
@@ -346,6 +359,7 @@ class _$TenantImpl implements _Tenant {
       this.dob,
       this.gender,
       this.memberCount = 1,
+      this.isEmailVerified = false,
       this.notes});
 
   factory _$TenantImpl.fromJson(Map<String, dynamic> json) =>
@@ -396,11 +410,14 @@ class _$TenantImpl implements _Tenant {
   @JsonKey()
   final int memberCount;
   @override
+  @JsonKey()
+  final bool isEmailVerified;
+  @override
   final String? notes;
 
   @override
   String toString() {
-    return 'Tenant(id: $id, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, ownerId: $ownerId, isActive: $isActive, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId, advanceAmount: $advanceAmount, policeVerification: $policeVerification, idProof: $idProof, address: $address, dob: $dob, gender: $gender, memberCount: $memberCount, notes: $notes)';
+    return 'Tenant(id: $id, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, ownerId: $ownerId, isActive: $isActive, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId, advanceAmount: $advanceAmount, policeVerification: $policeVerification, idProof: $idProof, address: $address, dob: $dob, gender: $gender, memberCount: $memberCount, isEmailVerified: $isEmailVerified, notes: $notes)';
   }
 
   @override
@@ -432,31 +449,35 @@ class _$TenantImpl implements _Tenant {
             (identical(other.gender, gender) || other.gender == gender) &&
             (identical(other.memberCount, memberCount) ||
                 other.memberCount == memberCount) &&
+            (identical(other.isEmailVerified, isEmailVerified) ||
+                other.isEmailVerified == isEmailVerified) &&
             (identical(other.notes, notes) || other.notes == notes));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      tenantCode,
-      name,
-      phone,
-      email,
-      ownerId,
-      isActive,
-      imageUrl,
-      imageBase64,
-      authId,
-      advanceAmount,
-      policeVerification,
-      idProof,
-      address,
-      dob,
-      gender,
-      memberCount,
-      notes);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        tenantCode,
+        name,
+        phone,
+        email,
+        ownerId,
+        isActive,
+        imageUrl,
+        imageBase64,
+        authId,
+        advanceAmount,
+        policeVerification,
+        idProof,
+        address,
+        dob,
+        gender,
+        memberCount,
+        isEmailVerified,
+        notes
+      ]);
 
   /// Create a copy of Tenant
   /// with the given fields replaced by the non-null parameter values.
@@ -493,6 +514,7 @@ abstract class _Tenant implements Tenant {
       final String? dob,
       final String? gender,
       final int memberCount,
+      final bool isEmailVerified,
       final String? notes}) = _$TenantImpl;
 
   factory _Tenant.fromJson(Map<String, dynamic> json) = _$TenantImpl.fromJson;
@@ -531,6 +553,8 @@ abstract class _Tenant implements Tenant {
   String? get gender; // NEW
   @override
   int get memberCount;
+  @override
+  bool get isEmailVerified;
   @override
   String? get notes;
 

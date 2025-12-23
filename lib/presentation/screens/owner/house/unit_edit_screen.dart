@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -88,6 +90,12 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
                     controller: _floorCtrl,
                     decoration: const InputDecoration(labelText: 'Floor', border: OutlineInputBorder()),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d+'))], // Allow negative floor for basements
+                    validator: (v) {
+                       if (v == null || v.isEmpty) return null;
+                       if (int.tryParse(v) == null) return 'Must be an integer';
+                       return null;
+                    },
                   ),
                 ),
               ],
@@ -143,7 +151,14 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
                 helperText: 'This rent is pulled from template but can be overridden.',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                final val = double.tryParse(v);
+                if (val == null || val < 0) return 'Cannot be negative';
+                return null;
+              },
             ),
             
             const SizedBox(height: 24),
@@ -165,8 +180,15 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _carpetAreaCtrl,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                     decoration: const InputDecoration(labelText: 'Carpet Area (sq ft)', border: OutlineInputBorder()),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return null;
+                      final val = double.tryParse(v);
+                      if (val == null || val < 0) return 'Cannot be negative';
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -188,11 +210,18 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
             TextFormField(
               controller: _defaultDueDayCtrl,
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
                 labelText: 'Default Due Day',
                 helperText: 'Day of month when rent is due (1-28)',
                 border: OutlineInputBorder(),
               ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return null;
+                final val = int.tryParse(v);
+                if (val == null || val < 1 || val > 28) return 'Must be between 1 and 28';
+                return null;
+              },
             ),
 
             // Unit Photos Section (NEW)
@@ -257,7 +286,11 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
 
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: _save,
+              onPressed: () {
+                 if (Form.of(context).validate()) {
+                    _save();
+                 }
+              },
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: Theme.of(context).colorScheme.primary,

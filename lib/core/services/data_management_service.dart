@@ -4,10 +4,12 @@ import 'package:firebase_core/firebase_core.dart';
 import '../constants/firebase_collections.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
+
 class DataManagementService {
   final FirebaseFirestore _firestore;
 
   DataManagementService(this._firestore);
+
 
   /// Resets all data for the given owner ID.
   /// This deletes documents from all major collections where ownerId == uid.
@@ -62,9 +64,24 @@ class DataManagementService {
         await _deleteCollectionForOwner(collection, uid);
       } catch (e) {
         // Log but continue to try deleting other collections
-//        print('Error deleting collection $collection: $e');
       }
     }
+
+    // 3. Delete Vault Data (Special Path: users/uid/vault)
+    try {
+      final vaultSnapshot = await _firestore.collection('users').doc(uid).collection('vault').get();
+      final batch = _firestore.batch();
+      for (final doc in vaultSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      await _firestore.collection('users').doc(uid).delete(); // Delete the user doc itself if empty
+    } catch (_) {}
+
+    // 4. Delete Owner Record
+    try {
+      await _firestore.collection(FirebaseCollections.owners).doc(uid).delete();
+    } catch (_) {}
   }
 
   Future<void> _deleteTenantAuth(String email, String password) async {

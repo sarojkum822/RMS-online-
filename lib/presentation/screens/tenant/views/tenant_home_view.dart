@@ -50,22 +50,34 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
     final noticesAsync = ref.watch(noticesForTenantProvider((houseId: houseId ?? '', unitId: unitId, ownerId: ownerId)));
     final unreadNotices = noticesAsync.valueOrNull?.where((n) => !n.readBy.contains(widget.tenant.id.toString())).toList() ?? [];
 
-    if (noticesAsync.hasValue) {
-       AppBadgePlus.updateBadge(unreadNotices.length);
-       if (unreadNotices.isEmpty) AppBadgePlus.updateBadge(0);
-    }
+    // --- SIDE EFFECTS (BADGE & POPUPS) ---
+    // Moved out of build flow to prevent UI hangs and multiple calls during rebuilds
     
-    if (unreadNotices.isNotEmpty && !_hasShownNoticePopup) {
-       WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showNoticePopup(unreadNotices.first);
-           try {
-            FlutterRingtonePlayer().playNotification();
-          } catch (e) {
-            debugPrint('Sound Error: $e');
-          }
-          setState(() => _hasShownNoticePopup = true);
-       });
-    }
+    // 1. Badge Updates (Handled via ref.listen)
+    ref.listen(noticesForTenantProvider((houseId: houseId ?? '', unitId: unitId, ownerId: ownerId)), (previous, next) {
+      if (next is AsyncData<List<Notice>>) {
+        final unreadCount = next.value.where((n) => !n.readBy.contains(widget.tenant.id.toString())).length;
+        AppBadgePlus.updateBadge(unreadCount);
+      }
+    });
+
+    // 2. Notice Popup (Handled via ref.listen)
+    ref.listen(noticesForTenantProvider((houseId: houseId ?? '', unitId: unitId, ownerId: ownerId)), (previous, next) {
+      if (!_hasShownNoticePopup && next is AsyncData<List<Notice>>) {
+        final unread = next.value.where((n) => !n.readBy.contains(widget.tenant.id.toString())).toList();
+        if (unread.isNotEmpty) {
+           _hasShownNoticePopup = true; // Mark immediately to prevent double-popups
+           WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showNoticePopup(unread.first);
+              try {
+                FlutterRingtonePlayer().playNotification();
+              } catch (e) {
+                debugPrint('Sound Error: $e');
+              }
+           });
+        }
+      }
+    });
 
     final maintenanceAsync = (houseId != null) 
       ? ref.watch(tenantMaintenanceProvider((tenantId: widget.tenant.id.toString(), ownerId: ownerId))) 
@@ -164,8 +176,9 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                      child: Container(
-                        width: double.infinity,
+                      child: RepaintBoundary(
+                        child: Container(
+                          width: double.infinity,
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -270,6 +283,7 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                         ),
                       ),
                     ),
+                  ),
       
                     Expanded(
                       child: SingleChildScrollView(
@@ -311,30 +325,32 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                         
                                  if (totalPaid == 0) return const SizedBox();
                         
-                                 return Container(
-                                   width: double.infinity,
-                                   padding: const EdgeInsets.all(20),
-                                   decoration: BoxDecoration(
-                                     color: theme.cardColor,
-                                     borderRadius: BorderRadius.circular(20),
-                                     boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-                                     border: isDark ? Border.all(color: Colors.white10) : null,
-                                   ),
-                                   child: Column(
-                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                     children: [
-                                       Text('tenant.payment_summary'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
-                                       const SizedBox(height: 16),
-                                       Row(
-                                         children: [
-                                           Expanded(child: _buildSummaryItem('tenant.total_paid'.tr(), totalPaid, Colors.blue, theme)),
-                                           Container(width: 1, height: 40, color: theme.dividerColor),
-                                           Expanded(child: _buildSummaryItem('reports.cash'.tr(), cashPaid, Colors.orange, theme)),
-                                           Container(width: 1, height: 40, color: theme.dividerColor),
-                                           Expanded(child: _buildSummaryItem('tenant.online_upi'.tr(), onlinePaid, Colors.green, theme)),
-                                         ],
-                                       )
-                                     ],
+                                 return RepaintBoundary(
+                                   child: Container(
+                                     width: double.infinity,
+                                     padding: const EdgeInsets.all(20),
+                                     decoration: BoxDecoration(
+                                       color: theme.cardColor,
+                                       borderRadius: BorderRadius.circular(20),
+                                       boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                                       border: isDark ? Border.all(color: Colors.white10) : null,
+                                     ),
+                                     child: Column(
+                                       crossAxisAlignment: CrossAxisAlignment.start,
+                                       children: [
+                                         Text('tenant.payment_summary'.tr(), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+                                         const SizedBox(height: 16),
+                                         Row(
+                                           children: [
+                                             Expanded(child: _buildSummaryItem('tenant.total_paid'.tr(), totalPaid, Colors.blue, theme)),
+                                             Container(width: 1, height: 40, color: theme.dividerColor),
+                                             Expanded(child: _buildSummaryItem('reports.cash'.tr(), cashPaid, Colors.orange, theme)),
+                                             Container(width: 1, height: 40, color: theme.dividerColor),
+                                             Expanded(child: _buildSummaryItem('tenant.online_upi'.tr(), onlinePaid, Colors.green, theme)),
+                                           ],
+                                         )
+                                       ],
+                                     ),
                                    ),
                                  );
                               },
@@ -409,7 +425,7 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
                                     },
                                   );
                                 },
-                             )
+                             ),
                           ],
                         ),
                       ),

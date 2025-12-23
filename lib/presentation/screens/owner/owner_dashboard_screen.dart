@@ -27,6 +27,7 @@ import '../maintenance/maintenance_reports_screen.dart';
 import '../../../../domain/entities/maintenance_request.dart';
 import '../../widgets/ads/banner_ad_widget.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../widgets/voice_assistant_sheet.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -39,26 +40,19 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   int _currentIndex = 0;
 
   /// Lazy-load screens only when selected (prevents Vault biometric on dashboard load)
-  Widget _buildCurrentScreen() {
-    switch (_currentIndex) {
-      case 0:
-        return _DashboardTab(onTabSwitch: (index) => setState(() => _currentIndex = index));
-      case 1:
-        return const SecureVaultScreen();
-      case 2:
-        return const ReportsScreen();
-      case 3:
-        return const SettingsScreen();
-      default:
-        return _DashboardTab(onTabSwitch: (index) => setState(() => _currentIndex = index));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: _buildCurrentScreen(),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          _DashboardTab(onTabSwitch: (index) => setState(() => _currentIndex = index)),
+          const SecureVaultScreen(),
+          const ReportsScreen(),
+          const SettingsScreen(),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -90,6 +84,20 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showVoiceAssistant(context),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.mic, color: Colors.white),
+      ),
+    );
+  }
+
+  void _showVoiceAssistant(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => VoiceAssistantSheet(),
     );
   }
 }
@@ -104,6 +112,7 @@ class _DashboardTab extends ConsumerStatefulWidget {
 
 class _DashboardTabState extends ConsumerState<_DashboardTab> {
   bool _hasShownMaintenancePopup = false;
+  static bool _isGeneratingRent = false; // Static flag to throttle across tab switches
   
   @override
   void initState() {
@@ -113,7 +122,16 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       final session = ref.read(userSessionServiceProvider);
       final user = session.currentUser;
       
-       ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
+      // Throttle rent generation
+      if (!_isGeneratingRent) {
+        _isGeneratingRent = true;
+        try {
+          await ref.read(rentControllerProvider.notifier).generateRentForCurrentMonth();
+        } finally {
+          // Delay resetting the flag to prevent rapid re-triggering during navigation
+          Future.delayed(const Duration(minutes: 5), () => _isGeneratingRent = false);
+        }
+      }
        
        if (user != null) {
           ref.read(noticeControllerProvider.notifier).cleanupOldNotices(user.uid);
@@ -141,16 +159,7 @@ Please arrange to pay at your earliest convenience.
 Thank you!
 ''';
     try {
-      // 1. Trigger App Push Notification (FCM) if tenant is registered
-      if (tenant.authId != null && tenant.authId!.isNotEmpty) {
-        final notificationService = ref.read(notificationServiceProvider);
-        unawaited(notificationService.triggerPushNotification(
-          userIds: [tenant.authId!],
-          title: 'Rent Reminder',
-          body: 'Rent for $monthStr is pending. Total: ₹${c.totalDue.toStringAsFixed(0)}',
-          data: {'route': '/tenant/dashboard'},
-        ));
-      }
+      // 1. App Push Notification (FCM) removed as per user request
 
       // 2. Open WhatsApp (Manual)
       String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
@@ -596,19 +605,21 @@ Thank you!
                                             ),
                                       ];
 
-                                      return SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        physics: const BouncingScrollPhysics(),
-                                        padding: const EdgeInsets.only(bottom: 24),
-                                        child: Row(
-                                          children: allCards.map((card) => Padding(
-                                            padding: const EdgeInsets.only(right: 12),
-                                            child: SizedBox(
-                                              width: 160,
-                                              height: 120,
-                                              child: card,
-                                            ),
-                                          )).toList(),
+                                      return RepaintBoundary(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          physics: const BouncingScrollPhysics(),
+                                          padding: const EdgeInsets.only(bottom: 24),
+                                          child: Row(
+                                            children: allCards.map((card) => Padding(
+                                              padding: const EdgeInsets.only(right: 12),
+                                              child: SizedBox(
+                                                width: 160,
+                                                height: 120,
+                                                child: card,
+                                              ),
+                                            )).toList(),
+                                          ),
                                         ),
                                       );
                                   }
@@ -633,26 +644,28 @@ Thank you!
                                 )
                               ),
                               const SizedBox(height: 16),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                child: Row(
-                                  children: [
-                                    _buildCompactAction(context, 'Broadcast', Icons.campaign_rounded, Colors.orange, () => _showGlobalBroadcastDialog(context, ref)),
-                                    const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Record Expense', Icons.receipt_long_rounded, const Color(0xFFF59E0B), () => context.push('/owner/expenses/add')),
-                                    const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Maintenance', Icons.build_circle_rounded, const Color(0xFFEF4444), () => Navigator.push(context, CupertinoPageRoute(builder: (_) => const MaintenanceReportsScreen()))),
-                                    const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Secure Vault', Icons.lock_person_rounded, const Color(0xFF6366F1), () => widget.onTabSwitch?.call(1)),
-                                    const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Reports', Icons.bar_chart_rounded, const Color(0xFF10B981), () => widget.onTabSwitch?.call(2)),
-                                  ],
+                              RepaintBoundary(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          physics: const BouncingScrollPhysics(),
+                                          child: Row(
+                                            children: [
+                                              _buildCompactAction(context, 'Broadcast', Icons.campaign_rounded, Colors.orange, () => _showGlobalBroadcastDialog(context, ref)),
+                                              const SizedBox(width: 12),
+                                              _buildCompactAction(context, 'Record Expense', Icons.receipt_long_rounded, const Color(0xFFF59E0B), () => context.push('/owner/expenses/add')),
+                                              const SizedBox(width: 12),
+                                              _buildCompactAction(context, 'Maintenance', Icons.build_circle_rounded, const Color(0xFFEF4444), () => Navigator.push(context, CupertinoPageRoute(builder: (_) => const MaintenanceReportsScreen()))),
+                                              const SizedBox(width: 12),
+                                              _buildCompactAction(context, 'Secure Vault', Icons.lock_person_rounded, const Color(0xFF6366F1), () => widget.onTabSwitch?.call(1)),
+                                              const SizedBox(width: 12),
+                                              _buildCompactAction(context, 'Reports', Icons.bar_chart_rounded, const Color(0xFF10B981), () => widget.onTabSwitch?.call(2)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
                         
                         const SizedBox(height: 32),
 
@@ -768,7 +781,6 @@ Thank you!
                         // Fallback name if tenant not found
                         final tenantName = tenant?.name ?? 'Tenant';
                         final initials = tenantName.trim().split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
-                        final tenantPhone = tenant?.phone;
                         
                         // Color Logic
                         final statusColor = isPaid 

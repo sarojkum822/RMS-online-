@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -99,7 +101,13 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                       controller: _amountCtrl,
                       decoration: const InputDecoration(labelText: 'Amount (₹)', prefixText: '₹ '),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Required';
+                        final val = double.tryParse(v);
+                        if (val == null || val <= 0) return 'Must be > 0';
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),

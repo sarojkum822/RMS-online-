@@ -130,6 +130,7 @@
         "danger_zone": "खतरा क्षेत्र (Danger Zone)",
         "danger_warning": "ये क्रियाएं अपरिवर्तनीय हैं। कृपया निश्चित रहें।",
         "reset_data": "सभी डेटा रीसेट करें",
+        "delete_account": "अपना खाता हटाएं",
         "logout": "लॉग आउट",
         "version": "ऐप संस्करण"
     },

@@ -266,7 +266,7 @@ class _TenantPaymentsViewState extends State<TenantPaymentsView> {
       final cycle = cycles.firstWhere((c) => c.id == payment.rentCycleId);
       
       // 2. Fetch dependencies for PDF
-      final tenancy = await ref.read(tenantRepositoryProvider).getTenancy(payment.tenancyId);
+      final tenancy = await ref.read(tenantRepositoryProvider).getTenancyForAccess(payment.tenancyId, widget.tenant.ownerId);
       if (tenancy == null) throw Exception('Tenancy not found');
       
       final unit = await houseRepo.getUnitForTenant(tenancy.unitId, widget.tenant.ownerId);

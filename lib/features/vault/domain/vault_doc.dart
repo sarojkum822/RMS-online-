@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class VaultDoc {
   final String id;
   final String title;
@@ -24,11 +26,19 @@ class VaultDoc {
   }
 
   factory VaultDoc.fromMap(Map<String, dynamic> map, String id) {
+    DateTime? uploadedAt;
+    final uploadedAtVal = map['uploadedAt'];
+    if (uploadedAtVal is String) {
+      uploadedAt = DateTime.tryParse(uploadedAtVal);
+    } else if (uploadedAtVal is Timestamp) {
+      uploadedAt = uploadedAtVal.toDate();
+    }
+
     return VaultDoc(
       id: id,
       title: map['title'] ?? 'Untitled Doc',
       storagePath: map['storagePath'] ?? '',
-      uploadedAt: DateTime.tryParse(map['uploadedAt'] ?? '') ?? DateTime.now(),
+      uploadedAt: uploadedAt ?? DateTime.now(),
       mimeType: map['mimeType'] ?? 'image/jpeg',
     );
   }

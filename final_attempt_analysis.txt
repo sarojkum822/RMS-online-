@@ -1,0 +1,141 @@
+Analyzing rentpilotpro...                                       
+
+warning • Unused import: 'package:flutter/foundation.dart' • lib/core/services/app_prefs_cache.dart:2:8 • unused_import
+   info • The constant name 'CURRENT_SCHEMA_VERSION' isn't a lowerCamelCase identifier • lib/core/services/backup_service.dart:15:20 • constant_identifier_names
+warning • Unused import: 'package:speech_to_text/speech_recognition_result.dart' • lib/core/services/kiraya_voice_service.dart:3:8 • unused_import
+   info • 'partialResults' is deprecated and shouldn't be used. Use SpeechListenOptions.partialResults instead • lib/core/services/kiraya_voice_service.dart:39:7 • deprecated_member_use
+   info • 'cancelOnError' is deprecated and shouldn't be used. Use SpeechListenOptions.cancelOnError instead • lib/core/services/kiraya_voice_service.dart:40:7 • deprecated_member_use
+   info • 'listenMode' is deprecated and shouldn't be used. Use SpeechListenOptions.listenMode instead • lib/core/services/kiraya_voice_service.dart:41:7 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/core/services/log_service.dart:36:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/core/services/log_service.dart:37:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/core/services/log_service.dart:39:9 • avoid_print
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/core/services/print_service.dart:37:13 • deprecated_member_use
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/core/services/print_service.dart:51:13 • deprecated_member_use
+   info • 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead • lib/core/services/print_service.dart:70:13 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/core/services/storage_service.dart:23:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/core/services/storage_service.dart:34:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/core/services/storage_service.dart:57:7 • avoid_print
+warning • Unused import: 'package:intl/intl.dart' • lib/core/utils/intent_parser_utils.dart:1:8 • unused_import
+   info • Don't invoke 'print' in production code • lib/core/utils/whatsapp_helper.dart:34:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/owner_repository_impl.dart:23:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/owner_repository_impl.dart:36:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/owner_repository_impl.dart:52:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/owner_repository_impl.dart:69:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/owner_repository_impl.dart:83:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/data/repositories/owner_repository_impl.dart:109:7 • avoid_print
+   info • The parameter name 'sum' matches a visible type name • lib/data/repositories/rent_repository_impl.dart:645:50 • avoid_types_as_parameter_names
+   info • Don't invoke 'print' in production code • lib/domain/entities/maintenance_request.dart:47:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/rent/domain/usecases/generate_rent_use_case.dart:47:9 • avoid_print
+   info • 'encryptedSharedPreferences' is deprecated and shouldn't be used. EncryptedSharedPreferences is deprecated and will be removed in v11. The Jetpack Security library is deprecated by Google. Your data will be automatically migrated to custom ciphers on first access. Remove this parameter - it will be ignored • lib/features/vault/data/vault_repository.dart:18:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/vault/presentation/screens/secure_vault_screen.dart:109:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/vault/presentation/screens/secure_vault_screen.dart:111:59 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/features/vault/presentation/screens/secure_vault_screen.dart:187:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/vault/presentation/screens/secure_vault_screen.dart:190:25 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/vault/presentation/screens/secure_vault_screen.dart:240:33 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/vault/presentation/screens/secure_vault_screen.dart:242:33 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/vault/presentation/screens/secure_vault_screen.dart:327:72 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/vault/presentation/screens/secure_vault_screen.dart:351:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/vault/presentation/screens/secure_vault_screen.dart:352:68 • deprecated_member_use
+   info • The imported package 'flutter_native_splash' isn't a dependency of the importing package • lib/main.dart:8:8 • depend_on_referenced_packages
+   info • 'PropertyRepositoryRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/data_providers.dart:70:40 • deprecated_member_use_from_same_package
+   info • 'TenantRepositoryRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/data_providers.dart:76:36 • deprecated_member_use_from_same_package
+   info • 'RentRepositoryRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/data_providers.dart:82:32 • deprecated_member_use_from_same_package
+   info • 'BackupServiceRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/data_providers.dart:100:29 • deprecated_member_use_from_same_package
+   info • 'PrintServiceRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/data_providers.dart:112:27 • deprecated_member_use_from_same_package
+   info • 'NotificationServiceRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/data_providers.dart:117:41 • deprecated_member_use_from_same_package
+warning • The value of the local variable 'firestore' isn't used • lib/presentation/providers/data_providers.dart:126:9 • unused_local_variable
+   info • 'RevenueTrendRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/revenue_provider.dart:7:49 • deprecated_member_use_from_same_package
+   info • 'SeedDataRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/providers/seed_data_provider.dart:9:23 • deprecated_member_use_from_same_package
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/auth/login_screen.dart:187:55 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/auth/login_screen.dart:188:22 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/auth/login_screen.dart:417:11 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/auth/login_screen.dart:729:28 • use_build_context_synchronously
+   info • Don't invoke 'print' in production code • lib/presentation/screens/maintenance/maintenance_controller.dart:50:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/screens/maintenance/maintenance_controller.dart:83:10 • avoid_print
+   info • Don't invoke 'print' in production code • lib/presentation/screens/notice/notice_controller.dart:118:7 • avoid_print
+warning • The value of the local variable 'isDark' isn't used • lib/presentation/screens/notice/notice_history_screen.dart:95:11 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/notice/widgets/broadcast_center_sheet.dart:200:7 • use_build_context_synchronously
+warning • The value of the local variable 'isDark' isn't used • lib/presentation/screens/owner/expense/add_expense_modal.dart:62:11 • unused_local_variable
+   info • 'HouseUnitsRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/screens/owner/house/house_controller.dart:196:31 • deprecated_member_use_from_same_package
+   info • 'AvailableUnitsRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/screens/owner/house/house_controller.dart:202:35 • deprecated_member_use_from_same_package
+   info • 'HouseStatsRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/screens/owner/house/house_controller.dart:209:41 • deprecated_member_use_from_same_package
+warning • The value of the local variable 'isDark' isn't used • lib/presentation/screens/owner/house/house_detail_screen.dart:284:11 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/owner/house/house_detail_screen.dart:474:47 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/owner/house/house_detail_screen.dart:669:44 • use_build_context_synchronously
+warning • The declaration '_showAddUnitDialog' isn't referenced • lib/presentation/screens/owner/house/house_detail_screen.dart:1184:8 • unused_element
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/owner/house/house_detail_screen.dart:1537:56 • use_build_context_synchronously
+warning • The value of the field '_kRandomHouseImages' isn't used • lib/presentation/screens/owner/house/house_list_screen.dart:149:29 • unused_field
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/house/widgets/unit_list_tile.dart:346:42 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/house/widgets/unit_list_tile.dart:370:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/house/widgets/unit_list_tile.dart:376:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/house/widgets/unit_list_tile.dart:403:42 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/house/widgets/unit_list_tile.dart:408:32 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/house/widgets/unit_list_tile.dart:414:32 • use_build_context_synchronously
+warning • The value of the local variable 'tenantPhone' isn't used • lib/presentation/screens/owner/owner_dashboard_screen.dart:786:31 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/owner/rent/pending_payments_screen.dart:63:29 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:358:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:474:89 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:563:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:595:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:701:73 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:758:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:758:83 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:829:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:832:199 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/reports/reports_screen.dart:847:60 • deprecated_member_use
+warning • The value of the local variable 'isDark' isn't used • lib/presentation/screens/owner/settings/backup_restore_screen.dart:23:11 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/settings/currency_settings_screen.dart:60:50 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/settings/currency_settings_screen.dart:61:50 • use_build_context_synchronously
+warning • Unused import: '../../../../core/services/backup_service.dart' • lib/presentation/screens/owner/settings/owner_controller.dart:6:8 • unused_import
+warning • Unused import: '../../../../core/services/data_management_service.dart' • lib/presentation/screens/owner/settings/owner_controller.dart:7:8 • unused_import
+warning • The left operand can't be null, so the right operand is never executed • lib/presentation/screens/owner/settings/profile_screen.dart:108:55 • dead_null_aware_expression
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor or activeTrackColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/presentation/screens/owner/settings/settings_screen.dart:247:25 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/settings/settings_screen.dart:470:60 • deprecated_member_use
+warning • The declaration '_runDataRepair' isn't referenced • lib/presentation/screens/owner/settings/settings_screen.dart:703:16 • unused_element
+warning • The value of 'refresh' should be used • lib/presentation/screens/owner/settings/subscription_screen.dart:95:18 • unused_result
+warning • The value of the local variable 'isDark' isn't used • lib/presentation/screens/owner/settings/subscription_screen.dart:131:11 • unused_local_variable
+warning • The declaration '_toggleVisibility' isn't referenced • lib/presentation/screens/owner/settings/tenant_access_screen.dart:20:16 • unused_element
+warning • The value of the local variable 'isPasswordVisible' isn't used • lib/presentation/screens/owner/settings/tenant_access_screen.dart:131:11 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/settings/timezone_settings_screen.dart:71:55 • use_build_context_synchronously
+   info • 'ActiveTenancyRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/screens/owner/tenant/tenant_controller.dart:20:32 • deprecated_member_use_from_same_package
+   info • 'ActiveTenancyForTenantAccessRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead • lib/presentation/screens/owner/tenant/tenant_controller.dart:30:3 • deprecated_member_use_from_same_package
+   info • Don't invoke 'print' in production code • lib/presentation/screens/owner/tenant/tenant_controller.dart:333:9 • avoid_print
+warning • The value of the local variable 'successCount' isn't used • lib/presentation/screens/owner/tenant/tenant_controller.dart:371:11 • unused_local_variable
+   info • Don't invoke 'print' in production code • lib/presentation/screens/owner/tenant/tenant_controller.dart:387:14 • avoid_print
+warning • The value of the local variable 'screenHeight' isn't used • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:37:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:145:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:347:76 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:351:95 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:363:71 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:365:65 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:384:68 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:400:82 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1311:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1327:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1435:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1437:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1458:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1458:71 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1526:72 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1564:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/screens/owner/tenant/tenant_detail_screen.dart:1564:75 • deprecated_member_use
+   info • The variable name 'Asyncdata' isn't a lowerCamelCase identifier • lib/presentation/screens/owner/tenant/tenant_list_screen.dart:162:33 • non_constant_identifier_names
+   info • 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre • lib/presentation/screens/owner/tenant/tenant_list_screen.dart:289:12 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/tenant/tenant_list_screen.dart:666:41 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/tenant/tenant_list_screen.dart:670:40 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/tenant/tenant_list_screen.dart:718:51 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/owner/tenant/tenant_list_screen.dart:722:50 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/tenant/tenant_login_screen.dart:106:49 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/tenant/tenant_login_screen.dart:108:48 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/presentation/screens/tenant/tenant_login_screen.dart:114:48 • use_build_context_synchronously
+warning • The value of the local variable 'isDark' isn't used • lib/presentation/screens/tenant/views/tenant_payments_view.dart:27:15 • unused_local_variable
+warning • The value of the local variable 'cycle' isn't used • lib/presentation/screens/tenant/views/tenant_payments_view.dart:266:13 • unused_local_variable
+warning • The value of the local variable 'theme' isn't used • lib/presentation/screens/tenant/views/tenant_profile_docs_view.dart:168:11 • unused_local_variable
+warning • Unused import: '../providers/data_providers.dart' • lib/presentation/widgets/voice_assistant_sheet.dart:7:8 • unused_import
+warning • Unused import: 'package:intl/intl.dart' • lib/presentation/widgets/voice_assistant_sheet.dart:9:8 • unused_import
+   info • Unnecessary escape in string literal • lib/presentation/widgets/voice_assistant_sheet.dart:88:58 • unnecessary_string_escapes
+   info • Unnecessary escape in string literal • lib/presentation/widgets/voice_assistant_sheet.dart:88:75 • unnecessary_string_escapes
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/presentation/widgets/voice_assistant_sheet.dart:138:34 • deprecated_member_use
+warning • The class 'DocumentSnapshot' shouldn't be extended, mixed in, or implemented because it's sealed • test/repository_mapping_test.dart:10:1 • subtype_of_sealed_class
+warning • The value of the local variable 'mockStorage' isn't used • test/repository_mapping_test.dart:75:30 • unused_local_variable
+
