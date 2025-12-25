@@ -16,12 +16,17 @@ import '../rent/rent_controller.dart';
 import '../settings/owner_controller.dart'; // NEW
 import 'tenant_controller.dart';
 import 'tenant_detail_screen.dart';
+import 'widgets/delete_tenant_dialog.dart'; // NEW
 import '../../../widgets/ads/banner_ad_widget.dart';
 import '../../../../core/widgets/error_display_widget.dart'; // NEW
 import '../../../../core/services/log_service.dart'; // NEW
 import '../../../../core/utils/dialog_utils.dart';
 import '../../../widgets/empty_state_widget.dart';
 import '../../../widgets/skeleton_loader.dart';
+import '../../maintenance/maintenance_controller.dart';
+import '../../maintenance/maintenance_reports_screen.dart';
+import '../../../../domain/entities/maintenance_request.dart';
+import 'package:flutter/services.dart';
 
 // --- UI Model ---
 class TenantUiModel {
@@ -198,34 +203,24 @@ class _TenantListScreenState extends ConsumerState<TenantListScreen> with Single
 
      showDialog(
        context: context,
-       builder: (ctx) => AlertDialog(
-         title: Text('Delete $count Tenant${count > 1 ? 's' : ''}?'),
-         content: const Text(
-           'Warning: This action is permanent and cannot be undone.\n\n'
-           'All selected tenants and their payment history will be deleted. '
-           'Associated units will be marked as vacant.',
-         ),
-         actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-              onPressed: () async {
-                 Navigator.pop(ctx);
-                 await DialogUtils.runWithLoading(context, () async {
-                    await ref.read(tenantControllerProvider.notifier).deleteTenantsBatch(_selectedIds.toList());
-                    // Force refresh of data
-                    ref.invalidate(_tenantsStreamProvider);
-                    ref.invalidate(_housesStreamProvider); 
-                    ref.invalidate(_tenanciesStreamProvider);
-                 });
-                 if (mounted) {
-                    _clearSelection();
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tenants deleted successfully')));
-                 }
-              },
-              child: const Text('Delete Forever'),
-            ),
-         ],
+       builder: (ctx) => DeleteTenantDialog(
+         count: count,
+         isBatch: true,
+         onConfirm: () async {
+            Navigator.pop(ctx);
+            await DialogUtils.runWithLoading(context, () async {
+               await ref.read(tenantControllerProvider.notifier).deleteTenantsBatch(_selectedIds.toList());
+               // Force refresh of data
+               ref.invalidate(_tenantsStreamProvider);
+               ref.invalidate(_housesStreamProvider); 
+               ref.invalidate(_tenanciesStreamProvider);
+            });
+            if (mounted) {
+               _clearSelection();
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tenants deleted successfully')));
+            }
+         },
+         onCancel: () => Navigator.pop(ctx),
        ),
      );
   }
@@ -286,6 +281,11 @@ class _TenantListScreenState extends ConsumerState<TenantListScreen> with Single
     final uiDataAsync = ref.watch(tenantListViewModelProvider);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Watch Maintenance Requests for Badge
+    final user = ref.watch(userSessionServiceProvider).currentUser;
+    final maintenanceAsync = user != null ? ref.watch(ownerMaintenanceProvider(user.uid)) : const AsyncValue<List<MaintenanceRequest>>.loading();
+    final pendingMaintenanceCount = maintenanceAsync.valueOrNull?.where((r) => r.status == MaintenanceStatus.pending).length ?? 0;
+
     return WillPopScope( // Handle back button to exit selection mode
       onWillPop: () async {
         if (_isSelectionMode) {
@@ -314,8 +314,9 @@ class _TenantListScreenState extends ConsumerState<TenantListScreen> with Single
             children: [
               Text(
                 'Tenants',
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.playfairDisplay(
-                  fontSize: 32,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: theme.textTheme.titleLarge?.color,
                   letterSpacing: -0.5,
@@ -357,7 +358,38 @@ class _TenantListScreenState extends ConsumerState<TenantListScreen> with Single
                tooltip: 'Delete Selected',
              ),
              const SizedBox(width: 16),
-          ] : null,
+          ] : [
+            // Notification Icon with Badge
+            Badge(
+              label: Text('$pendingMaintenanceCount'),
+              isLabelVisible: pendingMaintenanceCount > 0,
+              offset: const Offset(-4, 4),
+              child: IconButton(
+                icon: Icon(Icons.notifications_none_rounded, color: theme.textTheme.bodyMedium?.color),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const MaintenanceReportsScreen()));
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Functional Profile Icon
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                context.push('/owner/settings');
+              },
+              child: Container(
+                 margin: const EdgeInsets.only(right: 20),
+                 padding: const EdgeInsets.all(8),
+                 decoration: BoxDecoration(
+                   color: theme.colorScheme.primary,
+                   shape: BoxShape.circle,
+                 ),
+                 child: const Icon(Icons.person, color: Colors.white, size: 20),
+              ),
+            ),
+          ],
           bottom: TabBar(
             controller: _tabController,
             labelColor: theme.colorScheme.primary,
@@ -747,7 +779,7 @@ class TenantCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onTap; // Optional override
 
-  const TenantCard({
+  const TenantCard({super.key, 
       required this.item, 
       this.isHistory = false,
       this.isSelected = false,

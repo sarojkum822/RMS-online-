@@ -1,6 +1,5 @@
-import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:flutter/foundation.dart'; // for debugPrint
+// for debugPrint
 
 class BiometricService {
   final LocalAuthentication auth = LocalAuthentication();
@@ -10,7 +9,14 @@ class BiometricService {
       final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
       final bool canAuthenticate =
           canAuthenticateWithBiometrics || await auth.isDeviceSupported();
-      return canAuthenticate;
+      
+      if (!canAuthenticate) return false;
+
+      // Check if any biometrics are actually enrolled
+      final List<BiometricType> availableBiometrics =
+          await auth.getAvailableBiometrics();
+      
+      return availableBiometrics.isNotEmpty;
     } catch (e) {
       // Gracefully handle errors (e.g., missing biometric hardware)
       return false;
@@ -23,10 +29,7 @@ class BiometricService {
         localizedReason: 'Please authenticate to access KirayaBook Pro',
       );
     } catch (e) {
-      // Catch all exceptions including LocalAuthException (noCredentialsSet)
-      // which might not be caught by PlatformException depending on version
-      debugPrint('Biometric Auth Error: $e');
-      return false;
+      rethrow; // Let the UI handle specific errors or show generic message
     }
   }
 }

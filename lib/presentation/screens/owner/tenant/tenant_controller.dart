@@ -92,7 +92,6 @@ class TenantController extends _$TenantController {
     // NEW Fields
     double? advanceAmount,
     bool policeVerification = false,
-    String? idProof,
     String? address,
     String? dob,
     String? gender,
@@ -134,7 +133,6 @@ class TenantController extends _$TenantController {
         // New Fields
         advanceAmount: advanceAmount ?? 0.0,
         policeVerification: policeVerification,
-        idProof: idProof,
         address: address,
         dob: dob,
         gender: gender,

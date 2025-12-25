@@ -24,6 +24,7 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
   final _addressCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   final _unitsCtrl = TextEditingController();
+  String _propertyType = 'Apartment'; // Default
   
   File? _selectedImage;
   bool _isLoading = false;
@@ -35,6 +36,7 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
       _nameCtrl.text = widget.house!.name;
       _addressCtrl.text = widget.house!.address;
       _notesCtrl.text = widget.house!.notes ?? '';
+      _propertyType = widget.house!.propertyType;
     }
   }
 
@@ -101,6 +103,7 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
             notes: _notesCtrl.text,
             imageUrl: widget.house!.imageUrl, // Keep legacy URL
             imageBase64: imageBase64, // Update Base64
+            propertyType: _propertyType,
           );
           await ref.read(houseControllerProvider.notifier).updateHouse(updatedHouse);
         } else {
@@ -114,6 +117,7 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
             int.tryParse(_unitsCtrl.text),
             imageUrl: null, 
             imageBase64: imageBase64,
+            propertyType: _propertyType,
           );
         }
         if (mounted) context.pop();
@@ -180,15 +184,41 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
             TextFormField(
               controller: _nameCtrl,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'House Name', hintText: 'e.g. Sunset Villa'),
+              decoration: const InputDecoration(labelText: 'House Name', hintText: 'e.g. Sunset Villa', counterText: ""),
+              maxLength: 50,
               validator: (v) => v!.isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _addressCtrl,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Address', hintText: 'Enter full address'),
+              decoration: const InputDecoration(labelText: 'Address', hintText: 'Enter full address', counterText: ""),
+              maxLength: 200,
               validator: (v) => v!.isEmpty ? 'Required' : null,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _propertyType,
+              decoration: const InputDecoration(labelText: 'Property Type', border: OutlineInputBorder()),
+              items: ['Apartment', 'Hostel', 'PG'].map((type) {
+                IconData icon = Icons.apartment;
+                if (type == 'Hostel') icon = Icons.hotel;
+                if (type == 'PG') icon = Icons.single_bed;
+                
+                return DropdownMenuItem(
+                  value: type,
+                  child: Row(
+                    children: [
+                      Icon(icon, size: 18, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 8),
+                      Text(type),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _propertyType = val);
+              },
             ),
             const SizedBox(height: 16),
             if (!isEditing) ...[
@@ -196,10 +226,14 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
                 controller: _unitsCtrl,
                 decoration: const InputDecoration(labelText: 'Total Number of Flats / Units', hintText: 'Optional, e.g. 10'),
                 keyboardType: TextInputType.number,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: (v) {
                    if (v != null && v.isNotEmpty) {
                       final n = int.tryParse(v);
-                      if (n != null && n > 999999) return 'Maximum limit reached';
+                      if (n != null) {
+                         if (n < 0) return 'Cannot be negative';
+                         if (n > 999999) return 'Maximum limit reached';
+                      }
                    }
                    return null;
                 },
@@ -209,6 +243,7 @@ class _HouseFormScreenState extends ConsumerState<HouseFormScreen> {
             TextFormField(
               controller: _notesCtrl,
               decoration: const InputDecoration(labelText: 'Notes', hintText: 'Optional'),
+              maxLength: 500,
               maxLines: 3,
             ),
             const SizedBox(height: 24),

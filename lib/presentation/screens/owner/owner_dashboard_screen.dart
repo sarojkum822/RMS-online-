@@ -3,20 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // NEW
+// NEW
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../../domain/entities/tenant.dart';
 import '../../../features/rent/domain/entities/rent_cycle.dart';
-import 'house/house_list_screen.dart';
-import 'tenant/tenant_list_screen.dart';
-import 'tenant/tenant_list_screen.dart';
-import '../../../../features/vault/presentation/screens/secure_vault_screen.dart'; // Import Vault Screen
+import '../../../domain/repositories/i_rent_repository.dart'; // Added for DashboardStats
+
 import 'package:go_router/go_router.dart';
 import 'rent/rent_controller.dart';
+import 'house/house_controller.dart';
 import 'package:animated_flip_counter/animated_flip_counter.dart';
-import '../../../../core/theme/app_theme.dart';
 import 'settings/settings_screen.dart'; 
 import 'reports/reports_screen.dart'; 
 import '../../../core/utils/currency_utils.dart';
@@ -25,18 +22,23 @@ import 'tenant/tenant_controller.dart';
 import '../../providers/data_providers.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/empty_state_widget.dart';
-import '../../../../core/utils/currency_utils.dart';
 import 'settings/owner_controller.dart';
 import 'package:kirayabook/presentation/screens/notice/notice_controller.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../maintenance/maintenance_controller.dart';
 import '../maintenance/maintenance_reports_screen.dart';
 import '../../../../domain/entities/maintenance_request.dart';
 import '../../widgets/ads/banner_ad_widget.dart';
-import '../../widgets/charts/revenue_chart_widget.dart'; // NEW
-import '../../providers/revenue_provider.dart'; // NEW
-import 'dart:ui'; // For ImageFilter
+// NEW
+// NEW
+// For ImageFilter
 
 import 'package:easy_localization/easy_localization.dart'; // NEW
+
+import 'package:kirayabook/features/ai_helper/providers/ai_helper_providers.dart';
+import 'portfolio/portfolio_management_screen.dart';
+import 'tenant/tenant_list_screen.dart'; // NEW
+import 'expense/expense_screens.dart'; // NEW
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -48,8 +50,6 @@ class OwnerDashboardScreen extends StatefulWidget {
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   int _currentIndex = 0;
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,9 +58,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         index: _currentIndex,
         children: [
           _DashboardTab(onTabSwitch: (index) => setState(() => _currentIndex = index)),
-          const SecureVaultScreen(), // Replaces Properties & Tenants
-          const ReportsScreen(),
-          const SettingsScreen(),
+          const TenantListScreen(), // Tenants Tab
+          const PortfolioManagementScreen(), // Properties Tab
+          const ExpenseListScreen(), // Expenses Tab
+          const ReportsScreen(), // Reports Tab
         ],
       ),
       bottomNavigationBar: Container(
@@ -88,9 +89,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             NavigationDestination(icon: const Icon(Icons.dashboard_outlined), selectedIcon: const Icon(Icons.dashboard), label: 'nav.home'.tr()),
-            NavigationDestination(icon: const Icon(Icons.lock_person_outlined), selectedIcon: const Icon(Icons.lock_person), label: 'Vault'), // New Vault Tab
+            NavigationDestination(icon: const Icon(Icons.people_outline), selectedIcon: const Icon(Icons.people), label: 'Tenants'),
+            NavigationDestination(icon: const Icon(Icons.home_work_outlined), selectedIcon: const Icon(Icons.home_work), label: 'Properties'),
+            NavigationDestination(icon: const Icon(Icons.receipt_long_outlined), selectedIcon: const Icon(Icons.receipt_long), label: 'Expenses'),
             NavigationDestination(icon: const Icon(Icons.bar_chart_outlined), selectedIcon: const Icon(Icons.bar_chart), label: 'nav.reports'.tr()),
-            NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings), label: 'nav.settings'.tr()),
           ],
         ),
       ),
@@ -108,6 +110,7 @@ class _DashboardTab extends ConsumerStatefulWidget {
 
 class _DashboardTabState extends ConsumerState<_DashboardTab> {
   bool _hasShownMaintenancePopup = false;
+  DashboardStats? _cachedStats; // Local cache to prevent flashing
   
   @override
   void initState() {
@@ -129,6 +132,12 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
   Widget build(BuildContext context) {
     final rentAsync = ref.watch(rentControllerProvider);
     final statsAsync = ref.watch(dashboardStatsProvider);
+    
+    // Optimistic UI: Keep showing old stats while refreshing
+    if (statsAsync.hasValue) {
+      _cachedStats = statsAsync.value;
+    }
+    
     final ownerAsync = ref.watch(ownerControllerProvider);
     final currencySymbol = CurrencyUtils.getSymbol(ownerAsync.value?.currency);
     final theme = Theme.of(context);
@@ -154,8 +163,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final totalProperties = unitsAsync.valueOrNull?.length ?? 0;
     final occupiedCount = tenantsAsync.valueOrNull?.where((t) => t.isActive).length ?? 0;
     
-    final collected = statsAsync.valueOrNull?.thisMonthCollected ?? 0.0;
-    final pending = statsAsync.valueOrNull?.totalPending ?? 0.0;
+    // Use cached stats if available to prevent 0.0 flash
+    final displayStats = _cachedStats ?? statsAsync.valueOrNull;
+    final collected = displayStats?.thisMonthCollected ?? 0.0;
+    final pending = displayStats?.totalPending ?? 0.0;
     
     // --- Owner Plan Check for Ads ---
     final ownerSessionAsync = user != null ? ref.watch(ownerByIdProvider(user.uid)) : const AsyncValue<dynamic>.loading();
@@ -168,9 +179,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Dashboard', 
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.playfairDisplay(
             fontWeight: FontWeight.bold, 
-            fontSize: 32, 
+            fontSize: 28, 
             color: theme.textTheme.titleLarge?.color,
             letterSpacing: -0.5,
           )
@@ -179,6 +191,15 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         actions: [
+          // Search Icon
+          IconButton(
+            icon: Icon(Icons.search_rounded, color: theme.textTheme.bodyMedium?.color),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              // TODO: Implement Search or navigate to SearchScreen
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Search coming soon!')));
+            },
+          ),
           // Notification Icon with Badge
           Badge(
             label: Text('$pendingMaintenanceCount'),
@@ -187,6 +208,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
             child: IconButton(
               icon: Icon(Icons.notifications_none_rounded, color: theme.textTheme.bodyMedium?.color),
               onPressed: () {
+                HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const MaintenanceReportsScreen()));
               },
             ),
@@ -194,7 +216,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
           const SizedBox(width: 8),
           // Functional Profile Icon
           GestureDetector(
-            onTap: () => widget.onTabSwitch?.call(3), // Navigate to Settings
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.push('/owner/settings');
+            }, // Navigate to Settings Screen Directly
             child: Container(
                margin: const EdgeInsets.only(right: 20),
                padding: const EdgeInsets.all(8),
@@ -251,6 +276,55 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   
+                     // --- Urgent Alerts Section ---
+                     Builder(
+                       builder: (context) {
+                         final overdueCount = rentAsync.valueOrNull?.where((c) {
+                           final date = c.billPeriodStart ?? c.billGeneratedDate;
+                           final now = DateTime.now();
+                           final currentMonthStart = DateTime(now.year, now.month, 1);
+                           return c.status.name != 'paid' && date.isBefore(currentMonthStart);
+                         }).length ?? 0;
+                         
+                         if (overdueCount == 0 && pendingMaintenanceCount == 0) return const SizedBox.shrink();
+                         
+                         return Padding(
+                           padding: const EdgeInsets.only(bottom: 24),
+                           child: Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               Text('Urgent Alerts', 
+                                 style: GoogleFonts.outfit(
+                                   fontSize: 16, 
+                                   fontWeight: FontWeight.bold,
+                                   color: theme.colorScheme.error,
+                                 )
+                               ),
+                               const SizedBox(height: 12),
+                               if (overdueCount > 0)
+                                 _buildAlertTile(
+                                   context, 
+                                   '$overdueCount Overdue Payments', 
+                                   Icons.receipt_long_rounded, 
+                                   Colors.red,
+                                   () => context.push('/owner/rent/pending')
+                                 ),
+                               if (pendingMaintenanceCount > 0) ...[
+                                 const SizedBox(height: 8),
+                                 _buildAlertTile(
+                                   context, 
+                                   '$pendingMaintenanceCount Maintenance Requests', 
+                                   Icons.handyman_rounded, 
+                                   Colors.orange,
+                                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MaintenanceReportsScreen()))
+                                 ),
+                               ],
+                             ],
+                           ),
+                         );
+                       },
+                     ),
+
                      // 0. Total Revenue Card (Lifetime) - Hide for Free plan
                      if (ownerPlan != 'free')
                       Container(
@@ -536,13 +610,25 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                 physics: const BouncingScrollPhysics(),
                                 child: Row(
                                   children: [
-                                    _buildCompactAction(context, 'Add Property', Icons.add_business_rounded, theme.colorScheme.primary, () => context.push('/owner/houses/add')),
+                                    _buildCompactAction(context, 'Add Property', Icons.add_business_rounded, theme.colorScheme.primary, () {
+                                      HapticFeedback.lightImpact();
+                                      context.push('/owner/houses/add');
+                                    }),
                                     const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Add Tenant', Icons.person_add_rounded, const Color(0xFF10B981), () => context.push('/owner/tenants/add')),
+                                    _buildCompactAction(context, 'Add Tenant', Icons.person_add_rounded, const Color(0xFF10B981), () {
+                                      HapticFeedback.lightImpact();
+                                      context.push('/owner/tenants/add');
+                                    }),
                                     const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Expenses', Icons.receipt_long_rounded, const Color(0xFFF59E0B), () => context.push('/owner/expenses')),
+                                    _buildCompactAction(context, 'Expenses', Icons.receipt_long_rounded, const Color(0xFFF59E0B), () {
+                                      HapticFeedback.lightImpact();
+                                      context.push('/owner/expenses');
+                                    }),
                                     const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Portfolio', Icons.folder_shared_rounded, const Color(0xFF6366F1), () => context.push('/owner/portfolio')),
+                                    _buildCompactAction(context, 'Broadcast', Icons.campaign_rounded, const Color(0xFFEA580C), () {
+                                      HapticFeedback.lightImpact();
+                                      _showGlobalBroadcastDialog(context);
+                                    }),
                                   ],
                                 ),
                               ),
@@ -578,6 +664,115 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                       children: [
 
                       const SizedBox(height: 8),
+
+                      // Tenant Activity Section
+                      if (tenantsAsync.valueOrNull?.where((t) => t.isActive).isNotEmpty ?? false) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Tenant Activity',
+                              style: GoogleFonts.playfairDisplay(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => context.push('/owner/tenants'),
+                              child: Text('View All', 
+                                style: GoogleFonts.outfit(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600
+                                )
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ...tenantsAsync.valueOrNull!.where((t) => t.isActive).take(3).map((tenant) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Slidable(
+                            key: ValueKey(tenant.id),
+                            startActionPane: ActionPane(
+                              motion: const ScrollMotion(),
+                              extentRatio: 0.2,
+                              children: [
+                                SlidableAction(
+                                  onPressed: (context) async {
+                                    String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
+                                    final url = Uri.parse("whatsapp://send?phone=$phone");
+                                    if (await canLaunchUrl(url)) await launchUrl(url);
+                                  },
+                                  backgroundColor: const Color(0xFF25D366),
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.chat_bubble_outline_rounded,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ],
+                            ),
+                            endActionPane: ActionPane(
+                              motion: const ScrollMotion(),
+                              extentRatio: 0.5,
+                              children: [
+                                SlidableAction(
+                                  onPressed: (context) {
+                                     context.push('/owner/tenants/${tenant.id}', extra: tenant);
+                                  },
+                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.8),
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.person_outline,
+                                  label: 'Details',
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                SlidableAction(
+                                  onPressed: (context) async {
+                                    final url = Uri.parse("tel:${tenant.phone}");
+                                    if (await canLaunchUrl(url)) await launchUrl(url);
+                                  },
+                                  backgroundColor: theme.colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.phone_outlined,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ],
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                    child: Text(
+                                      tenant.name.trim().isNotEmpty ? tenant.name.trim()[0].toUpperCase() : '?',
+                                      style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(tenant.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        Text(tenant.phone, style: GoogleFonts.outfit(fontSize: 13, color: theme.hintColor)),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.chevron_right_rounded, color: theme.hintColor.withValues(alpha: 0.5)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )),
+                        const SizedBox(height: 24),
+                      ],
 
                       // Activity Header
                     Row(
@@ -679,24 +874,17 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                             final initials = tenant.name.trim().split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
 
                             // Helper for WhatsApp (Keep logic same, UI different)
-                             void _shareRentDetails(Tenant tenant, RentCycle c) async {
+                             void shareRentDetails(Tenant tenant, RentCycle c) async {
                                   final monthStr = DateFormat('MMMM yyyy').format(c.billPeriodStart ?? c.billGeneratedDate);
-                                  final message = '''
-Dear ${tenant.name},
+                                  
+                                  // Use AIService to generate the message
+                                  final aiService = ref.read(aiServiceProvider);
+                                  final message = await aiService.generateRentReminder(
+                                    tenantName: tenant.name,
+                                    amountDue: c.totalDue,
+                                    dueDate: monthStr,
+                                  );
 
-Hope you are having a good day! 🌟
-
-This is a gentle reminder regarding the rent for *$monthStr*.
-
-*Bill Details:*
-• Rent: ₹${c.baseRent.toStringAsFixed(0)}
-${c.electricAmount > 0 ? '• Electricity: ₹${c.electricAmount.toStringAsFixed(0)}\n' : ''}${c.otherCharges > 0 ? '• Other Charges: ₹${c.otherCharges.toStringAsFixed(0)}\n' : ''}
-*Total Payable: ₹${c.totalDue.toStringAsFixed(0)}*
-
-Please arrange to pay at your earliest convenience.
-
-Thank you!
-''';
                                   try {
                                      String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
                                      if (phone.length == 10) phone = '91$phone';
@@ -715,148 +903,197 @@ Thank you!
                                   }
                                 }
 
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Slidable(
+                                key: ValueKey(c.id),
+                                startActionPane: ActionPane(
+                                  motion: const ScrollMotion(),
+                                  extentRatio: 0.25,
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (context) => shareRentDetails(tenant, c),
+                                      backgroundColor: const Color(0xFF25D366),
+                                      foregroundColor: Colors.white,
+                                      icon: Icons.chat_bubble_outline_rounded,
+                                      label: 'Remind',
+                                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(24)),
+                                    ),
+                                  ],
+                                ),
+                                endActionPane: ActionPane(
+                                  motion: const ScrollMotion(),
+                                  extentRatio: 0.5,
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (context) {
+                                        if (tenancy != null) {
+                                           context.push('/owner/tenants/${tenancy.tenantId}', extra: tenant);
+                                        }
+                                      },
+                                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.8),
+                                      foregroundColor: Colors.white,
+                                      icon: Icons.analytics_outlined,
+                                      label: 'Details',
+                                    ),
+                                    SlidableAction(
+                                      onPressed: (context) async {
+                                         final url = Uri.parse("tel:${tenant.phone}");
+                                         if (await canLaunchUrl(url)) await launchUrl(url);
+                                      },
+                                      backgroundColor: theme.colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                      icon: Icons.phone_outlined,
+                                      label: 'Call',
+                                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
+                                    ),
+                                  ],
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {}, // Can open detail
-                                  borderRadius: BorderRadius.circular(24),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center, // Center vertically
-                                      children: [
-                                        // 1. Avatar
-                                        Container(
-                                          width: 50, height: 50,
-                                          decoration: BoxDecoration(
-                                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            initials,
-                                            style: GoogleFonts.outfit(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                              color: theme.colorScheme.primary,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        
-                                        // 2. Info Column
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                tenant.name,
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        // TODO: Open cycle details or record payment
+                                      },
+                                      borderRadius: BorderRadius.circular(24),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center, // Center vertically
+                                          children: [
+                                            // 1. Avatar
+                                            Container(
+                                              width: 50, height: 50,
+                                              decoration: BoxDecoration(
+                                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                initials,
                                                 style: GoogleFonts.outfit(
                                                   fontWeight: FontWeight.bold,
-                                                  fontSize: 17,
-                                                  color: theme.textTheme.bodyLarge?.color,
+                                                  fontSize: 18,
+                                                  color: theme.colorScheme.primary,
                                                 ),
-                                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  Text(
-                                                    DateFormat('MMM yyyy').format(cycleDate),
-                                                    style: GoogleFonts.outfit(
-                                                      fontSize: 13,
-                                                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                  if (c.electricAmount > 0) ...[
-                                                    Padding(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                                                      child: Icon(Icons.circle, size: 4, color: theme.disabledColor),
-                                                    ),
-                                                    Icon(Icons.electric_bolt_rounded, size: 12, color: theme.colorScheme.tertiary),
-                                                    const SizedBox(width: 2),
-                                                    Text(
-                                                      '$currencySymbol${c.electricAmount.toInt()}',
-                                                      style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color),
-                                                    )
-                                                  ]
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // 3. Amount & Status Column
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                              Text(
-                                              '$currencySymbol${c.totalDue.toStringAsFixed(0)}',
-                                              style: GoogleFonts.outfit(
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 18,
-                                                color: theme.textTheme.bodyLarge?.color,
-                                                letterSpacing: -0.5
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                // Status Badge
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: statusColor.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    isPaid ? 'dashboard.paid'.tr() : (isPastDue ? 'dashboard.overdue'.tr() : 'dashboard.due'.tr()),
+                                            const SizedBox(width: 16),
+                                            
+                                            // 2. Info Column
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    tenant.name,
                                                     style: GoogleFonts.outfit(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: statusColor,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 17,
+                                                      color: theme.textTheme.bodyLarge?.color,
                                                     ),
+                                                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Row(
+                                                    children: [
+                                                      Text(
+                                                        DateFormat('MMM yyyy').format(cycleDate),
+                                                        style: GoogleFonts.outfit(
+                                                          fontSize: 13,
+                                                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      if (c.electricAmount > 0) ...[
+                                                        Padding(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                                                          child: Icon(Icons.circle, size: 4, color: theme.disabledColor),
+                                                        ),
+                                                        Icon(Icons.electric_bolt_rounded, size: 12, color: theme.colorScheme.tertiary),
+                                                        const SizedBox(width: 2),
+                                                        Text(
+                                                          '$currencySymbol${c.electricAmount.toInt()}',
+                                                          style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+                                                        )
+                                                      ]
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+    
+                                            // 3. Amount & Status Column
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.end,
+                                              children: [
+                                  Text(
+                                                  '$currencySymbol${c.totalDue.toStringAsFixed(0)}',
+                                                  style: GoogleFonts.outfit(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 18,
+                                                    color: theme.textTheme.bodyLarge?.color,
+                                                    letterSpacing: -0.5
                                                   ),
                                                 ),
-                                                
-                                                // Share Button (Only if not paid)
-                                                if (!isPaid) ...[
-                                                  const SizedBox(width: 8),
-                                                  InkWell(
-                                                    onTap: () => _shareRentDetails(tenant, c),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    child: Container(
-                                                      padding: const EdgeInsets.all(6),
+                                                const SizedBox(height: 8),
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    // Status Badge
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                                       decoration: BoxDecoration(
-                                                        color: const Color(0xFF25D366).withValues(alpha: 0.1), // WhatsApp Light
-                                                        borderRadius: BorderRadius.circular(10),
-                                                        border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.2)),
+                                                        color: statusColor.withValues(alpha: 0.1),
+                                                        borderRadius: BorderRadius.circular(12),
                                                       ),
-                                                      child: const Icon(Icons.share_outlined, size: 14, color: Color(0xFF25D366)), // WhatsApp Color
+                                                      child: Text(
+                                                        isPaid ? 'dashboard.paid'.tr() : (isPastDue ? 'dashboard.overdue'.tr() : 'dashboard.due'.tr()),
+                                                        style: GoogleFonts.outfit(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: statusColor,
+                                                        ),
+                                                      ),
                                                     ),
-                                                  )
-                                                ]
+                                                    
+                                                    // Share Button (Only if not paid)
+                                                    if (!isPaid) ...[
+                                                      const SizedBox(width: 8),
+                                                      InkWell(
+                                                        onTap: () => shareRentDetails(tenant, c),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.all(6),
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(0xFF25D366).withValues(alpha: 0.1), // WhatsApp Light
+                                                            borderRadius: BorderRadius.circular(10),
+                                                            border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.2)),
+                                                          ),
+                                                          child: const Icon(Icons.share_outlined, size: 14, color: Color(0xFF25D366)), // WhatsApp Color
+                                                        ),
+                                                      )
+                                                    ]
+                                                  ],
+                                                )
                                               ],
                                             )
                                           ],
-                                        )
-                                      ],
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -968,19 +1205,24 @@ Thank you!
      final accentColor = color ?? theme.colorScheme.primary;
      
      return InkWell(
-       onTap: onTap,
-       borderRadius: BorderRadius.circular(20),
+       onTap: () {
+         if (onTap != null) {
+           HapticFeedback.selectionClick();
+           onTap();
+         }
+       },
+       borderRadius: BorderRadius.circular(24),
        child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-           borderRadius: BorderRadius.circular(20),
+           borderRadius: BorderRadius.circular(24),
            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
            boxShadow: [
               BoxShadow(
-                color: isDark ? Colors.black45 : accentColor.withValues(alpha: 0.04), 
-                blurRadius: 10, 
-                offset: const Offset(0, 4)
+                color: isDark ? Colors.black.withValues(alpha: 0.3) : accentColor.withValues(alpha: 0.06), 
+                blurRadius: 15, 
+                offset: const Offset(0, 6)
               )
            ],
         ),
@@ -992,24 +1234,24 @@ Thank you!
                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                children: [
                  Container(
-                   padding: const EdgeInsets.all(6),
+                   padding: const EdgeInsets.all(8),
                    decoration: BoxDecoration(
                      color: accentColor.withValues(alpha: 0.1),
-                     shape: BoxShape.circle,
+                     borderRadius: BorderRadius.circular(12),
                    ),
-                   child: Icon(icon, size: 16, color: accentColor),
+                   child: Icon(icon, size: 20, color: accentColor),
                  ),
                  if (badgeCount > 0)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.red, 
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text('$badgeCount', 
                         style: GoogleFonts.outfit(
                           color: Colors.white, 
-                          fontSize: 10, 
+                          fontSize: 11, 
                           fontWeight: FontWeight.bold
                         )
                       ),
@@ -1024,19 +1266,19 @@ Thank you!
                     alignment: Alignment.centerLeft,
                     child: Text(value, 
                       style: GoogleFonts.outfit(
-                        fontSize: 18, 
+                        fontSize: 20, 
                         fontWeight: FontWeight.bold, 
                         color: theme.textTheme.bodyLarge?.color,
                         letterSpacing: -0.5
                       )
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(label, 
                      style: GoogleFonts.outfit(
-                       fontSize: 10, 
+                       fontSize: 12, 
                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-                       fontWeight: FontWeight.w500
+                       fontWeight: FontWeight.w600
                      ),
                      maxLines: 1, 
                      overflow: TextOverflow.ellipsis
@@ -1047,6 +1289,42 @@ Thank you!
         ),
        ),
       );
+  }
+
+  Widget _buildAlertTile(BuildContext context, String message, IconData icon, Color color, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: isDark ? color.withValues(alpha: 0.9) : color.withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildActionButton(BuildContext context, String label, IconData? icon, bool isPrimary, VoidCallback onTap) {
@@ -1278,6 +1556,298 @@ Thank you!
           )
         ],
       )
+    );
+  }
+
+  void _showGlobalBroadcastDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final msgController = TextEditingController();
+    String selectedPriority = 'medium';
+    String? selectedHouseId;
+    bool isLoading = false;
+
+    final templates = {
+      'Rent Due': 'Dear Tenant, your rent for this month is due. Please pay by the due date to avoid late fees.',
+      'Maintenance': 'Maintenance work is scheduled for [Date]. Please cooperate.',
+      'Water Supply': 'Water supply will be affected on [Date] due to tank cleaning.',
+      'Meeting': 'A general meeting is scheduled on [Date] regarding building maintenance.',
+    };
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (ctx, anim1, anim2) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final theme = Theme.of(context);
+            final housesAsync = ref.watch(houseControllerProvider);
+
+            return Center(
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.85,
+                margin: const EdgeInsets.only(bottom: 40),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.cardColor.withValues(alpha: 0.98),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      blurRadius: 40,
+                      offset: const Offset(0, 20),
+                    )
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: SingleChildScrollView( 
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.campaign_outlined, color: Colors.orange, size: 24),
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              'Broadcast Notice',
+                              style: GoogleFonts.outfit(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        housesAsync.when(
+                          data: (houses) {
+                            return DropdownButtonFormField<String>(
+                              hint: const Text('Select Target House'),
+                              value: selectedHouseId,
+                              decoration: InputDecoration(
+                                labelText: 'Target Property',
+                                filled: true,
+                                fillColor: theme.scaffoldBackgroundColor,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              ),
+                              items: [
+                                const DropdownMenuItem(value: 'all', child: Text('All Properties (Broadcast)')),
+                                ...houses.map((h) => DropdownMenuItem(value: h.id, child: Text(h.name))),
+                              ],
+                              onChanged: (val) => setDialogState(() => selectedHouseId = val),
+                            );
+                          },
+                          loading: () => const LinearProgressIndicator(),
+                          error: (_,__) => const Text('Error loading properties'),
+                        ),
+                        
+                        const SizedBox(height: 16),
+
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: templates.entries.map((e) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ActionChip(
+                                  label: Text(e.key),
+                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                  labelStyle: TextStyle(color: theme.colorScheme.primary, fontSize: 12),
+                                  onPressed: () {
+                                    titleController.text = e.key;
+                                    msgController.text = e.value;
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                  
+                        TextFormField(
+                          controller: titleController,
+                          textCapitalization: TextCapitalization.sentences,
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                          decoration: InputDecoration(
+                            labelText: 'Subject',
+                            hintText: 'e.g. Water Tank Cleaning',
+                            filled: true,
+                            fillColor: theme.scaffoldBackgroundColor,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            labelStyle: GoogleFonts.outfit(color: Colors.grey),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        TextFormField(
+                          controller: msgController,
+                          textCapitalization: TextCapitalization.sentences,
+                          maxLines: 4,
+                          style: GoogleFonts.outfit(),
+                          decoration: InputDecoration(
+                            labelText: 'Message',
+                            hintText: 'Enter all details...',
+                            filled: true,
+                            fillColor: theme.scaffoldBackgroundColor,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            alignLabelWithHint: true,
+                            labelStyle: GoogleFonts.outfit(color: Colors.grey),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        Text('Priority Level', style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey[700])),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            _buildGlassPriorityChip('High', 'high', Colors.red, selectedPriority, (val) => setDialogState(() => selectedPriority = val)),
+                            const SizedBox(width: 8),
+                            _buildGlassPriorityChip('Medium', 'medium', Colors.orange, selectedPriority, (val) => setDialogState(() => selectedPriority = val)),
+                            const SizedBox(width: 8),
+                            _buildGlassPriorityChip('Low', 'low', Colors.green, selectedPriority, (val) => setDialogState(() => selectedPriority = val)),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 32),
+                        
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: Text('Cancel', style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: (isLoading || selectedHouseId == null) ? null : () async {
+                                  if (titleController.text.isNotEmpty && msgController.text.isNotEmpty) {
+                                     setDialogState(() => isLoading = true);
+                                     
+                                     final user = ref.read(userSessionServiceProvider).currentUser;
+                                     if (user == null) {
+                                       Navigator.pop(ctx);
+                                       return;
+                                     }
+                                     
+                                     try {
+                                        if (selectedHouseId == 'all') {
+                                           // Broadcast to ALL houses
+                                           final houses = ref.read(houseControllerProvider).value ?? [];
+                                           for (final house in houses) {
+                                              await ref.read(noticeControllerProvider.notifier).sendNotice(
+                                                houseId: house.id,
+                                                ownerId: user.uid,
+                                                subject: titleController.text.trim(),
+                                                message: msgController.text.trim(),
+                                                priority: selectedPriority,
+                                              );
+                                           }
+                                        } else {
+                                          // Single House
+                                          await ref.read(noticeControllerProvider.notifier).sendNotice(
+                                            houseId: selectedHouseId!,
+                                            ownerId: user.uid,
+                                            subject: titleController.text.trim(),
+                                            message: msgController.text.trim(),
+                                            priority: selectedPriority,
+                                          );
+                                        }
+                                        
+                                        if (context.mounted) {
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Notice Broadcasted Successfully!'), backgroundColor: Colors.green)
+                                          );
+                                        }
+                                     } catch (e) {
+                                        setDialogState(() => isLoading = false);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                                        }
+                                     }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: theme.colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                child: isLoading 
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Text('Broadcast', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+        );
+      },
+      transitionBuilder: (ctx, anim1, anim2, child) {
+        return ScaleTransition(
+          scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
+          child: child,
+        );
+      },
+    );
+  }
+
+  Widget _buildGlassPriorityChip(String label, String value, Color color, String current, Function(String) onSelect) {
+    final isSelected = current == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onSelect(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: isSelected ? 1.5 : 1),
+          ),
+          alignment: Alignment.center,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: isSelected ? color : Colors.grey.shade600,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

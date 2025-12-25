@@ -13,6 +13,7 @@ class House with _$House {
     String? notes,
     String? imageUrl,
     String? imageBase64, // NEW: Base64 storage
+    @Default('Apartment') String propertyType, // NEW: 'Apartment', 'Hostel', 'PG'
     @Default(0) int unitCount,
   }) = _House;
 

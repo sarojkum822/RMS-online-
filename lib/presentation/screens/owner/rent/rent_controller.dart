@@ -10,9 +10,6 @@ import '../../../../features/rent/domain/usecases/generate_rent_use_case.dart';
 import '../../../../domain/entities/tenant.dart';
 
 import '../../../providers/data_providers.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../../../core/constants/firebase_collections.dart';
 import '../../../../domain/repositories/i_rent_repository.dart'; 
 
 import '../../../../domain/entities/house.dart'; 
@@ -291,36 +288,71 @@ class RentController extends _$RentController {
     String? referenceId, 
     String? notes,
   }) async {
-     // Fetch cycle to get tenancyId
-     final cycle = await ref.read(rentRepositoryProvider).getRentCycle(rentCycleId);
-     if (cycle == null) throw Exception('Rent cycle not found');
-
-     final payment = Payment(
-        id: const Uuid().v4(),
-        rentCycleId: rentCycleId,
-        tenancyId: cycle.tenancyId,
-        tenantId: tenantId,
-        amount: amount,
-        date: date,
-        method: method,
-        referenceId: referenceId,
-        notes: notes ?? '',
-        channelId: null, 
-        collectedBy: null 
-     );
-
-     await ref.read(rentRepositoryProvider).recordPayment(payment);
-     // Refresh everything
-      final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-     state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
-     ref.invalidate(dashboardStatsProvider);
-     ref.invalidate(reportsControllerProvider); 
+     // 1. Optimistic Update Preparation
+     final previousState = state;
+     final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
      
-     // Fix: Invalidate using tenancyId from the cycle already fetched
-     ref.invalidate(rentCyclesForTenancyProvider(cycle.tenancyId));
-     
-     // Also invalidate generic bills provider
-     ref.invalidate(tenantAllBillsProvider(tenantId));
+     if (previousState.hasValue) {
+       final List<RentCycle> optimisticList = List.from(previousState.value!);
+       final index = optimisticList.indexWhere((c) => c.id == rentCycleId);
+       
+       if (index != -1) {
+         final cycle = optimisticList[index];
+         final newTotalPaid = cycle.totalPaid + amount;
+         final newStatus = newTotalPaid >= cycle.totalDue - 0.01 
+             ? RentStatus.paid 
+             : (newTotalPaid > 0 ? RentStatus.partial : RentStatus.pending);
+             
+         optimisticList[index] = cycle.copyWith(
+           totalPaid: newTotalPaid,
+           status: newStatus,
+         );
+         
+         // Apply Optimistic State
+         state = AsyncValue.data(optimisticList);
+       }
+     }
+
+     try {
+       // Fetch cycle to get tenancyId (needed for later)
+       final cycle = await ref.read(rentRepositoryProvider).getRentCycle(rentCycleId);
+       if (cycle == null) throw Exception('Rent cycle not found');
+
+       final payment = Payment(
+          id: const Uuid().v4(),
+          rentCycleId: rentCycleId,
+          tenancyId: cycle.tenancyId,
+          tenantId: tenantId,
+          amount: amount,
+          date: date,
+          method: method,
+          referenceId: referenceId,
+          notes: notes ?? '',
+          channelId: null, 
+          collectedBy: null 
+       );
+
+       // 2. Actual Network Call
+       await ref.read(rentRepositoryProvider).recordPayment(payment);
+
+       // 3. Confirm with Full Refresh (Data Integrity)
+       // Refresh generic details
+       state = AsyncValue.data(await _fetchDashboardCycles(currentMonth));
+       ref.invalidate(dashboardStatsProvider);
+       ref.invalidate(reportsControllerProvider); 
+       
+       // Fix: Invalidate using tenancyId from the cycle already fetched
+       ref.invalidate(rentCyclesForTenancyProvider(cycle.tenancyId));
+       
+       // Also invalidate generic bills provider
+       ref.invalidate(tenantAllBillsProvider(tenantId));
+       
+     } catch (e) {
+       // 4. Revert on Failure
+       debugPrint('Optimistic Payment Failed: $e');
+       state = previousState;
+       rethrow; // Let UI show error
+     }
   }
   Future<Map<String, double>?> getLastElectricReading(String unitId) async {
     return ref.read(rentRepositoryProvider).getLastElectricReading(unitId);
@@ -458,11 +490,12 @@ final deletedPaymentsForRentCycleProvider = FutureProvider.family<List<Payment>,
   return ref.read(rentRepositoryProvider).getDeletedPaymentsForRentCycle(rentCycleId);
 });
 
-// Stats Provider
 @Riverpod(keepAlive: true)
-Future<DashboardStats> dashboardStats(Ref ref) async {
+Future<DashboardStats> dashboardStats(DashboardStatsRef ref) {
   return ref.watch(rentRepositoryProvider).getDashboardStats();
 }
+
+
 
 final rentCyclesForTenancyProvider = FutureProvider.family<List<RentCycle>, String>((ref, tenancyId) async {
   return ref.read(rentRepositoryProvider).getRentCyclesForTenancy(tenancyId);

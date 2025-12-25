@@ -7,7 +7,6 @@ import '../../../../domain/entities/tenant.dart';
 import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../providers/data_providers.dart';
 import '../../owner/tenant/tenant_controller.dart';
-import '../../owner/house/house_controller.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import '../../maintenance/maintenance_controller.dart';
 import '../../../../domain/entities/maintenance_request.dart';
@@ -15,10 +14,9 @@ import '../../../../core/utils/dialog_utils.dart';
 import '../../../../core/extensions/string_extensions.dart';
 import 'package:kirayabook/presentation/screens/notice/notice_controller.dart' hide noticesForHouseProvider;
 import '../../../../domain/entities/notice.dart';
-import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
+
 import '../../../widgets/ads/banner_ad_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/services/pdf_generator_service.dart';
 import 'package:printing/printing.dart';
 
 class TenantHomeView extends ConsumerStatefulWidget {
@@ -60,11 +58,6 @@ class _TenantHomeViewState extends ConsumerState<TenantHomeView> {
     if (unreadNotices.isNotEmpty && !_hasShownNoticePopup) {
        WidgetsBinding.instance.addPostFrameCallback((_) {
           _showNoticePopup(unreadNotices.first);
-           try {
-            FlutterRingtonePlayer().playNotification();
-          } catch (e) {
-            debugPrint('Sound Error: $e');
-          }
           setState(() => _hasShownNoticePopup = true);
        });
     }

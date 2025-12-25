@@ -71,13 +71,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _loginWithBiometrics() async {
-    final authenticated = await _biometricService.authenticate();
-    if (authenticated) {
-      final creds = await _storageService.getCredentials();
-      if (creds != null) {
-        _emailCtrl.text = creds['email']!;
-        _passwordCtrl.text = creds['password']!;
-        _submit(); 
+    try {
+      final authenticated = await _biometricService.authenticate();
+      if (authenticated) {
+        final creds = await _storageService.getCredentials();
+        if (creds != null) {
+          _emailCtrl.text = creds['email']!;
+          _passwordCtrl.text = creds['password']!;
+          _submit(); 
+        }
+      }
+    } catch (e) {
+      debugPrint('Biometric login skipped/failed: $e');
+      // Optional: Show snackbar or silent fail. 
+      // Since it's auto-login, maybe silent fail is better or a small toast.
+      if (mounted) {
+         // Only show error if manual trigger, hard to distinguish here unless we pass a param.
+         // But for now, let's keep it silent or debug print as to not annoy user on startup.
       }
     }
   }
@@ -593,9 +603,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         side: BorderSide(color: primaryColor),
                                         foregroundColor: primaryColor,
                                       ),
-                                      onPressed: _isLoading ? null : () {
+                                      onPressed: _isLoading ? null : () async {
                                         HapticFeedback.lightImpact();
-                                        _loginWithBiometrics();
+                                        try {
+                                           await _loginWithBiometrics();
+                                        } catch (e) {
+                                           if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Auth Error: ${e.toString()}')));
+                                           }
+                                        }
                                       },
                                       icon: const Icon(Icons.fingerprint, size: 28),
                                       label: const Text("Login with Biometrics"),

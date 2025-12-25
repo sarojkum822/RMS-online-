@@ -28,6 +28,8 @@ mixin _$House {
   String? get imageUrl => throw _privateConstructorUsedError;
   String? get imageBase64 =>
       throw _privateConstructorUsedError; // NEW: Base64 storage
+  String get propertyType =>
+      throw _privateConstructorUsedError; // NEW: 'Apartment', 'Hostel', 'PG'
   int get unitCount => throw _privateConstructorUsedError;
 
   /// Serializes this House to a JSON map.
@@ -52,6 +54,7 @@ abstract class $HouseCopyWith<$Res> {
       String? notes,
       String? imageUrl,
       String? imageBase64,
+      String propertyType,
       int unitCount});
 }
 
@@ -77,6 +80,7 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
     Object? notes = freezed,
     Object? imageUrl = freezed,
     Object? imageBase64 = freezed,
+    Object? propertyType = null,
     Object? unitCount = null,
   }) {
     return _then(_value.copyWith(
@@ -108,6 +112,10 @@ class _$HouseCopyWithImpl<$Res, $Val extends House>
           ? _value.imageBase64
           : imageBase64 // ignore: cast_nullable_to_non_nullable
               as String?,
+      propertyType: null == propertyType
+          ? _value.propertyType
+          : propertyType // ignore: cast_nullable_to_non_nullable
+              as String,
       unitCount: null == unitCount
           ? _value.unitCount
           : unitCount // ignore: cast_nullable_to_non_nullable
@@ -131,6 +139,7 @@ abstract class _$$HouseImplCopyWith<$Res> implements $HouseCopyWith<$Res> {
       String? notes,
       String? imageUrl,
       String? imageBase64,
+      String propertyType,
       int unitCount});
 }
 
@@ -154,6 +163,7 @@ class __$$HouseImplCopyWithImpl<$Res>
     Object? notes = freezed,
     Object? imageUrl = freezed,
     Object? imageBase64 = freezed,
+    Object? propertyType = null,
     Object? unitCount = null,
   }) {
     return _then(_$HouseImpl(
@@ -185,6 +195,10 @@ class __$$HouseImplCopyWithImpl<$Res>
           ? _value.imageBase64
           : imageBase64 // ignore: cast_nullable_to_non_nullable
               as String?,
+      propertyType: null == propertyType
+          ? _value.propertyType
+          : propertyType // ignore: cast_nullable_to_non_nullable
+              as String,
       unitCount: null == unitCount
           ? _value.unitCount
           : unitCount // ignore: cast_nullable_to_non_nullable
@@ -204,6 +218,7 @@ class _$HouseImpl implements _House {
       this.notes,
       this.imageUrl,
       this.imageBase64,
+      this.propertyType = 'Apartment',
       this.unitCount = 0});
 
   factory _$HouseImpl.fromJson(Map<String, dynamic> json) =>
@@ -226,11 +241,15 @@ class _$HouseImpl implements _House {
 // NEW: Base64 storage
   @override
   @JsonKey()
+  final String propertyType;
+// NEW: 'Apartment', 'Hostel', 'PG'
+  @override
+  @JsonKey()
   final int unitCount;
 
   @override
   String toString() {
-    return 'House(id: $id, ownerId: $ownerId, name: $name, address: $address, notes: $notes, imageUrl: $imageUrl, imageBase64: $imageBase64, unitCount: $unitCount)';
+    return 'House(id: $id, ownerId: $ownerId, name: $name, address: $address, notes: $notes, imageUrl: $imageUrl, imageBase64: $imageBase64, propertyType: $propertyType, unitCount: $unitCount)';
   }
 
   @override
@@ -247,6 +266,8 @@ class _$HouseImpl implements _House {
                 other.imageUrl == imageUrl) &&
             (identical(other.imageBase64, imageBase64) ||
                 other.imageBase64 == imageBase64) &&
+            (identical(other.propertyType, propertyType) ||
+                other.propertyType == propertyType) &&
             (identical(other.unitCount, unitCount) ||
                 other.unitCount == unitCount));
   }
@@ -254,7 +275,7 @@ class _$HouseImpl implements _House {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, ownerId, name, address,
-      notes, imageUrl, imageBase64, unitCount);
+      notes, imageUrl, imageBase64, propertyType, unitCount);
 
   /// Create a copy of House
   /// with the given fields replaced by the non-null parameter values.
@@ -281,6 +302,7 @@ abstract class _House implements House {
       final String? notes,
       final String? imageUrl,
       final String? imageBase64,
+      final String propertyType,
       final int unitCount}) = _$HouseImpl;
 
   factory _House.fromJson(Map<String, dynamic> json) = _$HouseImpl.fromJson;
@@ -299,6 +321,8 @@ abstract class _House implements House {
   String? get imageUrl;
   @override
   String? get imageBase64; // NEW: Base64 storage
+  @override
+  String get propertyType; // NEW: 'Apartment', 'Hostel', 'PG'
   @override
   int get unitCount;
 

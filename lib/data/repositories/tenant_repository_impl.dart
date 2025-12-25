@@ -12,6 +12,7 @@ import '../../domain/repositories/i_tenant_repository.dart';
 
 import 'package:uuid/uuid.dart'; // Add uuid package
 import '../../domain/entities/tenancy.dart'; // Import Tenancy
+import '../../domain/entities/verification_document.dart'; // NEW
 import '../../core/constants/firebase_collections.dart'; // Import Constants
 
 class TenantRepositoryImpl implements ITenantRepository {
@@ -170,6 +171,7 @@ class TenantRepositoryImpl implements ITenantRepository {
       'address': tenant.address,
       'memberCount': tenant.memberCount,
       'notes': tenant.notes,
+      'documents': tenant.documents.map((e) => e.toJson()).toList(), // NEW
       'createdAt': FieldValue.serverTimestamp(),
       'lastUpdated': FieldValue.serverTimestamp(),
       'isDeleted': false,
@@ -178,7 +180,7 @@ class TenantRepositoryImpl implements ITenantRepository {
     await _firestore.collection(FirebaseCollections.tenants).doc(id).set(data).timeout(const Duration(seconds: 10)); // Use set with ID
     return id; // Return String UUID
   }
-
+  
   // NEW: Create Tenancy
   @override
   Stream<List<Tenancy>> getAllTenancies() {
@@ -372,6 +374,7 @@ class TenantRepositoryImpl implements ITenantRepository {
         'address': tenant.address,
         'memberCount': tenant.memberCount,
         'notes': tenant.notes,
+        'documents': tenant.documents.map((e) => e.toJson()).toList(), // NEW
         'lastUpdated': FieldValue.serverTimestamp(),
       }).timeout(const Duration(seconds: 10));
     }
@@ -496,6 +499,19 @@ class TenantRepositoryImpl implements ITenantRepository {
   }
 
   @override
+  Stream<domain.Tenant?> watchTenant(String id) {
+     return _firestore.collection(FirebaseCollections.tenants)
+        .doc(id)
+        .snapshots()
+        .map((snapshot) {
+           if (!snapshot.exists) return null;
+           final data = snapshot.data();
+           if (data == null || data['isDeleted'] == true) return null;
+           return _mapToDomain(snapshot);
+        });
+  }
+
+  @override
   Future<domain.Tenant?> authenticateTenant(String email, String password) async {
     try {
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -554,6 +570,9 @@ class TenantRepositoryImpl implements ITenantRepository {
       address: data['address'] as String?,
       memberCount: data['memberCount'] as int? ?? 1,
       notes: data['notes'] as String?,
+      documents: (data['documents'] as List<dynamic>?) // NEW
+          ?.map((e) => VerificationDocument.fromJson(e as Map<String, dynamic>))
+          .toList() ?? [],
     );
   }
 }

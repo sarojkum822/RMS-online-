@@ -2,7 +2,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
-import '../../../../domain/entities/tenant.dart'; // Maybe not needed for stats anymore?
+// Maybe not needed for stats anymore?
 import 'package:uuid/uuid.dart'; // Add uuid import 
 
 part 'house_controller.g.dart';
@@ -15,7 +15,7 @@ class HouseController extends _$HouseController {
     return repo.getHouses();
   }
 
-  Future<void> addHouse(String name, String address, String notes, int? totalUnits, {String? imageUrl, String? imageBase64}) async {
+  Future<void> addHouse(String name, String address, String notes, int? totalUnits, {String? imageUrl, String? imageBase64, String propertyType = 'Apartment'}) async {
     final repo = ref.read(propertyRepositoryProvider);
     final houseId = const Uuid().v4();
     final ownerId = 'current_user_id'; // TODO: Get actual OwnerId via Auth or Repository handles it? 
@@ -29,6 +29,7 @@ class HouseController extends _$HouseController {
       notes: notes,
       imageUrl: imageUrl, 
       imageBase64: imageBase64,
+      propertyType: propertyType,
       ownerId: 'placeholder', // Repo will overwrite or we should get it
     );
     // Note: If repo.createHouse takes House, it should probably respect ID if provided or generate if not.

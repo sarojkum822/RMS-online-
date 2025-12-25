@@ -1,0 +1,44 @@
+00:00 +0: loading /Users/sarojkumar/Project Android Studio/KirayaBook/test/presentation/screens/tenant_form_validation_test.dart                                                                       00:01 +0: loading /Users/sarojkumar/Project Android Studio/KirayaBook/test/presentation/screens/tenant_form_validation_test.dart                                                                       00:01 +0: TenantFormScreen has correct length limits                                                                                                                                                   00:02 +0: TenantFormScreen has correct length limits                                                                                                                                                   00:02 +0: TenantFormScreen has correct length limits                                                                                                                                                   
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 2 widgets with text "Cannot be negative": [
+            Text("Cannot be negative", debugLabel: ((englishLike bodySmall
+2021).merge((blackMountainView bodySmall).apply)).copyWith, inherit: false, color: Color(alpha:
+1.0000, red: 0.7020, green: 0.1490, blue: 0.1176, colorSpace: ColorSpace.sRGB), family: Roboto,
+size: 12.0, weight: 400, letterSpacing: 0.4, baseline: alphabetic, height: 1.3x,
+leadingDistribution: even, decoration: Color(alpha: 1.0000, red: 0.1137, green: 0.1059, blue:
+0.1255, colorSpace: ColorSpace.sRGB) TextDecoration.none, textAlign: start, overflow: ellipsis,
+dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
+            Text("Cannot be negative", debugLabel: ((englishLike bodySmall
+2021).merge((blackMountainView bodySmall).apply)).copyWith, inherit: false, color: Color(alpha:
+1.0000, red: 0.7020, green: 0.1490, blue: 0.1176, colorSpace: ColorSpace.sRGB), family: Roboto,
+size: 12.0, weight: 400, letterSpacing: 0.4, baseline: alphabetic, height: 1.3x,
+leadingDistribution: even, decoration: Color(alpha: 1.0000, red: 0.1137, green: 0.1059, blue:
+0.1255, colorSpace: ColorSpace.sRGB) TextDecoration.none, textAlign: start, overflow: ellipsis,
+dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
+          ]>
+   Which: is too many
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/sarojkumar/Project%20Android%20Studio/KirayaBook/test/presentation/screens/tenant_form_validation_test.dart:75:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/sarojkumar/Project%20Android%20Studio/KirayaBook/test/presentation/screens/tenant_form_validation_test.dart line 75
+The test description was:
+  TenantFormScreen has correct length limits
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: TenantFormScreen has correct length limits [E]                                                                                                                                            
+  Test failed. See exception logs above.
+  The test description was: TenantFormScreen has correct length limits
+  
+
+To run this test again: /Users/sarojkumar/development/flutter/bin/cache/dart-sdk/bin/dart test /Users/sarojkumar/Project Android Studio/KirayaBook/test/presentation/screens/tenant_form_validation_test.dart -p vm --plain-name 'TenantFormScreen has correct length limits'
+00:02 +0 -1: Some tests failed.                                                                                                                                                                        

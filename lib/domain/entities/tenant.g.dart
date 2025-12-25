@@ -25,6 +25,11 @@ _$TenantImpl _$$TenantImplFromJson(Map<String, dynamic> json) => _$TenantImpl(
       gender: json['gender'] as String?,
       memberCount: (json['memberCount'] as num?)?.toInt() ?? 1,
       notes: json['notes'] as String?,
+      documents: (json['documents'] as List<dynamic>?)
+              ?.map((e) =>
+                  VerificationDocument.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$TenantImplToJson(_$TenantImpl instance) =>
@@ -47,4 +52,5 @@ Map<String, dynamic> _$$TenantImplToJson(_$TenantImpl instance) =>
       'gender': instance.gender,
       'memberCount': instance.memberCount,
       'notes': instance.notes,
+      'documents': instance.documents,
     };

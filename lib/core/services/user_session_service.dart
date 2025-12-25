@@ -113,29 +113,9 @@ class UserSessionService {
       return false;
     }
   }
-
-  // NEW: Vault Lock - separate from general biometric auth
-  static const String keyVaultLockEnabled = 'k_vault_lock_enabled';
-
-  Future<void> saveVaultLockPreference(bool enabled) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(keyVaultLockEnabled, enabled);
-    } catch (e) {
-      print('Error saving vault lock preference: $e');
-    }
-  }
-
-  Future<bool> isVaultLockEnabled() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(keyVaultLockEnabled) ?? false;
-    } catch (e) {
-      print('Error checking vault lock preference: $e');
-      return false;
-    }
-  }
 }
+
+
 
 
 

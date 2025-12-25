@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../constants/firebase_collections.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
+import '../../domain/repositories/i_owner_repository.dart';
+import '../../data/datasources/local/database.dart';
+import '../../core/services/secure_storage_service.dart';
 
 class DataManagementService {
   final FirebaseFirestore _firestore;
@@ -64,6 +67,33 @@ class DataManagementService {
         // Log but continue to try deleting other collections
         print('Error deleting collection $collection: $e');
       }
+    }
+  }
+
+  /// Permanently deletes the account and all related data.
+  Future<void> deleteAccount({
+    required String uid,
+    required IOwnerRepository ownerRepo,
+    required AppDatabase localDb,
+    required SecureStorageService storageService,
+  }) async {
+    // 1. Clear all Firestore data for the owner (cascading cleanup)
+    await resetAllData(uid);
+
+    // 2. Delete the owner profile from Firestore
+    await ownerRepo.deleteOwner(uid);
+
+    // 3. Clear local SQLite data (cascading)
+    await localDb.clearAllData(uid);
+
+    // 4. Clear saved login details
+    await storageService.clearCredentials();
+    await storageService.setBiometricEnabled(false);
+
+    // 5. Delete Firebase Auth Account
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.delete();
     }
   }
 

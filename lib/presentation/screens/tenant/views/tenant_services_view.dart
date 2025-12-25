@@ -5,11 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/maintenance_request.dart';
-import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../providers/data_providers.dart';
 import '../../maintenance/maintenance_controller.dart';
 import '../../owner/tenant/tenant_controller.dart';
-import '../../owner/house/house_controller.dart';
 import 'package:go_router/go_router.dart';
 
 class TenantServicesView extends ConsumerWidget {
@@ -271,7 +269,7 @@ class TenantServicesView extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: category,
+                initialValue: category,
                 decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
                 items: ['Plumbing', 'Electrical', 'Appliance', 'Carpentry', 'Other']
                   .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),

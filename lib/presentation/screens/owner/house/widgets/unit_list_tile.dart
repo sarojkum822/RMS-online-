@@ -150,7 +150,7 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
             // BHK Dropdown
             bhkTemplatesAsync.when(
               data: (templates) => DropdownButtonFormField<String>(
-                   value: _selectedBhkTemplateId,
+                   initialValue: _selectedBhkTemplateId,
                    dropdownColor: theme.cardColor,
                    decoration: const InputDecoration(
                      labelText: 'BHK Type',
@@ -262,7 +262,7 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
             
             // Furnishing
             DropdownButtonFormField<String>(
-              value: _furnishingStatus,
+              initialValue: _furnishingStatus,
               dropdownColor: theme.cardColor,
               decoration: const InputDecoration(labelText: 'Furnishing', border: OutlineInputBorder()),
               items: ['Unfurnished', 'Semi-Furnished', 'Fully-Furnished']
@@ -298,7 +298,10 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
                   child: TextButton.icon(
                     onPressed: () => _duplicateUnit(context),
                     icon: Icon(Icons.copy, size: 18, color: theme.colorScheme.primary),
-                    label: Text('Duplicate Unit', style: GoogleFonts.outfit(color: theme.colorScheme.primary, fontWeight: FontWeight.w500)),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Duplicate Unit', style: GoogleFonts.outfit(color: theme.colorScheme.primary, fontWeight: FontWeight.w500))
+                    ),
                     style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
                   ),
                 ),
@@ -306,7 +309,10 @@ class _UnitListTileState extends ConsumerState<UnitListTile> {
                   child: TextButton.icon(
                     onPressed: () => _deleteUnit(context),
                     icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                    label: Text('Delete Unit', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.w500)),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Delete Unit', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.w500))
+                    ),
                     style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
                   ),
                 ),

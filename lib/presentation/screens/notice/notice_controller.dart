@@ -9,6 +9,19 @@ class NoticeController extends _$NoticeController {
   @override
   FutureOr<void> build() {}
 
+  Future<void> sendReminder({
+    required String noticeId,
+    required List<String> targetTenantIds,
+    required String subject,
+  }) async {
+    // Simulate network call to backend notification service
+    // In production, this would call a Cloud Function or write to a 'notifications' collection
+    state = const AsyncValue.loading();
+    await Future.delayed(const Duration(seconds: 1));
+    // print('Sending reminder for $noticeId to $targetTenantIds regarding $subject'); 
+    state = const AsyncValue.data(null);
+  }
+
   Future<void> sendNotice({
     required String houseId,
     required String ownerId,

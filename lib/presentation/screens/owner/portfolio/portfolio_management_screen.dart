@@ -5,156 +5,81 @@ import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../house/house_list_screen.dart';
 import '../house/house_controller.dart';
-import '../tenant/tenant_list_screen.dart';
 import '../../../widgets/empty_state_widget.dart';
+import '../../../providers/data_providers.dart';
+import '../../maintenance/maintenance_controller.dart';
+import '../../maintenance/maintenance_reports_screen.dart';
+import '../../../../domain/entities/maintenance_request.dart';
+import 'package:flutter/services.dart';
 
-class PortfolioManagementScreen extends ConsumerStatefulWidget {
+class PortfolioManagementScreen extends ConsumerWidget {
   const PortfolioManagementScreen({super.key});
 
   @override
-  ConsumerState<PortfolioManagementScreen> createState() => _PortfolioManagementScreenState();
-}
-
-class _PortfolioManagementScreenState extends ConsumerState<PortfolioManagementScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _showAddOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Add to Portfolio',
-              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            _buildOptionTile(
-              context,
-              'New Property',
-              'Houses, Apartments, or Rooms',
-              Icons.add_business_rounded,
-              const Color(0xFF2563EB),
-              () {
-                context.pop();
-                context.push('/owner/houses/add');
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildOptionTile(
-              context,
-              'New Tenant',
-              'Onboard a resident to a unit',
-              Icons.person_add_rounded,
-              const Color(0xFF6366F1),
-              () {
-                context.pop();
-                context.push('/owner/tenants/add');
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionTile(BuildContext context, String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(subtitle, style: GoogleFonts.outfit(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6), fontSize: 13)),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: theme.hintColor),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    
+    // Watch Maintenance Requests for Badge
+    final user = ref.watch(userSessionServiceProvider).currentUser;
+    final maintenanceAsync = user != null ? ref.watch(ownerMaintenanceProvider(user.uid)) : const AsyncValue<List<MaintenanceRequest>>.loading();
+    final pendingMaintenanceCount = maintenanceAsync.valueOrNull?.where((r) => r.status == MaintenanceStatus.pending).length ?? 0;
     
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Portfolio Hub', 
-          style: GoogleFonts.playfairDisplay(
-            fontWeight: FontWeight.bold, 
-            fontSize: 24, 
-            color: theme.textTheme.titleLarge?.color
-          )
+        title: Text('Portfolio', 
+           overflow: TextOverflow.ellipsis,
+           style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 26, color: theme.textTheme.titleLarge?.color)
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: true,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: theme.colorScheme.primary,
-          labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.disabledColor,
-          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-          tabs: const [
-            Tab(text: 'Properties'),
-            Tab(text: 'Tenants'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          HouseListPanel(), // Refactored widget
-          TenantListPanel(), // Refactored widget
+        actions: [
+          // Notification Icon with Badge
+          Badge(
+            label: Text('$pendingMaintenanceCount'),
+            isLabelVisible: pendingMaintenanceCount > 0,
+            offset: const Offset(-4, 4),
+            child: IconButton(
+              icon: Icon(Icons.notifications_none_rounded, color: theme.textTheme.bodyMedium?.color),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const MaintenanceReportsScreen()));
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Functional Profile Icon
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.push('/owner/settings');
+            },
+            child: Container(
+               margin: const EdgeInsets.only(right: 20),
+               padding: const EdgeInsets.all(8),
+               decoration: BoxDecoration(
+                 color: theme.colorScheme.primary,
+                 shape: BoxShape.circle,
+               ),
+               child: const Icon(Icons.person, color: Colors.white, size: 20),
+            ),
+          ),
         ],
       ),
+      body: const HouseListPanel(),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddOptions(context),
-        label: Text('Quick Add', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
-        icon: const Icon(Icons.add, color: Colors.white),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          context.push('/owner/houses/add');
+        },
+        label: Text(
+          'Add Property', 
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)
+        ),
+        icon: const Icon(
+          Icons.add_business_rounded, 
+          color: Colors.white
+        ),
         backgroundColor: theme.colorScheme.primary,
       ),
     );
@@ -195,175 +120,6 @@ class HouseListPanel extends ConsumerWidget {
       },
       error: (e, st) => Center(child: Text('Error: $e')),
       loading: () => const Center(child: CircularProgressIndicator()),
-    );
-  }
-}
-
-// Tenant List Panel Implementation
-class TenantListPanel extends ConsumerStatefulWidget {
-  const TenantListPanel({super.key});
-
-  @override
-  ConsumerState<TenantListPanel> createState() => _TenantListPanelState();
-}
-
-class _TenantListPanelState extends ConsumerState<TenantListPanel> {
-  final TextEditingController _searchCtrl = TextEditingController();
-  String _filterStatus = 'All Status';
-  int _selectedSubTab = 0; // 0: Active, 1: Moved Out
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final uiDataAsync = ref.watch(tenantListViewModelProvider);
-    final theme = Theme.of(context);
-
-    return Column(
-      children: [
-        // Compact search and filter
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-                  ),
-                  child: TextField(
-                    controller: _searchCtrl,
-                    onChanged: (val) => setState(() {}),
-                    decoration: const InputDecoration(
-                      hintText: 'Search...',
-                      prefixIcon: Icon(Icons.search, size: 20),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 10),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _filterStatus,
-                    icon: const Icon(Icons.filter_list, size: 18),
-                    items: ['All Status', 'Paid', 'Pending'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
-                    onChanged: (val) { if (val != null) setState(() => _filterStatus = val); },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        // Custom Sub-Tabs (State-based, non-swipable to allow outer swipe)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Container(
-            height: 45,
-            decoration: BoxDecoration(
-              color: theme.dividerColor.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                _buildSubTab(0, 'Active'),
-                _buildSubTab(1, 'Moved Out'),
-              ],
-            ),
-          ),
-        ),
-
-        Expanded(
-          child: uiDataAsync.when(
-            data: (allTenants) => _buildFilteredList(allTenants, _selectedSubTab == 1),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSubTab(int index, String label) {
-    final theme = Theme.of(context);
-    final isSelected = _selectedSubTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedSubTab = index),
-        child: Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: isSelected ? Colors.white : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              fontSize: 13,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilteredList(List<TenantUiModel> allTenants, bool isHistory) {
-    final filtered = allTenants.where((ui) {
-      final isActive = ui.tenant.isActive;
-      if (isHistory && isActive) return false;
-      if (!isHistory && !isActive) return false;
-      
-      final matchesSearch = ui.tenant.name.toLowerCase().contains(_searchCtrl.text.toLowerCase());
-      if (!matchesSearch) return false;
-
-      if (_filterStatus == 'Paid') return !ui.isPending;
-      if (_filterStatus == 'Pending') return ui.isPending;
-      
-      return true;
-    }).toList();
-
-    if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person_off_rounded, size: 48, color: Theme.of(context).hintColor.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            Text(
-              isHistory ? 'No records' : 'No active tenants', 
-              style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16)
-            ),
-          ],
-        )
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: TenantCard(item: filtered[index], isHistory: isHistory),
-        );
-      },
     );
   }
 }

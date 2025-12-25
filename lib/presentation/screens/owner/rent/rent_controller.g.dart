@@ -6,7 +6,7 @@ part of 'rent_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dashboardStatsHash() => r'b780f6a09b55bae423a75f60c339361ae9cd82d9';
+String _$dashboardStatsHash() => r'4fb011372563078d5eb3ceb3791ff22cd318ecbf';
 
 /// See also [dashboardStats].
 @ProviderFor(dashboardStats)
@@ -23,7 +23,7 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DashboardStatsRef = FutureProviderRef<DashboardStats>;
-String _$rentControllerHash() => r'29f75b2c6c47bb94fb0d93140c7423dc5bdf6e61';
+String _$rentControllerHash() => r'9021fa2461443f89636b3f37f5d80bfb850ac973';
 
 /// See also [RentController].
 @ProviderFor(RentController)

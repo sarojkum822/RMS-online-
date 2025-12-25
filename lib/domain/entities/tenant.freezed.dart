@@ -41,6 +41,8 @@ mixin _$Tenant {
   String? get gender => throw _privateConstructorUsedError; // NEW
   int get memberCount => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
+  List<VerificationDocument> get documents =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this Tenant to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -74,7 +76,8 @@ abstract class $TenantCopyWith<$Res> {
       String? dob,
       String? gender,
       int memberCount,
-      String? notes});
+      String? notes,
+      List<VerificationDocument> documents});
 }
 
 /// @nodoc
@@ -110,6 +113,7 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
     Object? gender = freezed,
     Object? memberCount = null,
     Object? notes = freezed,
+    Object? documents = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -184,6 +188,10 @@ class _$TenantCopyWithImpl<$Res, $Val extends Tenant>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      documents: null == documents
+          ? _value.documents
+          : documents // ignore: cast_nullable_to_non_nullable
+              as List<VerificationDocument>,
     ) as $Val);
   }
 }
@@ -213,7 +221,8 @@ abstract class _$$TenantImplCopyWith<$Res> implements $TenantCopyWith<$Res> {
       String? dob,
       String? gender,
       int memberCount,
-      String? notes});
+      String? notes,
+      List<VerificationDocument> documents});
 }
 
 /// @nodoc
@@ -247,6 +256,7 @@ class __$$TenantImplCopyWithImpl<$Res>
     Object? gender = freezed,
     Object? memberCount = null,
     Object? notes = freezed,
+    Object? documents = null,
   }) {
     return _then(_$TenantImpl(
       id: null == id
@@ -321,6 +331,10 @@ class __$$TenantImplCopyWithImpl<$Res>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      documents: null == documents
+          ? _value._documents
+          : documents // ignore: cast_nullable_to_non_nullable
+              as List<VerificationDocument>,
     ));
   }
 }
@@ -346,7 +360,9 @@ class _$TenantImpl implements _Tenant {
       this.dob,
       this.gender,
       this.memberCount = 1,
-      this.notes});
+      this.notes,
+      final List<VerificationDocument> documents = const []})
+      : _documents = documents;
 
   factory _$TenantImpl.fromJson(Map<String, dynamic> json) =>
       _$$TenantImplFromJson(json);
@@ -397,10 +413,18 @@ class _$TenantImpl implements _Tenant {
   final int memberCount;
   @override
   final String? notes;
+  final List<VerificationDocument> _documents;
+  @override
+  @JsonKey()
+  List<VerificationDocument> get documents {
+    if (_documents is EqualUnmodifiableListView) return _documents;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_documents);
+  }
 
   @override
   String toString() {
-    return 'Tenant(id: $id, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, ownerId: $ownerId, isActive: $isActive, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId, advanceAmount: $advanceAmount, policeVerification: $policeVerification, idProof: $idProof, address: $address, dob: $dob, gender: $gender, memberCount: $memberCount, notes: $notes)';
+    return 'Tenant(id: $id, tenantCode: $tenantCode, name: $name, phone: $phone, email: $email, ownerId: $ownerId, isActive: $isActive, imageUrl: $imageUrl, imageBase64: $imageBase64, authId: $authId, advanceAmount: $advanceAmount, policeVerification: $policeVerification, idProof: $idProof, address: $address, dob: $dob, gender: $gender, memberCount: $memberCount, notes: $notes, documents: $documents)';
   }
 
   @override
@@ -432,31 +456,35 @@ class _$TenantImpl implements _Tenant {
             (identical(other.gender, gender) || other.gender == gender) &&
             (identical(other.memberCount, memberCount) ||
                 other.memberCount == memberCount) &&
-            (identical(other.notes, notes) || other.notes == notes));
+            (identical(other.notes, notes) || other.notes == notes) &&
+            const DeepCollectionEquality()
+                .equals(other._documents, _documents));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      tenantCode,
-      name,
-      phone,
-      email,
-      ownerId,
-      isActive,
-      imageUrl,
-      imageBase64,
-      authId,
-      advanceAmount,
-      policeVerification,
-      idProof,
-      address,
-      dob,
-      gender,
-      memberCount,
-      notes);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        tenantCode,
+        name,
+        phone,
+        email,
+        ownerId,
+        isActive,
+        imageUrl,
+        imageBase64,
+        authId,
+        advanceAmount,
+        policeVerification,
+        idProof,
+        address,
+        dob,
+        gender,
+        memberCount,
+        notes,
+        const DeepCollectionEquality().hash(_documents)
+      ]);
 
   /// Create a copy of Tenant
   /// with the given fields replaced by the non-null parameter values.
@@ -493,7 +521,8 @@ abstract class _Tenant implements Tenant {
       final String? dob,
       final String? gender,
       final int memberCount,
-      final String? notes}) = _$TenantImpl;
+      final String? notes,
+      final List<VerificationDocument> documents}) = _$TenantImpl;
 
   factory _Tenant.fromJson(Map<String, dynamic> json) = _$TenantImpl.fromJson;
 
@@ -533,6 +562,8 @@ abstract class _Tenant implements Tenant {
   int get memberCount;
   @override
   String? get notes;
+  @override
+  List<VerificationDocument> get documents;
 
   /// Create a copy of Tenant
   /// with the given fields replaced by the non-null parameter values.

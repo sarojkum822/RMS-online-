@@ -31,6 +31,7 @@ class Houses extends Table with SyncableTable {
   TextColumn get notes => text().nullable()();
   TextColumn get imageUrl => text().nullable()(); // ADDED
   TextColumn get imageBase64 => text().nullable()(); // ADDED
+  TextColumn get propertyType => text().withDefault(const Constant('Apartment'))(); // ADDED
   IntColumn get unitCount => integer().withDefault(const Constant(0))(); // ADDED
   
   @override
@@ -105,6 +106,7 @@ class Tenants extends Table with SyncableTable {
   TextColumn get address => text().nullable()(); // ADDED
   IntColumn get memberCount => integer().withDefault(const Constant(1))(); // ADDED
   TextColumn get notes => text().nullable()(); // ADDED
+  TextColumn get documents => text().nullable()(); // ADDED (JSON)
 
   @override
   Set<Column> get primaryKey => {id};

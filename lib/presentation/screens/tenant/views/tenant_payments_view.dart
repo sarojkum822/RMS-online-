@@ -7,9 +7,6 @@ import '../../../../domain/entities/tenant.dart';
 import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import '../../../providers/data_providers.dart';
 import '../../owner/tenant/tenant_controller.dart';
-import '../../owner/house/house_controller.dart';
-import '../../../../core/services/pdf_generator_service.dart';
-import 'package:go_router/go_router.dart';
 
 class TenantPaymentsView extends ConsumerWidget {
   final Tenant tenant;
@@ -238,7 +235,7 @@ class TenantPaymentsView extends ConsumerWidget {
       final house = await houseRepo.getHouseForTenant(unit.houseId, tenant.ownerId);
       final owner = await ref.read(ownerByIdProvider(tenant.ownerId).future);
       
-      if (house == null || unit == null) throw Exception('Property details not found');
+      if (house == null) throw Exception('Property details not found');
 
       // 3. Generate PDF
       final pdfBytes = await pdfService.generateRentReceipt(

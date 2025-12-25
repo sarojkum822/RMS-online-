@@ -3,18 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart'; // Added for iOS style widgets
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../features/rent/domain/entities/rent_cycle.dart';
 import 'reports_controller.dart';
 import '../settings/owner_controller.dart'; 
-import '../expense/expense_screens.dart'; 
 import '../../../widgets/skeleton_loader.dart';
-import '../../../widgets/fade_in_up.dart';
+import '../../../providers/data_providers.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../../../core/services/pdf_generator_service.dart'; // Import
 import 'package:printing/printing.dart'; // Import
+import '../../maintenance/maintenance_controller.dart';
+import '../../maintenance/maintenance_reports_screen.dart';
+import '../../../../domain/entities/maintenance_request.dart';
+import 'package:flutter/services.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -58,8 +60,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    final owner = ref.watch(ownerControllerProvider).value;
-    final plan = owner?.subscriptionPlan ?? 'free';
+    final ownerAsync = ref.watch(ownerControllerProvider);
+    final currencySymbol = CurrencyUtils.getSymbol(ownerAsync.value?.currency);
+
+    // Watch Maintenance Requests for Badge
+    final user = ref.watch(userSessionServiceProvider).currentUser;
+    final maintenanceAsync = user != null ? ref.watch(ownerMaintenanceProvider(user.uid)) : const AsyncValue<List<MaintenanceRequest>>.loading();
+    final pendingMaintenanceCount = maintenanceAsync.valueOrNull?.where((r) => r.status == MaintenanceStatus.pending).length ?? 0;
+
+    final owner = ownerAsync.value; // Re-derive owner from ownerAsync
+    final plan = owner?.subscriptionPlan ?? 'free'; // Re-derive plan from owner
 
     if (plan == 'free') {
       return Scaffold(
@@ -119,7 +129,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             centerTitle: false,
             title: Text(
               'reports.title'.tr(),
-              style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 18),
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 24),
             ),
             actions: [
               if (_isExporting)
@@ -136,6 +147,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
+              // Notification Icon with Badge
+              Badge(
+                label: Text('$pendingMaintenanceCount'),
+                isLabelVisible: pendingMaintenanceCount > 0,
+                offset: const Offset(-4, 4),
+                child: IconButton(
+                  icon: Icon(Icons.notifications_none_rounded, color: theme.textTheme.bodyMedium?.color),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MaintenanceReportsScreen()));
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Functional Profile Icon
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  context.push('/owner/settings');
+                },
+                child: Container(
+                   margin: const EdgeInsets.only(right: 20, left: 8),
+                   padding: const EdgeInsets.all(6),
+                   decoration: BoxDecoration(
+                     color: theme.colorScheme.primary,
+                     shape: BoxShape.circle,
+                   ),
+                   child: const Icon(Icons.person, color: Colors.white, size: 16),
+                ),
+              ),
             ],
           ),
 
@@ -357,13 +398,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           )
         ),
         const SizedBox(height: 4),
-        Text(
-          value, 
-          style: GoogleFonts.outfit(
-            color: isDark ? Colors.white : const Color(0xFF0F172A), 
-            fontSize: 12, 
-            fontWeight: FontWeight.bold
-          )
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value, 
+            style: GoogleFonts.outfit(
+              color: isDark ? Colors.white : const Color(0xFF0F172A), 
+              fontSize: 12, 
+              fontWeight: FontWeight.bold
+            )
+          ),
         ),
       ],
     );

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'ai_parsing_service.dart';
+
 
 class OcrResult {
   final String? name;
@@ -24,8 +24,7 @@ class OcrResult {
 }
 
 final ocrServiceProvider = Provider.autoDispose<OcrService>((ref) {
-  final aiService = ref.watch(aiParsingServiceProvider);
-  final service = OcrService(aiService);
+  final service = OcrService();
   ref.onDispose(() => service.dispose());
   return service;
 });
@@ -33,9 +32,7 @@ final ocrServiceProvider = Provider.autoDispose<OcrService>((ref) {
 class OcrService {
   // Using Devanagari script to support Hindi text in Aadhaar cards
   final _textRecognizer = TextRecognizer(script: TextRecognitionScript.devanagiri);
-  final AiParsingService _aiParsingService;
-
-  OcrService(this._aiParsingService);
+  OcrService();
 
   Future<OcrResult> scanImage(File imageFile) async {
     final inputImage = InputImage.fromFile(imageFile);
@@ -43,24 +40,7 @@ class OcrService {
     
     String rawText = recognizedText.text;
 
-    // 1. Try AI Parsing (Best Accuracy)
-    try {
-      final aiData = await _aiParsingService.parseIdCard(rawText);
-      if (aiData.isNotEmpty && (aiData['name'] != null || aiData['id_number'] != null)) {
-         return OcrResult(
-            name: aiData['name'],
-            idNumber: aiData['id_number'],
-            dob: aiData['dob'],
-            gender: aiData['gender'],
-            address: aiData['address'],
-            rawText: rawText,
-            source: 'Gemini AI',
-         );
-      }
-    } catch (e) {
-      print('AI Parsing Failed, falling back to Regex: $e');
-      // Continue to Regex fallback
-    }
+
 
     // 2. Fallback: Regex Parsing (Offline)
     String? name;

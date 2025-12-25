@@ -12,7 +12,7 @@ import '../../../widgets/empty_state_widget.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import '../../../widgets/ads/banner_ad_widget.dart';
 
-class HouseListScreen extends ConsumerWidget {
+class HouseListScreen extends ConsumerStatefulWidget {
   const HouseListScreen({super.key});
 
   static const List<String> _kRandomHouseImages = [
@@ -29,7 +29,14 @@ class HouseListScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HouseListScreen> createState() => _HouseListScreenState();
+}
+
+class _HouseListScreenState extends ConsumerState<HouseListScreen> {
+  String _selectedFilter = 'All'; // 'All', 'Apartment', 'Hostel', 'PG'
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -60,7 +67,11 @@ class HouseListScreen extends ConsumerWidget {
       ),
       body: housesAsync.when(
         data: (houses) {
-          if (houses.isEmpty) {
+           final filteredHouses = _selectedFilter == 'All' 
+              ? houses 
+              : houses.where((h) => h.propertyType == _selectedFilter).toList();
+
+           if (filteredHouses.isEmpty) { // Changed from houses.isEmpty to filteredHouses.isEmpty
             return Center(
               child: EmptyStateWidget(
                 title: 'properties.empty_title'.tr(),
@@ -73,6 +84,36 @@ class HouseListScreen extends ConsumerWidget {
           }
           return CustomScrollView(
             slivers: [
+               // Filter Chips
+               SliverToBoxAdapter(
+                 child: SingleChildScrollView(
+                   scrollDirection: Axis.horizontal,
+                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                   child: Row(
+                     children: ['All', 'Apartment', 'Hostel', 'PG'].map((filter) {
+                       final isSelected = _selectedFilter == filter;
+                       return Padding(
+                         padding: const EdgeInsets.only(right: 8),
+                         child: ChoiceChip(
+                           label: Text(filter),
+                           selected: isSelected,
+                           onSelected: (bool selected) {
+                             if (selected) setState(() => _selectedFilter = filter);
+                           },
+                           selectedColor: theme.colorScheme.primary,
+                           labelStyle: TextStyle(
+                             color: isSelected ? Colors.white : theme.textTheme.bodyMedium?.color,
+                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                           ),
+                           backgroundColor: theme.canvasColor,
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? Colors.transparent : Colors.grey.shade300)),
+                         ),
+                       );
+                     }).toList(),
+                   ),
+                 ),
+               ),
+
               // Full-width Ad
               if (isFreePlan)
               const SliverToBoxAdapter(
@@ -87,14 +128,14 @@ class HouseListScreen extends ConsumerWidget {
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final house = houses[index];
+                      final house = filteredHouses[index];
                       // Add spacing between items manually since we removed separatorBuilder
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 24.0),
                         child: ModernPropertyCard(house: house, isDark: isDark, theme: theme, ref: ref),
                       );
                     },
-                    childCount: houses.length,
+                    childCount: filteredHouses.length,
                   ),
                 ),
               ),
@@ -116,7 +157,7 @@ class ModernPropertyCard extends StatelessWidget {
   final ThemeData theme;
   final WidgetRef ref;
 
-  const ModernPropertyCard({
+  const ModernPropertyCard({super.key, 
     required this.house,
     required this.isDark,
     required this.theme,
@@ -179,6 +220,33 @@ class ModernPropertyCard extends StatelessWidget {
               Hero(
                 tag: 'house_${house.id}',
                 child: _buildImageWidget(),
+              ),
+              
+              // Property Type Badge
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                       Icon(
+                         house.propertyType == 'Hostel' ? Icons.hotel : 
+                         house.propertyType == 'PG' ? Icons.single_bed : Icons.apartment,
+                         size: 14, color: Colors.white
+                       ),
+                       const SizedBox(width: 4),
+                       Text(
+                         house.propertyType,
+                         style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                       ),
+                    ],
+                  ),
+                ),
               ),
               
               // 2. Gradient Overlay for Text Readability
@@ -369,7 +437,7 @@ class InfoBadge extends StatelessWidget {
   final String text;
   final Color? color;
 
-  const InfoBadge({required this.icon, required this.text, this.color});
+  const InfoBadge({super.key, required this.icon, required this.text, this.color});
 
   @override
   Widget build(BuildContext context) {

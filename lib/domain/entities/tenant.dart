@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'verification_document.dart'; // NEW
 
 part 'tenant.freezed.dart';
 part 'tenant.g.dart';
@@ -26,6 +27,7 @@ class Tenant with _$Tenant {
     String? gender, // NEW
     @Default(1) int memberCount,
     String? notes,
+    @Default([]) List<VerificationDocument> documents, // NEW
   }) = _Tenant;
 
   factory Tenant.fromJson(Map<String, dynamic> json) => _$TenantFromJson(json);

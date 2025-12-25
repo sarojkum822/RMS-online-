@@ -329,7 +329,7 @@ class _ActiveTenancyForTenantAccessProviderElement
       (origin as ActiveTenancyForTenantAccessProvider).ownerId;
 }
 
-String _$tenantControllerHash() => r'de4043536f262cd6cd19cfa1969f8f010fe6613b';
+String _$tenantControllerHash() => r'fa46ad2fb4738e6e0dc8e3dfca8a7b0fa4ff2ba8';
 
 /// See also [TenantController].
 @ProviderFor(TenantController)

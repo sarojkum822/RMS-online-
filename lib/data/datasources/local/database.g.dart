@@ -724,6 +724,14 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
   late final GeneratedColumn<String> imageBase64 = GeneratedColumn<String>(
       'image_base64', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _propertyTypeMeta =
+      const VerificationMeta('propertyType');
+  @override
+  late final GeneratedColumn<String> propertyType = GeneratedColumn<String>(
+      'property_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('Apartment'));
   static const VerificationMeta _unitCountMeta =
       const VerificationMeta('unitCount');
   @override
@@ -745,6 +753,7 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
         notes,
         imageUrl,
         imageBase64,
+        propertyType,
         unitCount
       ];
   @override
@@ -814,6 +823,12 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
           imageBase64.isAcceptableOrUnknown(
               data['image_base64']!, _imageBase64Meta));
     }
+    if (data.containsKey('property_type')) {
+      context.handle(
+          _propertyTypeMeta,
+          propertyType.isAcceptableOrUnknown(
+              data['property_type']!, _propertyTypeMeta));
+    }
     if (data.containsKey('unit_count')) {
       context.handle(_unitCountMeta,
           unitCount.isAcceptableOrUnknown(data['unit_count']!, _unitCountMeta));
@@ -849,6 +864,8 @@ class $HousesTable extends Houses with TableInfo<$HousesTable, House> {
           .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
       imageBase64: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}image_base64']),
+      propertyType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}property_type'])!,
       unitCount: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}unit_count'])!,
     );
@@ -872,6 +889,7 @@ class House extends DataClass implements Insertable<House> {
   final String? notes;
   final String? imageUrl;
   final String? imageBase64;
+  final String propertyType;
   final int unitCount;
   const House(
       {this.firestoreId,
@@ -885,6 +903,7 @@ class House extends DataClass implements Insertable<House> {
       this.notes,
       this.imageUrl,
       this.imageBase64,
+      required this.propertyType,
       required this.unitCount});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -908,6 +927,7 @@ class House extends DataClass implements Insertable<House> {
     if (!nullToAbsent || imageBase64 != null) {
       map['image_base64'] = Variable<String>(imageBase64);
     }
+    map['property_type'] = Variable<String>(propertyType);
     map['unit_count'] = Variable<int>(unitCount);
     return map;
   }
@@ -932,6 +952,7 @@ class House extends DataClass implements Insertable<House> {
       imageBase64: imageBase64 == null && nullToAbsent
           ? const Value.absent()
           : Value(imageBase64),
+      propertyType: Value(propertyType),
       unitCount: Value(unitCount),
     );
   }
@@ -951,6 +972,7 @@ class House extends DataClass implements Insertable<House> {
       notes: serializer.fromJson<String?>(json['notes']),
       imageUrl: serializer.fromJson<String?>(json['imageUrl']),
       imageBase64: serializer.fromJson<String?>(json['imageBase64']),
+      propertyType: serializer.fromJson<String>(json['propertyType']),
       unitCount: serializer.fromJson<int>(json['unitCount']),
     );
   }
@@ -969,6 +991,7 @@ class House extends DataClass implements Insertable<House> {
       'notes': serializer.toJson<String?>(notes),
       'imageUrl': serializer.toJson<String?>(imageUrl),
       'imageBase64': serializer.toJson<String?>(imageBase64),
+      'propertyType': serializer.toJson<String>(propertyType),
       'unitCount': serializer.toJson<int>(unitCount),
     };
   }
@@ -985,6 +1008,7 @@ class House extends DataClass implements Insertable<House> {
           Value<String?> notes = const Value.absent(),
           Value<String?> imageUrl = const Value.absent(),
           Value<String?> imageBase64 = const Value.absent(),
+          String? propertyType,
           int? unitCount}) =>
       House(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
@@ -998,6 +1022,7 @@ class House extends DataClass implements Insertable<House> {
         notes: notes.present ? notes.value : this.notes,
         imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
         imageBase64: imageBase64.present ? imageBase64.value : this.imageBase64,
+        propertyType: propertyType ?? this.propertyType,
         unitCount: unitCount ?? this.unitCount,
       );
   House copyWithCompanion(HousesCompanion data) {
@@ -1016,6 +1041,9 @@ class House extends DataClass implements Insertable<House> {
       imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
       imageBase64:
           data.imageBase64.present ? data.imageBase64.value : this.imageBase64,
+      propertyType: data.propertyType.present
+          ? data.propertyType.value
+          : this.propertyType,
       unitCount: data.unitCount.present ? data.unitCount.value : this.unitCount,
     );
   }
@@ -1034,14 +1062,27 @@ class House extends DataClass implements Insertable<House> {
           ..write('notes: $notes, ')
           ..write('imageUrl: $imageUrl, ')
           ..write('imageBase64: $imageBase64, ')
+          ..write('propertyType: $propertyType, ')
           ..write('unitCount: $unitCount')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(firestoreId, lastUpdated, isSynced, isDeleted,
-      id, ownerId, name, address, notes, imageUrl, imageBase64, unitCount);
+  int get hashCode => Object.hash(
+      firestoreId,
+      lastUpdated,
+      isSynced,
+      isDeleted,
+      id,
+      ownerId,
+      name,
+      address,
+      notes,
+      imageUrl,
+      imageBase64,
+      propertyType,
+      unitCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1057,6 +1098,7 @@ class House extends DataClass implements Insertable<House> {
           other.notes == this.notes &&
           other.imageUrl == this.imageUrl &&
           other.imageBase64 == this.imageBase64 &&
+          other.propertyType == this.propertyType &&
           other.unitCount == this.unitCount);
 }
 
@@ -1072,6 +1114,7 @@ class HousesCompanion extends UpdateCompanion<House> {
   final Value<String?> notes;
   final Value<String?> imageUrl;
   final Value<String?> imageBase64;
+  final Value<String> propertyType;
   final Value<int> unitCount;
   final Value<int> rowid;
   const HousesCompanion({
@@ -1086,6 +1129,7 @@ class HousesCompanion extends UpdateCompanion<House> {
     this.notes = const Value.absent(),
     this.imageUrl = const Value.absent(),
     this.imageBase64 = const Value.absent(),
+    this.propertyType = const Value.absent(),
     this.unitCount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1101,6 +1145,7 @@ class HousesCompanion extends UpdateCompanion<House> {
     this.notes = const Value.absent(),
     this.imageUrl = const Value.absent(),
     this.imageBase64 = const Value.absent(),
+    this.propertyType = const Value.absent(),
     this.unitCount = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -1119,6 +1164,7 @@ class HousesCompanion extends UpdateCompanion<House> {
     Expression<String>? notes,
     Expression<String>? imageUrl,
     Expression<String>? imageBase64,
+    Expression<String>? propertyType,
     Expression<int>? unitCount,
     Expression<int>? rowid,
   }) {
@@ -1134,6 +1180,7 @@ class HousesCompanion extends UpdateCompanion<House> {
       if (notes != null) 'notes': notes,
       if (imageUrl != null) 'image_url': imageUrl,
       if (imageBase64 != null) 'image_base64': imageBase64,
+      if (propertyType != null) 'property_type': propertyType,
       if (unitCount != null) 'unit_count': unitCount,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1151,6 +1198,7 @@ class HousesCompanion extends UpdateCompanion<House> {
       Value<String?>? notes,
       Value<String?>? imageUrl,
       Value<String?>? imageBase64,
+      Value<String>? propertyType,
       Value<int>? unitCount,
       Value<int>? rowid}) {
     return HousesCompanion(
@@ -1165,6 +1213,7 @@ class HousesCompanion extends UpdateCompanion<House> {
       notes: notes ?? this.notes,
       imageUrl: imageUrl ?? this.imageUrl,
       imageBase64: imageBase64 ?? this.imageBase64,
+      propertyType: propertyType ?? this.propertyType,
       unitCount: unitCount ?? this.unitCount,
       rowid: rowid ?? this.rowid,
     );
@@ -1206,6 +1255,9 @@ class HousesCompanion extends UpdateCompanion<House> {
     if (imageBase64.present) {
       map['image_base64'] = Variable<String>(imageBase64.value);
     }
+    if (propertyType.present) {
+      map['property_type'] = Variable<String>(propertyType.value);
+    }
     if (unitCount.present) {
       map['unit_count'] = Variable<int>(unitCount.value);
     }
@@ -1229,6 +1281,7 @@ class HousesCompanion extends UpdateCompanion<House> {
           ..write('notes: $notes, ')
           ..write('imageUrl: $imageUrl, ')
           ..write('imageBase64: $imageBase64, ')
+          ..write('propertyType: $propertyType, ')
           ..write('unitCount: $unitCount, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3103,6 +3156,12 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
       'notes', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _documentsMeta =
+      const VerificationMeta('documents');
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+      'documents', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         firestoreId,
@@ -3125,7 +3184,8 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
         idProof,
         address,
         memberCount,
-        notes
+        notes,
+        documents
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3244,6 +3304,10 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
+    if (data.containsKey('documents')) {
+      context.handle(_documentsMeta,
+          documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta));
+    }
     return context;
   }
 
@@ -3295,6 +3359,8 @@ class $TenantsTable extends Tenants with TableInfo<$TenantsTable, Tenant> {
           .read(DriftSqlType.int, data['${effectivePrefix}member_count'])!,
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
+      documents: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}documents']),
     );
   }
 
@@ -3326,6 +3392,7 @@ class Tenant extends DataClass implements Insertable<Tenant> {
   final String? address;
   final int memberCount;
   final String? notes;
+  final String? documents;
   const Tenant(
       {this.firestoreId,
       required this.lastUpdated,
@@ -3347,7 +3414,8 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       this.idProof,
       this.address,
       required this.memberCount,
-      this.notes});
+      this.notes,
+      this.documents});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -3390,6 +3458,9 @@ class Tenant extends DataClass implements Insertable<Tenant> {
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
     return map;
   }
 
@@ -3431,6 +3502,9 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       memberCount: Value(memberCount),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
     );
   }
 
@@ -3459,6 +3533,7 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       address: serializer.fromJson<String?>(json['address']),
       memberCount: serializer.fromJson<int>(json['memberCount']),
       notes: serializer.fromJson<String?>(json['notes']),
+      documents: serializer.fromJson<String?>(json['documents']),
     );
   }
   @override
@@ -3486,6 +3561,7 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       'address': serializer.toJson<String?>(address),
       'memberCount': serializer.toJson<int>(memberCount),
       'notes': serializer.toJson<String?>(notes),
+      'documents': serializer.toJson<String?>(documents),
     };
   }
 
@@ -3510,7 +3586,8 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           Value<String?> idProof = const Value.absent(),
           Value<String?> address = const Value.absent(),
           int? memberCount,
-          Value<String?> notes = const Value.absent()}) =>
+          Value<String?> notes = const Value.absent(),
+          Value<String?> documents = const Value.absent()}) =>
       Tenant(
         firestoreId: firestoreId.present ? firestoreId.value : this.firestoreId,
         lastUpdated: lastUpdated ?? this.lastUpdated,
@@ -3533,6 +3610,7 @@ class Tenant extends DataClass implements Insertable<Tenant> {
         address: address.present ? address.value : this.address,
         memberCount: memberCount ?? this.memberCount,
         notes: notes.present ? notes.value : this.notes,
+        documents: documents.present ? documents.value : this.documents,
       );
   Tenant copyWithCompanion(TenantsCompanion data) {
     return Tenant(
@@ -3566,6 +3644,7 @@ class Tenant extends DataClass implements Insertable<Tenant> {
       memberCount:
           data.memberCount.present ? data.memberCount.value : this.memberCount,
       notes: data.notes.present ? data.notes.value : this.notes,
+      documents: data.documents.present ? data.documents.value : this.documents,
     );
   }
 
@@ -3592,7 +3671,8 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           ..write('idProof: $idProof, ')
           ..write('address: $address, ')
           ..write('memberCount: $memberCount, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('documents: $documents')
           ..write(')'))
         .toString();
   }
@@ -3619,7 +3699,8 @@ class Tenant extends DataClass implements Insertable<Tenant> {
         idProof,
         address,
         memberCount,
-        notes
+        notes,
+        documents
       ]);
   @override
   bool operator ==(Object other) =>
@@ -3645,7 +3726,8 @@ class Tenant extends DataClass implements Insertable<Tenant> {
           other.idProof == this.idProof &&
           other.address == this.address &&
           other.memberCount == this.memberCount &&
-          other.notes == this.notes);
+          other.notes == this.notes &&
+          other.documents == this.documents);
 }
 
 class TenantsCompanion extends UpdateCompanion<Tenant> {
@@ -3670,6 +3752,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
   final Value<String?> address;
   final Value<int> memberCount;
   final Value<String?> notes;
+  final Value<String?> documents;
   final Value<int> rowid;
   const TenantsCompanion({
     this.firestoreId = const Value.absent(),
@@ -3693,6 +3776,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     this.address = const Value.absent(),
     this.memberCount = const Value.absent(),
     this.notes = const Value.absent(),
+    this.documents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TenantsCompanion.insert({
@@ -3717,6 +3801,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     this.address = const Value.absent(),
     this.memberCount = const Value.absent(),
     this.notes = const Value.absent(),
+    this.documents = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         ownerId = Value(ownerId),
@@ -3745,6 +3830,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     Expression<String>? address,
     Expression<int>? memberCount,
     Expression<String>? notes,
+    Expression<String>? documents,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3769,6 +3855,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       if (address != null) 'address': address,
       if (memberCount != null) 'member_count': memberCount,
       if (notes != null) 'notes': notes,
+      if (documents != null) 'documents': documents,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3795,6 +3882,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       Value<String?>? address,
       Value<int>? memberCount,
       Value<String?>? notes,
+      Value<String?>? documents,
       Value<int>? rowid}) {
     return TenantsCompanion(
       firestoreId: firestoreId ?? this.firestoreId,
@@ -3818,6 +3906,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
       address: address ?? this.address,
       memberCount: memberCount ?? this.memberCount,
       notes: notes ?? this.notes,
+      documents: documents ?? this.documents,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3888,6 +3977,9 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3918,6 +4010,7 @@ class TenantsCompanion extends UpdateCompanion<Tenant> {
           ..write('address: $address, ')
           ..write('memberCount: $memberCount, ')
           ..write('notes: $notes, ')
+          ..write('documents: $documents, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9616,6 +9709,7 @@ typedef $$HousesTableCreateCompanionBuilder = HousesCompanion Function({
   Value<String?> notes,
   Value<String?> imageUrl,
   Value<String?> imageBase64,
+  Value<String> propertyType,
   Value<int> unitCount,
   Value<int> rowid,
 });
@@ -9631,6 +9725,7 @@ typedef $$HousesTableUpdateCompanionBuilder = HousesCompanion Function({
   Value<String?> notes,
   Value<String?> imageUrl,
   Value<String?> imageBase64,
+  Value<String> propertyType,
   Value<int> unitCount,
   Value<int> rowid,
 });
@@ -9721,6 +9816,9 @@ class $$HousesTableFilterComposer
 
   ColumnFilters<String> get imageBase64 => $composableBuilder(
       column: $table.imageBase64, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get propertyType => $composableBuilder(
+      column: $table.propertyType, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get unitCount => $composableBuilder(
       column: $table.unitCount, builder: (column) => ColumnFilters(column));
@@ -9827,6 +9925,10 @@ class $$HousesTableOrderingComposer
   ColumnOrderings<String> get imageBase64 => $composableBuilder(
       column: $table.imageBase64, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get propertyType => $composableBuilder(
+      column: $table.propertyType,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get unitCount => $composableBuilder(
       column: $table.unitCount, builder: (column) => ColumnOrderings(column));
 
@@ -9889,6 +9991,9 @@ class $$HousesTableAnnotationComposer
 
   GeneratedColumn<String> get imageBase64 => $composableBuilder(
       column: $table.imageBase64, builder: (column) => column);
+
+  GeneratedColumn<String> get propertyType => $composableBuilder(
+      column: $table.propertyType, builder: (column) => column);
 
   GeneratedColumn<int> get unitCount =>
       $composableBuilder(column: $table.unitCount, builder: (column) => column);
@@ -9991,6 +10096,7 @@ class $$HousesTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
             Value<String?> imageUrl = const Value.absent(),
             Value<String?> imageBase64 = const Value.absent(),
+            Value<String> propertyType = const Value.absent(),
             Value<int> unitCount = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -10006,6 +10112,7 @@ class $$HousesTableTableManager extends RootTableManager<
             notes: notes,
             imageUrl: imageUrl,
             imageBase64: imageBase64,
+            propertyType: propertyType,
             unitCount: unitCount,
             rowid: rowid,
           ),
@@ -10021,6 +10128,7 @@ class $$HousesTableTableManager extends RootTableManager<
             Value<String?> notes = const Value.absent(),
             Value<String?> imageUrl = const Value.absent(),
             Value<String?> imageBase64 = const Value.absent(),
+            Value<String> propertyType = const Value.absent(),
             Value<int> unitCount = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -10036,6 +10144,7 @@ class $$HousesTableTableManager extends RootTableManager<
             notes: notes,
             imageUrl: imageUrl,
             imageBase64: imageBase64,
+            propertyType: propertyType,
             unitCount: unitCount,
             rowid: rowid,
           ),
@@ -11448,6 +11557,7 @@ typedef $$TenantsTableCreateCompanionBuilder = TenantsCompanion Function({
   Value<String?> address,
   Value<int> memberCount,
   Value<String?> notes,
+  Value<String?> documents,
   Value<int> rowid,
 });
 typedef $$TenantsTableUpdateCompanionBuilder = TenantsCompanion Function({
@@ -11472,6 +11582,7 @@ typedef $$TenantsTableUpdateCompanionBuilder = TenantsCompanion Function({
   Value<String?> address,
   Value<int> memberCount,
   Value<String?> notes,
+  Value<String?> documents,
   Value<int> rowid,
 });
 
@@ -11578,6 +11689,9 @@ class $$TenantsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get documents => $composableBuilder(
+      column: $table.documents, builder: (column) => ColumnFilters(column));
 
   $$OwnersTableFilterComposer get ownerId {
     final $$OwnersTableFilterComposer composer = $composerBuilder(
@@ -11692,6 +11806,9 @@ class $$TenantsTableOrderingComposer
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get documents => $composableBuilder(
+      column: $table.documents, builder: (column) => ColumnOrderings(column));
+
   $$OwnersTableOrderingComposer get ownerId {
     final $$OwnersTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -11782,6 +11899,9 @@ class $$TenantsTableAnnotationComposer
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
   $$OwnersTableAnnotationComposer get ownerId {
     final $$OwnersTableAnnotationComposer composer = $composerBuilder(
         composer: this,
@@ -11868,6 +11988,7 @@ class $$TenantsTableTableManager extends RootTableManager<
             Value<String?> address = const Value.absent(),
             Value<int> memberCount = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<String?> documents = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TenantsCompanion(
@@ -11892,6 +12013,7 @@ class $$TenantsTableTableManager extends RootTableManager<
             address: address,
             memberCount: memberCount,
             notes: notes,
+            documents: documents,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -11916,6 +12038,7 @@ class $$TenantsTableTableManager extends RootTableManager<
             Value<String?> address = const Value.absent(),
             Value<int> memberCount = const Value.absent(),
             Value<String?> notes = const Value.absent(),
+            Value<String?> documents = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               TenantsCompanion.insert(
@@ -11940,6 +12063,7 @@ class $$TenantsTableTableManager extends RootTableManager<
             address: address,
             memberCount: memberCount,
             notes: notes,
+            documents: documents,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

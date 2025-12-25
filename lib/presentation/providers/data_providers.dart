@@ -14,7 +14,8 @@ import '../../data/datasources/local/database.dart' as db; // Re-added for Expen
 import '../../data/repositories/property_repository_impl.dart';
 import '../../data/repositories/rent_repository_impl.dart';
 import '../../data/repositories/tenant_repository_impl.dart';
-import '../../core/services/storage_service.dart'; // NEW
+import '../../core/services/storage_service.dart';
+import '../../core/services/secure_storage_service.dart'; // NEW
 import '../../domain/repositories/i_property_repository.dart';
 import '../../domain/repositories/i_rent_repository.dart';
 import '../../domain/repositories/i_tenant_repository.dart';
@@ -46,6 +47,11 @@ final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
   return FirebaseAuth.instance;
 });
 
+// Local Database Provider
+final databaseProvider = Provider<db.AppDatabase>((ref) {
+  return db.AppDatabase();
+});
+
 
 // Notice Repository Provider
 final noticeRepositoryProvider = Provider<INoticeRepository>((ref) {
@@ -60,9 +66,8 @@ final maintenanceRepositoryProvider = Provider<IMaintenanceRepository>((ref) {
 });
 
 final expenseRepositoryProvider = Provider<IExpenseRepository>((ref) {
-   // Note: ExpenseRepo uses Local Database (Drift), not Firestore directly in this implementation plan
-   // We use AppDatabase singleton or new instance. 
-   return ExpenseRepositoryImpl(db.AppDatabase());
+   final database = ref.watch(databaseProvider);
+   return ExpenseRepositoryImpl(database);
 });
 
 // Repository Providers
@@ -150,6 +155,10 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 
 final pdfGeneratorServiceProvider = Provider<PdfGeneratorService>((ref) {
   return PdfGeneratorService();
+});
+
+final secureStorageServiceProvider = Provider<SecureStorageService>((ref) {
+  return SecureStorageService();
 });
 
 final allUnitsProvider = StreamProvider<List<Unit>>((ref) {

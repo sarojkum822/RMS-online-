@@ -13,6 +13,7 @@ abstract class ITenantRepository {
   Future<Tenant?> authenticateTenant(String email, String password);
   Future<Tenant?> getTenantByEmail(String email); // NEW
   Future<void> deleteTenantCascade(String tenantId, String? unitId);
+  Stream<Tenant?> watchTenant(String id); // NEW: For realtime status monitoring
   
   // NEW: Tenancy Management
   Stream<List<Tenancy>> getAllTenancies();

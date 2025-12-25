@@ -6,7 +6,6 @@ import '../../../../domain/entities/tenant.dart';
 import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
 import '../../owner/tenant/tenant_controller.dart';
-import '../../owner/house/house_controller.dart';
 import 'package:go_router/go_router.dart';
 
 class TenantProfileDocsView extends ConsumerWidget {
@@ -171,7 +170,7 @@ class TenantProfileDocsView extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Digital Vault', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text('Documents', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         _buildDocumentTile(context, 'Lease Agreement', 'Digital copy of your rental contract', Icons.description_rounded, Colors.blue),
         const SizedBox(height: 8),

@@ -155,9 +155,14 @@ class NoticeDetailScreen extends ConsumerWidget {
                           
                           const SizedBox(height: 32),
                           
-                          Text(
-                            'Seen by ${seenTenants.length} tenants',
-                            style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Seen by ${seenTenants.length} tenants',
+                                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           
@@ -203,11 +208,87 @@ class NoticeDetailScreen extends ConsumerWidget {
                                         ],
                                       ),
                                     ),
-                                    Text(timeStr, textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                    Text(timeStr, textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, color: Colors.green)),
                                   ],
                                 ),
                               );
                             }),
+
+                          const SizedBox(height: 32),
+                          
+                          // Not Seen Section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Not Seen (${notSeenTenants.length})',
+                                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color),
+                              ),
+                              if (notSeenTenants.isNotEmpty)
+                                TextButton.icon(
+                                  onPressed: () async {
+                                    await DialogUtils.runWithLoading(context, () async {
+                                      // Call Controller to send reminder
+                                      final targetIds = notSeenTenants.map((t) => t.id).toList();
+                                      await ref.read(noticeControllerProvider.notifier).sendReminder(
+                                        noticeId: notice.id,
+                                        targetTenantIds: targetIds,
+                                        subject: notice.subject,
+                                      );
+                                    });
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reminders sent!')));
+                                    }
+                                  },
+                                  icon: const Icon(Icons.touch_app, size: 16),
+                                  label: const Text('Remind All'),
+                                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                                )
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          if (notSeenTenants.isEmpty)
+                             const Padding(
+                               padding: EdgeInsets.symmetric(vertical: 20),
+                               child: Center(child: Text('Everyone has seen this notice!', style: TextStyle(color: Colors.green))),
+                             )
+                          else
+                             ...notSeenTenants.map((t) {
+                                // Find Unit Number
+                                final tenancy = activeTenancies.firstWhere((at) => at.tenantId == t.id);
+                                final unit = unitsState.firstWhere((u) => u.id == tenancy.unitId, orElse: () => unitsState.first);
+                                final unitName = unit.nameOrNumber;
+                                
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: theme.cardColor.withValues(alpha: 0.5), // Slightly diminished
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: Colors.grey.withValues(alpha: 0.1),
+                                        child: Text(t.name.substring(0, 1).toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(t.name, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7))),
+                                            Text('Unit $unitName', style: const TextStyle(fontSize: 12, color: Colors.grey)), 
+                                          ],
+                                        ),
+                                      ),
+                                      const Text('Pending', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, color: Colors.red)),
+                                    ],
+                                  ),
+                                );
+                             }),
                         ],
                       );
                    },

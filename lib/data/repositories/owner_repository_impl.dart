@@ -78,6 +78,16 @@ class OwnerRepositoryImpl implements IOwnerRepository {
     }
   }
 
+  @override
+  Future<void> deleteOwner(String uid) async {
+    try {
+      await _firestore.collection('owners').doc(uid).delete();
+    } catch (e) {
+      print('Error deleting owner: $e');
+      rethrow;
+    }
+  }
+
   Owner _mapSnapshotToOwner(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Owner(

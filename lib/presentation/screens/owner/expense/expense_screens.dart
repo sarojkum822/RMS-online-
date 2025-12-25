@@ -4,12 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../domain/entities/expense.dart';
-import '../../../widgets/ads/banner_ad_widget.dart';
 import '../../../providers/data_providers.dart'; 
 import 'expense_controller.dart';
 import '../../../../core/extensions/string_extensions.dart';
 import 'package:kirayabook/presentation/widgets/empty_state_widget.dart';
 import 'package:kirayabook/presentation/widgets/skeleton_loader.dart';
+import '../../maintenance/maintenance_controller.dart';
+import '../../maintenance/maintenance_reports_screen.dart';
+import '../../../../domain/entities/maintenance_request.dart';
+import 'package:flutter/services.dart';
 
 // -----------------------------------------------------------------------------
 // Add Expense Screen
@@ -202,8 +205,47 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Watch Maintenance Requests for Badge
+    final user = ref.watch(userSessionServiceProvider).currentUser;
+    final maintenanceAsync = user != null ? ref.watch(ownerMaintenanceProvider(user.uid)) : const AsyncValue<List<MaintenanceRequest>>.loading();
+    final pendingMaintenanceCount = maintenanceAsync.valueOrNull?.where((r) => r.status == MaintenanceStatus.pending).length ?? 0;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Expense History')),
+      appBar: AppBar(
+        title: const Text('Expense History', overflow: TextOverflow.ellipsis),
+        actions: [
+          // Notification Icon with Badge
+          Badge(
+            label: Text('$pendingMaintenanceCount'),
+            isLabelVisible: pendingMaintenanceCount > 0,
+            offset: const Offset(-4, 4),
+            child: IconButton(
+              icon: Icon(Icons.notifications_none_rounded, color: theme.textTheme.bodyMedium?.color),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const MaintenanceReportsScreen()));
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Functional Profile Icon
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.push('/owner/settings');
+            },
+            child: Container(
+               margin: const EdgeInsets.only(right: 20),
+               padding: const EdgeInsets.all(8),
+               decoration: BoxDecoration(
+                 color: theme.colorScheme.primary,
+                 shape: BoxShape.circle,
+               ),
+               child: const Icon(Icons.person, color: Colors.white, size: 20),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add_expense',
         onPressed: () {
@@ -254,7 +296,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                     backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.1),
                     child: const Icon(Icons.receipt_long, color: Color(0xFFEF4444), size: 20),
                   ),
-                  title: Text(e.title, style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.titleMedium?.color)),
+                  title: Text(
+                    e.title,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: theme.textTheme.titleMedium?.color),
+                  ),
                   subtitle: Text('${DateFormat('dd MMM').format(e.date)} • ${e.category}', style: TextStyle(color: theme.textTheme.bodySmall?.color)),
                   trailing: Text('-₹${e.amount.toStringAsFixed(0)}', style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 16)),
                   onLongPress: () async {

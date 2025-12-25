@@ -7,7 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/theme_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'owner_controller.dart'; // Import Owner Controller
+import 'owner_controller.dart';
+import '../../../../core/utils/dialog_utils.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -458,6 +459,22 @@ class SettingsScreen extends ConsumerWidget {
                       onPressed: () => _showResetConfirmation(context, ref),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.delete_forever, size: 20),
+                      label: const Text('Delete Account'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade900,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _showDeleteAccountConfirmation(context, ref),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -676,6 +693,124 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountConfirmation(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.report_problem, color: Colors.red),
+            const SizedBox(width: 8),
+            Text('Delete Account?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This will permanently delete your account and ALL associated data. This action is irreversible.',
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+              const SizedBox(height: 16),
+              Text('The following will be deleted:', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              _buildBulletPoint('Your Profile & Settings'),
+              _buildBulletPoint('All Properties & Allotted Units'),
+              _buildBulletPoint('All Tenants you created & their Login Accounts'),
+              _buildBulletPoint('All Rent Contracts & Allotment History'),
+              _buildBulletPoint('All Expenses & Maintenance Tickets'),
+              _buildBulletPoint('All Notices & Announcements'),
+              _buildBulletPoint('All Meter Readings & Documents'),
+              const SizedBox(height: 16),
+              Text('Your saved login details will also be cleared.', style: GoogleFonts.outfit(fontSize: 13)),
+              const SizedBox(height: 16),
+              Text('Type "DELETE ACCOUNT" to confirm:', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  hintText: 'DELETE ACCOUNT',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                ),
+                onChanged: (_) => (context as Element).markNeedsBuild(), 
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ValueListenableBuilder(
+            valueListenable: controller,
+            builder: (context, value, child) {
+              return ElevatedButton(
+                onPressed: value.text == 'DELETE ACCOUNT' ? () async {
+                  Navigator.pop(context); // Close Dialog
+                  
+                  // Show loading
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Deleting Account... This may take a moment.'), duration: Duration(seconds: 15)),
+                    );
+                  }
+
+                  try {
+                    final user = FirebaseAuth.instance.currentUser;
+                    final uid = user?.uid;
+                    if (uid != null) {
+                      await ref.read(dataManagementServiceProvider).deleteAccount(
+                        uid: uid,
+                        ownerRepo: ref.read(ownerRepositoryProvider),
+                        localDb: ref.read(databaseProvider),
+                        storageService: ref.read(secureStorageServiceProvider),
+                      );
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Account Successfully Deleted. Goodbye!')),
+                        );
+                        context.go('/'); 
+                      }
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      String message = e.toString();
+                      if (message.contains('requires-recent-login')) {
+                        message = 'For security, you must have logged in recently to delete your account. Please logout and login again, then try deleting.';
+                      }
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      DialogUtils.showErrorDialog(context, title: 'Deletion Failed', message: message);
+                    }
+                  }
+                } : null,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade900, foregroundColor: Colors.white),
+                child: const Text('Permanently Delete'),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(text, style: GoogleFonts.outfit(fontSize: 13))),
         ],
       ),
     );

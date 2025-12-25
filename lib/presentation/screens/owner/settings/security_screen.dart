@@ -14,7 +14,7 @@ class SecurityScreen extends ConsumerStatefulWidget {
 
 class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   bool _biometricEnabled = false;
-  bool _vaultLockEnabled = false;
+
 
   @override
   void initState() {
@@ -24,10 +24,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
   Future<void> _loadPreferences() async {
     final biometricEnabled = await ref.read(userSessionServiceProvider).isBiometricEnabled();
-    final vaultLockEnabled = await ref.read(userSessionServiceProvider).isVaultLockEnabled();
     setState(() {
       _biometricEnabled = biometricEnabled;
-      _vaultLockEnabled = vaultLockEnabled;
     });
   }
 
@@ -69,18 +67,36 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   final available = await biometricService.isBiometricAvailable();
                   if (!available) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometrics not available on this device')));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Biometrics not set up or unavailable. Please check device settings.'),
+                        duration: Duration(seconds: 3),
+                      ));
                     }
                     return;
                   }
                   
-                  final authenticated = await biometricService.authenticate();
-                  if (authenticated) {
-                    setState(() => _biometricEnabled = true);
-                    await ref.read(userSessionServiceProvider).saveBiometricPreference(true);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometric Login Enabled')));
+                  try {
+                    final authenticated = await biometricService.authenticate();
+                    if (authenticated) {
+                      setState(() => _biometricEnabled = true);
+                      await ref.read(userSessionServiceProvider).saveBiometricPreference(true);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometric Login Enabled')));
+                      }
                     }
+                  } catch (e) {
+                     if (context.mounted) {
+                        // User canceled or other non-fatal error
+                        if (e.toString().contains('NotAvailable') || e.toString().contains('NotEnrolled')) {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Please enroll a fingerprint or face in device settings.'),
+                           ));
+                        } else {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Authentication failed. Please try again.'),
+                           ));
+                        }
+                     }
                   }
                 } else {
                   setState(() => _biometricEnabled = false);
@@ -91,50 +107,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             ),
           ),
           
-          // Vault Lock Toggle (for Personal Vault)
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.dividerColor),
-            ),
-            child: SwitchListTile(
-              secondary: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.lock_person, color: Colors.amber),
-              ),
-              title: Text('Vault Lock', style: GoogleFonts.outfit(fontWeight: FontWeight.w500, color: theme.textTheme.bodyLarge?.color)),
-              subtitle: Text('Require fingerprint for Personal Vault', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodySmall?.color)),
-              value: _vaultLockEnabled,
-              onChanged: (v) async {
-                final biometricService = ref.read(biometricServiceProvider);
-                if (v) {
-                  final available = await biometricService.isBiometricAvailable();
-                  if (!available) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometrics not available on this device')));
-                    }
-                    return;
-                  }
-                  
-                  final authenticated = await biometricService.authenticate();
-                  if (authenticated) {
-                    setState(() => _vaultLockEnabled = true);
-                    await ref.read(userSessionServiceProvider).saveVaultLockPreference(true);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vault Lock Enabled')));
-                    }
-                  }
-                } else {
-                  setState(() => _vaultLockEnabled = false);
-                  await ref.read(userSessionServiceProvider).saveVaultLockPreference(false);
-                }
-              },
-              activeThumbColor: Colors.amber,
-            ),
-          ),
+
           
            _buildItem(
             context: context,

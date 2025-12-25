@@ -127,7 +127,7 @@ class _AddExpenseModalState extends ConsumerState<AddExpenseModal> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       decoration: InputDecoration(
                         labelText: 'Category',
                         prefixIcon: Icon(_getCategoryIcon(_selectedCategory), size: 20),

@@ -108,7 +108,7 @@ class _UnitEditScreenState extends ConsumerState<UnitEditScreen> {
                  }
                  
                  return DropdownButtonFormField<String>(
-                   value: _selectedBhkTemplateId,
+                   initialValue: _selectedBhkTemplateId,
                    decoration: const InputDecoration(
                      labelText: 'Select BHK Type',
                      border: OutlineInputBorder(),

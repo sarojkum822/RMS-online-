@@ -18,15 +18,21 @@ import 'core/theme/theme_provider.dart';
 
 import 'package:easy_localization/easy_localization.dart'; // NEW
 
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+
 void main() async {
   // Ensure binding is initialized first
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized(); // NEW: Initialize Localization
 
   try {
-    await Firebase.initializeApp();
     // 0. Enable Firestore Persistence (Offline Capabilities)
-    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+    try {
+      await Firebase.initializeApp();
+      FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+    } catch (firebaseError) {
+       debugPrint('Firebase Init Failed (Running in Offline/Mock Mode): $firebaseError');
+    }
     
     // Initialize Notification Service
     final notificationService = NotificationService();

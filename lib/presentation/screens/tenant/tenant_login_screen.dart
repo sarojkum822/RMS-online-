@@ -22,8 +22,8 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   final _storageService = SecureStorageService();
   final _biometricService = BiometricService(); // NEW
   bool _isLoading = false;
-  bool _canCheckBiometrics = false; // NEW
-  bool _isBiometricEnabled = false; // NEW
+  bool _canCheckBiometrics = false;
+
 
   @override
   void initState() {
@@ -39,7 +39,7 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
     if (mounted) {
       setState(() {
         _canCheckBiometrics = available && enabled && creds != null;
-        _isBiometricEnabled = enabled;
+
         
         if (creds != null) {
           _emailController.text = creds['email']!;
@@ -55,13 +55,20 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   }
 
   Future<void> _loginWithBiometrics() async {
-    final authenticated = await _biometricService.authenticate();
-    if (authenticated) {
-      final creds = await _storageService.getCredentials();
-      if (creds != null) {
-        _emailController.text = creds['email']!;
-        _passwordController.text = creds['password']!;
-        _submitLogin(); 
+    try {
+      final authenticated = await _biometricService.authenticate();
+      if (authenticated) {
+        final creds = await _storageService.getCredentials();
+        if (creds != null) {
+          _emailController.text = creds['email']!;
+          _passwordController.text = creds['password']!;
+          _submitLogin(); 
+        }
+      }
+    } catch (e) {
+      debugPrint('Biometric login skipped/failed: $e');
+      if (mounted) {
+         // Silent fail on auto-check or minimal UI feedback
       }
     }
   }
@@ -96,12 +103,14 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Invalid Credentials or Account Inactive.'))
                           );
+                          _passwordController.clear(); // Clear password on failure
                         }
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Login Failed: $e'))
                           );
+                          _passwordController.clear(); // Clear password on error
                         }
                       } finally {
                         if (mounted) setState(() => _isLoading = false);
@@ -205,9 +214,15 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                          side: BorderSide(color: theme.primaryColor),
                        ),
-                       onPressed: _isLoading ? null : () {
+                       onPressed: _isLoading ? null : () async {
                          HapticFeedback.lightImpact();
-                         _loginWithBiometrics();
+                         try {
+                            await _loginWithBiometrics();
+                         } catch (e) {
+                            if (mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Auth Error: ${e.toString()}')));
+                            }
+                         }
                        },
                        icon: const Icon(Icons.fingerprint, size: 28),
                        label: const Text("Login with Face ID / Fingerprint"),

@@ -13,10 +13,14 @@ import '../../../widgets/dotted_line_separator.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import 'package:printing/printing.dart'; // NEW
-import '../../../../core/services/pdf_service.dart'; // NEW
+// NEW
 import 'package:kirayabook/presentation/screens/owner/settings/owner_controller.dart'; // NEW
 import 'tenant_form_screen.dart'; // NEW
+import '../../../../data/datasources/local/database.dart' as db;
+import '../../../../domain/entities/verification_document.dart'; // NEW
+import 'package:uuid/uuid.dart'; // NEW
 import 'tenant_controller.dart';
+import 'compact_bill_history_card.dart';
 
 class TenantDetailScreen extends ConsumerStatefulWidget {
   final Tenant tenant;
@@ -333,112 +337,187 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                   ),
                 ),
 
-                // Unit & Reading Card (Overlapping)
+                // Shift everything up to overlap header (fixes gap issue)
                 Transform.translate(
-                  offset: const Offset(0, -40), // Move Up to Overlap
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor, // Adapts to Dark Mode
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                  offset: const Offset(0, -40),
+                  child: Column(
+                    children: [
+                       // Unit & Reading Card
+                       Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.cardColor, 
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isDark ? Colors.transparent : Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Unit Info
-                          Expanded(
-                              child: Consumer(
-                              builder: (context, ref, _) {
-                                if (unitId == null) return const Text('No Unit Assigned');
-                                final unitValue = ref.watch(unitDetailsProvider(unitId));
-                                return Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: isDark ? Colors.blue.withValues(alpha: 0.1) : Colors.blue.shade50, 
-                                        borderRadius: BorderRadius.circular(8)
-                                      ),
-                                      child: const Icon(Icons.apartment, color: Colors.blue, size: 20),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Flexible(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Unit Details', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
-                                          Text(
-                                            unitValue.when(
-                                              data: (u) => '${u?.nameOrNumber ?? '-'} • ₹${u?.editableRent?.toInt() ?? 0}',
-                                              error: (_,__) => 'Error',
-                                              loading: () => '...',
-                                            ),
-                                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
-                          Container(width: 1, height: 40, color: Colors.grey.shade200), // Divider
-                          // Initial Reading
-                          Expanded(
-                            child: Consumer(
-                              builder: (context, ref, _) {
-                                if (unitId == null) return const Center(child: Text('-'));
-                                final readingValue = ref.watch(initialReadingProvider(unitId));
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Unit Info
+                              Expanded(
+                                  child: Consumer(
+                                  builder: (context, ref, _) {
+                                    if (unitId == null) return const Text('No Unit Assigned');
+                                    final unitValue = ref.watch(unitDetailsProvider(unitId));
+                                    return Row(
                                       children: [
-                                        Text('Initial Reading', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
-                                        Text(
-                                          readingValue.when(
-                                            data: (r) => r?.toString() ?? 'N/A',
-                                            error: (_,__) => '-',
-                                            loading: () => '...',
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? Colors.blue.withValues(alpha: 0.1) : Colors.blue.shade50, 
+                                            borderRadius: BorderRadius.circular(8)
                                           ),
-                                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange.shade800),
+                                          child: const Icon(Icons.apartment, color: Colors.blue, size: 20),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text('Unit Details', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                                              Text(
+                                                unitValue.when(
+                                                  data: (u) => '${u?.nameOrNumber ?? '-'} • ₹${u?.editableRent?.toInt() ?? 0}',
+                                                  error: (_,__) => 'Error',
+                                                  loading: () => '...',
+                                                ),
+                                                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: theme.textTheme.bodyLarge?.color),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ],
-                                    ),
-                                    const SizedBox(width: 12),
-                                     Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
-                                      child: const Icon(Icons.flash_on, color: Colors.orange, size: 20),
-                                    ),
-                                  ],
-                                );
-                              },
+                                    );
+                                  },
+                                ),
+                              ),
+                              Container(width: 1, height: 40, color: Colors.grey.shade200), // Divider
+                              // Initial Reading
+                              Expanded(
+                                child: Consumer(
+                                  builder: (context, ref, _) {
+                                    if (unitId == null) return const Center(child: Text('-'));
+                                    final readingValue = ref.watch(initialReadingProvider(unitId));
+                                    return Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text('Initial Reading', style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
+                                            Text(
+                                              readingValue.when(
+                                                data: (r) => r?.toString() ?? 'N/A',
+                                                error: (_,__) => '-',
+                                                loading: () => '...',
+                                              ),
+                                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.orange.shade800),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(width: 12),
+                                         Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                                          child: const Icon(Icons.flash_on, color: Colors.orange, size: 20),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+            
+                      // NEW: Collapsible Tenant Details
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                             color: theme.cardColor,
+                             borderRadius: BorderRadius.circular(12),
+                             border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                          ),
+                          child: Theme(
+                            data: theme.copyWith(dividerColor: Colors.transparent),
+                            child: ExpansionTile(
+                              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: theme.primaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: Icon(Icons.person_outline, color: theme.primaryColor, size: 18),
+                              ),
+                              title: Text('Personal Details', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
+                              subtitle: Text('Tap to view more info', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+                              children: [
+                                 const Divider(height: 1),
+                                 const SizedBox(height: 12),
+                                 _buildDetailRow(theme, Icons.email_outlined, 'Email', currentTenant.email ?? 'N/A'),
+                                 _buildDetailRow(theme, Icons.cake_outlined, 'DOB', currentTenant.dob ?? 'N/A'),
+                                 _buildDetailRow(theme, Icons.male, 'Gender', currentTenant.gender ?? 'N/A'),
+                                 _buildDetailRow(theme, Icons.home_outlined, 'Address', currentTenant.address ?? 'N/A'),
+                                 _buildDetailRow(theme, Icons.notes, 'Notes', currentTenant.notes ?? 'None'),
+                                 const SizedBox(height: 8),
+                                 Row(
+                                    children: [
+                                       Expanded(
+                                         child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                            child: Column(
+                                               children: [
+                                                  Text('Members', style: GoogleFonts.outfit(fontSize: 11, color: theme.hintColor)),
+                                                  Text('${currentTenant.memberCount}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                                               ],
+                                            ),
+                                         ),
+                                       ),
+                                       const SizedBox(width: 8),
+                                       Expanded(
+                                         child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                                color: currentTenant.policeVerification ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1), 
+                                                borderRadius: BorderRadius.circular(8)
+                                            ),
+                                            child: Column(
+                                               children: [
+                                                  Text('Police Verified', style: GoogleFonts.outfit(fontSize: 11, color: theme.hintColor)),
+                                                  Icon(
+                                                    currentTenant.policeVerification ? Icons.check_circle : Icons.cancel, 
+                                                    color: currentTenant.policeVerification ? Colors.green : Colors.red,
+                                                    size: 16
+                                                  ),
+                                               ],
+                                            ),
+                                         ),
+                                       ),
+
+                                    ],
+                                 ),
+                                 const SizedBox(height: 16),
+                                 // NEW: Verification Documents Nested Section
+                                 _buildVerificationDocuments(context, ref, currentTenant, theme),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
 
-            const SizedBox(height: 20),
-            
+
             // Meter Readings Expandable Section
             if (unitId != null)
             Padding(
@@ -691,344 +770,16 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                     final isPaid = cycle.status == RentStatus.paid;
                     final date = DateTime.parse('${cycle.month}-01');
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12), // Reduced margin
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(16), // Smaller radius
-                        boxShadow: isDark ? [] : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04), 
-                            blurRadius: 8, // Reduced blur
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                        border: !isPaid 
-                            ? Border.all(color: Colors.red.withValues(alpha: 0.6), width: 1.5)
-                            : (isDark ? Border.all(color: Colors.white10) : null),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0), // Reduced padding
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header Row
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8), // Smaller icon box
-                                      decoration: BoxDecoration(
-                                        color: isDark ? Colors.white12 : Colors.grey[100], 
-                                        borderRadius: BorderRadius.circular(8)
-                                      ),
-                                      child: Icon(Icons.calendar_today, size: 16, color: theme.iconTheme.color), // Smaller icon
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      DateFormat('MMMM yyyy').format(date),
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 16, // Smaller font
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.textTheme.titleMedium?.color,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                // Status + Menu
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Compact chip
-                                      decoration: BoxDecoration(
-                                        color: isPaid ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        cycle.status.name.toUpperCase(),
-                                        style: GoogleFonts.outfit(
-                                          color: isPaid ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10, // Smaller font
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    // Menu for Actions
-                                    SizedBox(
-                                      width: 30,
-                                      height: 30,
-                                      child: PopupMenuButton<String>(
-                                        padding: EdgeInsets.zero,
-                                        icon: Icon(Icons.more_vert, size: 18, color: theme.iconTheme.color?.withValues(alpha: 0.5)),
-                                        color: theme.cardColor,
-                                        onSelected: (value) async {
-                                          if (value == 'delete') {
-                                             _confirmDeleteBill(context, ref, cycle, tenancyId);
-                                          } else if (value == 'print') {
-                                             await _handlePrintReceipt(context, ref, cycle, currentTenant);
-                                          } else if (value == 'edit') {
-                                             _showEditBillDialog(context, ref, cycle);
-                                          }
-                                        },
-                                        itemBuilder: (context) => [
-                                          const PopupMenuItem(
-                                            value: 'print',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.print, color: Colors.blue, size: 16),
-                                                SizedBox(width: 8),
-                                                Text('Print Receipt', style: TextStyle(color: Colors.blue, fontSize: 13)),
-                                              ],
-                                            ),
-                                          ),
-                                          const PopupMenuItem(
-                                            value: 'edit',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.edit, color: Colors.orange, size: 16),
-                                                SizedBox(width: 8),
-                                                Text('Edit Bill', style: TextStyle(color: Colors.orange, fontSize: 13)),
-                                              ],
-                                            ),
-                                          ),
-                                          const PopupMenuItem(
-                                            value: 'delete',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.delete, color: Colors.red, size: 16),
-                                                SizedBox(width: 8),
-                                                Text('Delete Bill', style: TextStyle(color: Colors.red, fontSize: 13)),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 6),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 44.0), // Aligned with text start
-                              child: Text(
-                                'Bill #: ${cycle.billNumber ?? "N/A"}',
-                                style: GoogleFonts.outfit(fontSize: 11, color: theme.textTheme.bodySmall?.color),
-                              ),
-                            ),
-                            
-                            // Electric Split Breakdown
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-                              ),
-                              child: Column(
-                                children: [
-                                  // Base Rent Row
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(Icons.home_outlined, size: 14, color: theme.hintColor),
-                                          const SizedBox(width: 6),
-                                          Text('Base Rent', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
-                                        ],
-                                      ),
-                                      Text('₹${cycle.baseRent.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
-                                    ],
-                                  ),
-                                  
-                                  // Electricity Row (only if > 0)
-                                  if (cycle.electricAmount > 0) ...[
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(Icons.electric_bolt, size: 14, color: Colors.amber.shade600),
-                                            const SizedBox(width: 6),
-                                            Text('Electricity', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
-                                          ],
-                                        ),
-                                        Text('₹${cycle.electricAmount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amber.shade700)),
-                                      ],
-                                    ),
-                                  ],
-                                  
-                                  // Other Charges Row (only if > 0)
-                                  if (cycle.otherCharges > 0) ...[
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(Icons.add_circle_outline, size: 14, color: Colors.blue.shade400),
-                                            const SizedBox(width: 6),
-                                            Text('Other Charges', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
-                                          ],
-                                        ),
-                                        Text('₹${cycle.otherCharges.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue.shade600)),
-                                      ],
-                                    ),
-                                  ],
-                                  
-                                  // Late Fee Row (only if > 0)
-                                  if (cycle.lateFee > 0) ...[
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red.shade400),
-                                            const SizedBox(width: 6),
-                                            Text('Late Fee', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
-                                          ],
-                                        ),
-                                        Text('₹${cycle.lateFee.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red.shade600)),
-                                      ],
-                                    ),
-                                  ],
-                                  
-                                  // Discount Row (only if > 0)
-                                  if (cycle.discount > 0) ...[
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(Icons.discount_outlined, size: 14, color: Colors.green.shade400),
-                                            const SizedBox(width: 6),
-                                            Text('Discount', style: GoogleFonts.outfit(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
-                                          ],
-                                        ),
-                                        Text('-₹${cycle.discount.toStringAsFixed(0)}', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green.shade600)),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.0), // Reduced spacing
-                              child: DottedLineSeparator(), 
-                            ),
-                            
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Total Due', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '₹${cycle.totalDue.toStringAsFixed(0)}',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 18, 
-                                        fontWeight: FontWeight.bold,
-                                        color: !isPaid ? Colors.red : theme.textTheme.bodyLarge?.color, // Red if pending
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text('Paid', style: GoogleFonts.outfit(color: theme.textTheme.bodySmall?.color, fontSize: 11)),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          '₹${cycle.totalPaid.toStringAsFixed(0)}',
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 18, 
-                                            fontWeight: FontWeight.bold,
-                                            color: isPaid ? const Color(0xFF2E7D32) : Colors.red,
-                                          ),
-                                        ),
-                                        if (cycle.totalPaid > 0) ...[
-                                           const SizedBox(width: 4),
-                                           IconButton(
-                                             icon: const Icon(Icons.info_outline, size: 18, color: Colors.blue),
-                                             onPressed: () => _showPaymentHistory(context, ref, cycle),
-                                             tooltip: 'View History',
-                                             constraints: const BoxConstraints(),
-                                             padding: EdgeInsets.zero,
-                                           )
-                                        ]
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            
-                            // Actions if Pending
-                            if(!isPaid) ...[
-                               const SizedBox(height: 12), 
-                               Row(
-                                 children: [
-                                   Expanded(
-                                     child: OutlinedButton(
-                                       onPressed: () => _showChargesSheet(context, cycle, ref, currentTenant),
-                                       style: OutlinedButton.styleFrom(
-                                          foregroundColor: theme.textTheme.bodyLarge?.color,
-                                          side: BorderSide(color: theme.dividerColor),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          padding: const EdgeInsets.symmetric(vertical: 10),
-                                          minimumSize: Size.zero, 
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                       ),
-                                       child: Text('+ Charges', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13)),
-                                     ),
-                                   ),
-                                   const SizedBox(width: 8),
-                                   Expanded(
-                                     child: Container(
-                                       decoration: BoxDecoration(
-                                         gradient: const LinearGradient(
-                                           colors: [Color(0xFFFF5252), Color(0xFF2563EB)], // Red to Sky Blue
-                                           begin: Alignment.centerLeft,
-                                           end: Alignment.centerRight,
-                                         ),
-                                         borderRadius: BorderRadius.circular(10),
-                                       ),
-                                       child: ElevatedButton(
-                                         onPressed: () => _showPaymentSheet(context, cycle, ref),
-                                         style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.transparent,
-                                            shadowColor: Colors.transparent,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), // Smaller radius
-                                            padding: const EdgeInsets.symmetric(vertical: 10), // Reduced internal padding
-                                            elevation: 0,
-                                            minimumSize: Size.zero, 
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                         ),
-                                         child: Text('Record Payment', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                       ),
-                                     ),
-                                   ),
-                                 ], // children
-                               ),
-                            ], // spread if
-                          ], // Column children
-                        ),
-                      ),
+                    return CompactBillHistoryCard(
+                      cycle: cycle,
+                      isPaid: isPaid,
+                      isDark: isDark,
+                      onPrint: () async => await _handlePrintReceipt(context, ref, cycle, currentTenant),
+                      onEdit: () => _showEditBillDialog(context, ref, cycle),
+                      onDelete: () => _confirmDeleteBill(context, ref, cycle, tenancyId),
+                      onHistory: () => _showPaymentHistory(context, ref, cycle),
+                      onAddCharges: () => _showChargesSheet(context, cycle, ref, currentTenant),
+                      onRecordPayment: () => _showPaymentSheet(context, cycle, ref),
                     );
                   },
                 );
@@ -1036,6 +787,11 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
             ),
              const SizedBox(height: 40),
           ],
+        ),
+      ),
+    ],
+  ),
+],
         ),
       ),
     );
@@ -1245,29 +1001,26 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
                                 showDialog(
                                   context: context, 
                                   builder: (ctx) => AlertDialog(
-                                    title: const Text('Bill Already Exists'),
-                                    content: Text('A bill for ${DateFormat('MMMM yyyy').format(selectedMonth)} already exists.\n\nDo you want to add this payment (₹$paid) to the existing bill?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.pop(ctx);
-                                          // Open Payment Sheet for the found cycle
-                                          _showPaymentSheet(context, existingCycle!, ref);
-                                        },
-                                        child: const Text('Add Payment'),
-                                      )
-                                    ],
+                                     title: const Text('Bill Already Exists'),
+                                     content: const Text('A bill for this month already exists. Do you want to edit it instead?'),
+                                     actions: [
+                                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                        TextButton(
+                                          onPressed: () {
+                                             Navigator.pop(ctx);
+                                             // Open Edit Dialog
+                                             _showEditBillDialog(context, ref, existingCycle!); 
+                                          }, 
+                                          child: const Text('Edit Existing')
+                                        )
+                                     ],
                                   )
                                 );
                             } else {
-                               // Fallback if we can't find it (shouldn't happen if error said it exists)
-                               if (context.mounted) DialogUtils.showErrorDialog(context, title: 'Error', message: 'Bill exists but could not be loaded.');
+                               if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                             }
                          } else {
-                            if (context.mounted) {
-                              DialogUtils.showErrorDialog(context, title: 'Error', message: e.toString());
-                            }
+                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                          }
                       }
                     }
@@ -1505,10 +1258,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     await DialogUtils.runWithLoading(context, () async {
       try {
         var owner = ref.read(ownerControllerProvider).value;
-        if (owner == null) {
-          // Attempt to fetch if not loaded
-          owner = await ref.read(ownerControllerProvider.future);
-        }
+        owner ??= await ref.read(ownerControllerProvider.future);
         if (owner == null) throw Exception('Owner profile not found. Please go to Settings > Profile to set it up.');
         
         final t = await ref.read(activeTenancyProvider(tenant.id).future);
@@ -1876,6 +1626,26 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
     );
   }
 
+  Widget _buildDetailRow(ThemeData theme, IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: theme.hintColor),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 80,
+            child: Text(label, style: GoogleFonts.outfit(color: theme.hintColor, fontSize: 13)),
+          ),
+          Expanded(
+            child: Text(value, style: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handlePrintReceipt(BuildContext context, WidgetRef ref, RentCycle cycle, Tenant tenant) async {
     await DialogUtils.runWithLoading(context, () async {
       try {
@@ -1911,7 +1681,7 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
              }, orElse: () => null);
              
              if (currentReading != null) {
-               final currentIndex = allReadings.indexOf(currentReading!);
+               final currentIndex = allReadings.indexOf(currentReading);
                if (currentIndex + 1 < allReadings.length) {
                  previousReading = allReadings[currentIndex + 1];
                }
@@ -1937,6 +1707,278 @@ class _TenantDetailScreenState extends ConsumerState<TenantDetailScreen> {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating receipt: $e')));
         }
       }
+  /* ... _handlePrintReceipt ... */
     });
+  }
+
+  // NEW: Verification Helper Methods
+  Widget _buildVerificationDocuments(BuildContext context, WidgetRef ref, Tenant tenant, ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: Text(
+            'Verification Documents', 
+            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600)
+          ),
+          trailing: const Icon(Icons.verified_user_outlined, size: 20),
+          children: [
+             if (tenant.documents.isEmpty)
+               Padding(
+                 padding: const EdgeInsets.all(16.0),
+                 child: Text('No documents added.', style: GoogleFonts.outfit(fontSize: 12, color: theme.hintColor)),
+               )
+             else
+               ...tenant.documents.map((doc) => _buildDocumentItem(context, ref, tenant, doc, theme)),
+             
+             Padding(
+               padding: const EdgeInsets.all(8.0),
+               child: TextButton.icon(
+                 onPressed: () => _showAddDocumentDialog(context, ref, tenant),
+                 icon: const Icon(Icons.add, size: 16),
+                 label: Text('Add Document', style: GoogleFonts.outfit(fontSize: 12)),
+               ),
+             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentItem(BuildContext context, WidgetRef ref, Tenant tenant, VerificationDocument doc, ThemeData theme) {
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+
+    switch (doc.status) {
+      case VerificationStatus.verified:
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        statusText = 'Verified';
+        break;
+      case VerificationStatus.rejected:
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel;
+        statusText = 'Rejected';
+        break;
+      case VerificationStatus.pending:
+      default:
+        statusColor = Colors.orange;
+        statusIcon = Icons.pending;
+        statusText = 'Pending';
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        children: [
+          Container(
+             padding: const EdgeInsets.all(8),
+             decoration: BoxDecoration(
+               color: statusColor.withValues(alpha: 0.1),
+               shape: BoxShape.circle,
+             ),
+             child: Icon(Icons.description, size: 16, color: statusColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(doc.type, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13)),
+                if (doc.referenceNumber != null && doc.referenceNumber!.isNotEmpty)
+                  Text(doc.referenceNumber!, style: GoogleFonts.outfit(fontSize: 11, color: theme.hintColor)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+               children: [
+                 Icon(statusIcon, size: 10, color: statusColor),
+                 const SizedBox(width: 4),
+                 Text(statusText, style: GoogleFonts.outfit(fontSize: 10, color: statusColor, fontWeight: FontWeight.bold)),
+               ],
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, size: 18, color: theme.hintColor),
+            onSelected: (value) {
+              if (value == 'edit') {
+                _showEditDocumentDialog(context, ref, tenant, doc);
+              } else if (value == 'delete') {
+                _confirmDeleteDocument(context, ref, tenant, doc);
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'edit',
+                child: Text('Edit'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Text('Delete', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddDocumentDialog(BuildContext context, WidgetRef ref, Tenant tenant) {
+    final typeController = TextEditingController();
+    final refController = TextEditingController();
+    String selectedType = 'Aadhaar Card';
+    final List<String> commonTypes = ['Aadhaar Card', 'PAN Card', 'Police Verification', 'Voter ID', 'Driving License', 'Passport', 'Other'];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Add Document', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedType,
+                    decoration: const InputDecoration(labelText: 'Document Type'),
+                    items: commonTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                    onChanged: (val) {
+                      setState(() { 
+                        selectedType = val!;
+                        if (val != 'Other') typeController.clear();
+                      });
+                    },
+                  ),
+                  if (selectedType == 'Other')
+                    TextField(
+                      controller: typeController,
+                      decoration: const InputDecoration(labelText: 'Specify Type'),
+                    ),
+                  TextField(
+                    controller: refController,
+                    decoration: const InputDecoration(labelText: 'Reference Number (Optional)'),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () async {
+                    final type = selectedType == 'Other' ? typeController.text.trim() : selectedType;
+                    if (type.isEmpty) return;
+                    
+                    final newDoc = VerificationDocument(
+                      id: const Uuid().v4(), // Uses uuid package imported in file? Maybe need to import or just use string
+                      type: type,
+                      referenceNumber: refController.text.trim(),
+                      status: VerificationStatus.pending,
+                    );
+                    
+                    final updatedDocs = [...tenant.documents, newDoc];
+                    await ref.read(tenantControllerProvider.notifier).updateTenant(tenant.copyWith(documents: updatedDocs));
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
+  void _showEditDocumentDialog(BuildContext context, WidgetRef ref, Tenant tenant, VerificationDocument doc) {
+    final refController = TextEditingController(text: doc.referenceNumber);
+    VerificationStatus status = doc.status;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Edit Document', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(doc.type, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 16)),
+                  const SizedBox(height: 16),
+                   DropdownButtonFormField<VerificationStatus>(
+                    value: status,
+                    decoration: const InputDecoration(labelText: 'Status'),
+                    items: VerificationStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.name.toUpperCase()))).toList(),
+                    onChanged: (val) {
+                      setState(() => status = val!);
+                    },
+                  ),
+                  TextField(
+                    controller: refController,
+                    decoration: const InputDecoration(labelText: 'Reference Number'),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () async {
+                    final updatedDoc = doc.copyWith(
+                      referenceNumber: refController.text.trim(),
+                      status: status,
+                    );
+                    
+                    final updatedDocs = tenant.documents.map((d) => d.id == doc.id ? updatedDoc : d).toList();
+                    await ref.read(tenantControllerProvider.notifier).updateTenant(tenant.copyWith(documents: updatedDocs));
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteDocument(BuildContext context, WidgetRef ref, Tenant tenant, VerificationDocument doc) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: Text('Are you sure you want to remove ${doc.type}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+               final updatedDocs = tenant.documents.where((d) => d.id != doc.id).toList();
+               await ref.read(tenantControllerProvider.notifier).updateTenant(tenant.copyWith(documents: updatedDocs));
+               if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 }

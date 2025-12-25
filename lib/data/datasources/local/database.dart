@@ -22,7 +22,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -50,13 +50,22 @@ class AppDatabase extends _$AppDatabase {
          await m.addColumn(tenants, tenants.address);
          await m.addColumn(tenants, tenants.memberCount);
          await m.addColumn(tenants, tenants.notes);
+         await m.addColumn(tenants, tenants.documents); // NEW
+         
          
          // Create Tenancies table if not exists (it was missing from previous builds)
          await m.createTable(tenancies);
+       }
+       if (from < 5) {
+         await m.addColumn(houses, houses.propertyType);
        }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     }
   );
+
+  Future<void> clearAllData(String uid) async {
+    await (delete(owners)..where((tbl) => tbl.id.equals(uid))).go();
+  }
 }

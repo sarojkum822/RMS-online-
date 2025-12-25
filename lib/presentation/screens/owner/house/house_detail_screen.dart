@@ -2,7 +2,6 @@ import 'dart:convert'; // NEW
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart'; // NEW: For photo upload
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../domain/entities/house.dart';
 import 'house_controller.dart';
@@ -44,7 +43,16 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
     final titleController = TextEditingController();
     final msgController = TextEditingController();
     String selectedPriority = 'medium';
-    
+    bool isLoading = false; // Prevent duplicates
+
+    // Pre-defined Templates
+    final templates = {
+      'Rent Due': 'Dear Tenant, your rent for this month is due. Please pay by the due date to avoid late fees.',
+      'Maintenance': 'Maintenance work is scheduled for [Date]. Please cooperate.',
+      'Water Supply': 'Water supply will be affected on [Date] due to tank cleaning.',
+      'Meeting': 'A general meeting is scheduled on [Date] regarding building maintenance.',
+    };
+
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -75,7 +83,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                 ),
                 child: Material(
                   color: Colors.transparent,
-                  child: SingleChildScrollView( // Fix Overflow
+                  child: SingleChildScrollView( 
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +124,30 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                           ],
                         ),
                         
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
+
+                        // Templates Section
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: templates.entries.map((e) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ActionChip(
+                                  label: Text(e.key),
+                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                  labelStyle: TextStyle(color: theme.colorScheme.primary, fontSize: 12),
+                                  onPressed: () {
+                                    titleController.text = e.key;
+                                    msgController.text = e.value;
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
                   
                         // Subject Input
                         TextFormField(
@@ -185,13 +216,17 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () async {
+                                onPressed: isLoading ? null : () async {
                                   if (titleController.text.isNotEmpty && msgController.text.isNotEmpty) {
-                                     Navigator.pop(ctx);
-                                     final user = ref.read(userSessionServiceProvider).currentUser;
-                                     if (user == null) return;
+                                     setDialogState(() => isLoading = true); // Disable button
                                      
-                                     await DialogUtils.runWithLoading(context, () async {
+                                     final user = ref.read(userSessionServiceProvider).currentUser;
+                                     if (user == null) {
+                                       Navigator.pop(ctx);
+                                       return;
+                                     }
+                                     
+                                     try {
                                         await ref.read(noticeControllerProvider.notifier).sendNotice(
                                           houseId: widget.house.id.toString(),
                                           ownerId: user.uid,
@@ -199,11 +234,18 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                                           message: msgController.text.trim(),
                                           priority: selectedPriority,
                                         );
-                                     });
-                                     if (context.mounted) {
-                                       ScaffoldMessenger.of(context).showSnackBar(
-                                         const SnackBar(content: Text('Notice Broadcasted Successfully!'), backgroundColor: Colors.green)
-                                       );
+                                        
+                                        if (context.mounted) {
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Notice Broadcasted Successfully!'), backgroundColor: Colors.green)
+                                          );
+                                        }
+                                     } catch (e) {
+                                        setDialogState(() => isLoading = false); // Re-enable on error
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                                        }
                                      }
                                   }
                                 },
@@ -214,7 +256,9 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   elevation: 0,
                                 ),
-                                child: Text('Broadcast', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                                child: isLoading 
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Text('Broadcast', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
@@ -251,12 +295,15 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
             border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: isSelected ? 1.5 : 1),
           ),
           alignment: Alignment.center,
-          child: Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: isSelected ? color : Colors.grey.shade600,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              fontSize: 13
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: isSelected ? color : Colors.grey.shade600,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13
+              ),
             ),
           ),
         ),
@@ -281,23 +328,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          // Announcement Icon
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                 BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-              ]
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.campaign_outlined, size: 22),
-              tooltip: 'Broadcast Notice',
-              onPressed: _showBroadcastDialog,
-              color: theme.textTheme.bodyMedium?.color,
-            ),
-          ),
+
           // Notification Icon
           Container(
             margin: const EdgeInsets.only(right: 16),
@@ -409,6 +440,58 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                },
                loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
                error: (_,__) => const SizedBox(),
+             ),
+
+             const SizedBox(height: 24),
+
+             // Quick Actions Section
+             Text('Quick Actions', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.titleLarge?.color)),
+             const SizedBox(height: 12),
+             Row(
+               children: [
+                 Expanded(
+                   child: Material(
+                     color: Colors.transparent,
+                     child: InkWell(
+                       onTap: _showBroadcastDialog,
+                       borderRadius: BorderRadius.circular(16),
+                       child: Container(
+                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                         decoration: BoxDecoration(
+                           gradient: LinearGradient(colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.8)]),
+                           borderRadius: BorderRadius.circular(16),
+                           boxShadow: [
+                             BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))
+                           ]
+                         ),
+                         child: Row(
+                           mainAxisAlignment: MainAxisAlignment.center,
+                           children: [
+                             Container(
+                               padding: const EdgeInsets.all(8),
+                               decoration: BoxDecoration(
+                                 color: Colors.white.withValues(alpha: 0.2),
+                                 shape: BoxShape.circle,
+                               ),
+                               child: const Icon(Icons.campaign_outlined, color: Colors.white, size: 24),
+                             ),
+                             const SizedBox(width: 12),
+                             Expanded(
+                               child: Column(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                   Text('Broadcast Notice', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                   Text('To all tenants', style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                                 ],
+                               ),
+                             )
+                           ],
+                         ),
+                       ),
+                     ),
+                   ),
+                 ),
+               ],
              ),
 
             const SizedBox(height: 32),
@@ -691,7 +774,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                     data: (templates) {
                       if (templates.isEmpty) return const SizedBox.shrink();
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(labelText: 'BHK Type', border: OutlineInputBorder()),
                         items: templates.map((t) => DropdownMenuItem<String>(value: t.id, child: Text('${t.bhkType} - ₹${t.defaultRent}'))).toList(),
                         onChanged: (val) {
@@ -738,7 +821,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                     children: [
                        DropdownButtonFormField<String>(
                          decoration: const InputDecoration(labelText: 'Furnishing Status', border: OutlineInputBorder()),
-                         value: furnishingStatus,
+                         initialValue: furnishingStatus,
                          items: ['Unfurnished', 'Semi-Furnished', 'Fully Furnished']
                              .map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.outfit(fontSize: 14))))
                              .toList(),
@@ -886,7 +969,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                     data: (templates) {
                       if (templates.isEmpty) return const SizedBox.shrink();
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(labelText: 'BHK Type', border: OutlineInputBorder()),
                         items: templates.map((t) => DropdownMenuItem<String>(value: t.id, child: Text(t.bhkType))).toList(),
                         onChanged: (val) {
@@ -1181,7 +1264,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                       ];
                       
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(labelText: 'BHK Type', border: OutlineInputBorder()),
                         items: items,
                         onChanged: (val) {
@@ -1482,7 +1565,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
                         );
                       }
                       return DropdownButtonFormField<String>(
-                        value: selectedBhkTemplateId,
+                        initialValue: selectedBhkTemplateId,
                         decoration: const InputDecoration(
                           labelText: 'BHK Type (Optional)',
                           border: OutlineInputBorder(),
@@ -1618,7 +1701,7 @@ class _HouseDetailScreenState extends ConsumerState<HouseDetailScreen> {
            
            templatesAsync.when(
               data: (templates) => DropdownButtonFormField<String>(
-                   value: _bulkBhkTemplateId,
+                   initialValue: _bulkBhkTemplateId,
                    decoration: InputDecoration(
                      labelText: 'Select BHK Type', 
                      border: const OutlineInputBorder(), 
@@ -1804,12 +1887,15 @@ class _GlassStat extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
           ),
            const SizedBox(height: 4),
