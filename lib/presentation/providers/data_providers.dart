@@ -80,8 +80,39 @@ IPropertyRepository propertyRepository(PropertyRepositoryRef ref) {
 @Riverpod(keepAlive: true)
 ITenantRepository tenantRepository(TenantRepositoryRef ref) {
   final firestore = ref.watch(firestoreProvider);
-  const key = String.fromEnvironment('ENCRYPTION_KEY', defaultValue: 'KirayaBookProSecretKey32CharsLong');
-  const iv = String.fromEnvironment('ENCRYPTION_IV', defaultValue: 'KirayaBookProIV16');
+  
+  // Encryption keys configuration:
+  // - RELEASE builds: MUST provide via --dart-define (secure)
+  // - DEBUG builds: Uses development keys (convenience)
+  const envKey = String.fromEnvironment('ENCRYPTION_KEY');
+  const envIv = String.fromEnvironment('ENCRYPTION_IV');
+  
+  // Debug fallback keys (ONLY used in debug builds for development convenience)
+  const debugKey = 'KirayaBookDevKey32CharactersLng!'; // 32 chars
+  const debugIv = 'KirayaBookDevIV!'; // 16 chars
+  
+  // Use environment keys if provided, otherwise use debug keys in debug mode
+  final String key;
+  final String iv;
+  
+  if (envKey.isNotEmpty && envIv.isNotEmpty) {
+    // Production/custom keys provided
+    key = envKey;
+    iv = envIv;
+  } else {
+    // Check if we're in release mode without keys (security error)
+    const isRelease = bool.fromEnvironment('dart.vm.product');
+    if (isRelease) {
+      throw StateError(
+        'ENCRYPTION_KEY and ENCRYPTION_IV must be set for release builds. '
+        'Build with: flutter build apk --dart-define=ENCRYPTION_KEY=YourKey32Chars! '
+        '--dart-define=ENCRYPTION_IV=YourIV16Chars!'
+      );
+    }
+    // Debug mode - use development keys
+    key = debugKey;
+    iv = debugIv;
+  }
   
   return TenantRepositoryImpl(
     firestore,

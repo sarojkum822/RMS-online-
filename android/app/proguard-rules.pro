@@ -35,3 +35,8 @@
 -keep class com.google.android.gms.ads.** { *; }
 -keep class com.google.ads.** { *; }
 -keep public class com.google.android.gms.ads.AdActivity
+
+# Google ML Kit (Text Recognition)
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+-keep class com.google_mlkit_text_recognition.** { *; }

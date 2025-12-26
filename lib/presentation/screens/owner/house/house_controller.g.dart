@@ -420,7 +420,7 @@ class _HouseStatsProviderElement
   String get houseId => (origin as HouseStatsProvider).houseId;
 }
 
-String _$houseControllerHash() => r'14b7bc713074a2341a7746f3bcaf178ff1fbcebb';
+String _$houseControllerHash() => r'5e8750e23e2e75a2cc469f8ced439b6e56eee413';
 
 /// See also [HouseController].
 @ProviderFor(HouseController)

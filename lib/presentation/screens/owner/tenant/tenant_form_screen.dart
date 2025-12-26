@@ -117,6 +117,7 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
     if (pickedFile != null) {
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Square for profile
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Adjust Photo',
@@ -124,10 +125,14 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true,
+            hideBottomControls: false,
+            showCropGrid: false, // Cleaner look for profile photos
           ),
           IOSUiSettings(
             title: 'Adjust Photo',
             aspectRatioLockEnabled: true,
+            rotateButtonsHidden: true,
+            resetButtonHidden: false,
           ),
         ],
       );
@@ -537,40 +542,102 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
   // --- UI Helper Widgets ---
 
   Widget _buildPhotoSection(ThemeData theme, bool isDark) {
+    final hasImage = _selectedImage != null || 
+                     widget.tenant?.imageBase64 != null || 
+                     widget.tenant?.imageUrl != null;
+    
     return Center(
       child: Column(
         children: [
           GestureDetector(
             onTap: _pickImage,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
+            child: Stack(
+              children: [
+                // Main rectangular photo container
+                Container(
+                  width: 140,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.colorScheme.primary.withValues(alpha: 0.1),
+                        theme.colorScheme.secondary.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: CircleAvatar(
-                radius: 60,
-                backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
-                backgroundImage: _selectedImage != null 
-                    ? FileImage(_selectedImage!) 
-                    : (widget.tenant?.imageBase64 != null 
-                        ? MemoryImage(base64Decode(widget.tenant!.imageBase64!))
-                    : (widget.tenant?.imageUrl != null 
-                          ? CachedNetworkImageProvider(widget.tenant!.imageUrl!) as ImageProvider 
-                          : null)),
-                child: (_selectedImage == null && widget.tenant?.imageUrl == null && widget.tenant?.imageBase64 == null)
-                    ? Icon(Icons.add_a_photo_rounded, size: 36, color: theme.colorScheme.primary.withValues(alpha: 0.6))
-                    : null,
-              ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: hasImage
+                        ? _buildImageWidget()
+                        : Container(
+                            color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add_a_photo_rounded,
+                                  size: 40,
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Add Photo',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ),
+                // Edit icon overlay at bottom-right corner
+                if (hasImage)
+                  Positioned(
+                    right: 4,
+                    bottom: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.secondary,
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -585,6 +652,36 @@ class _TenantFormScreenState extends ConsumerState<TenantFormScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildImageWidget() {
+    if (_selectedImage != null) {
+      return Image.file(
+        _selectedImage!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    } else if (widget.tenant?.imageBase64 != null) {
+      return Image.memory(
+        base64Decode(widget.tenant!.imageBase64!),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    } else if (widget.tenant?.imageUrl != null) {
+      return CachedNetworkImage(
+        imageUrl: widget.tenant!.imageUrl!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        placeholder: (context, url) => const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        errorWidget: (context, url, error) => const Icon(Icons.error),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildSectionHeader(String title, IconData icon) {

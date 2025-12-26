@@ -310,47 +310,16 @@ class _TenantListScreenState extends ConsumerState<TenantListScreen> with Single
           automaticallyImplyLeading: false,
           title: _isSelectionMode 
              ? Text('${_selectedIds.length} Selected', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold))
-             : Row(
-            children: [
-              Text(
-                'Tenants',
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textTheme.titleLarge?.color,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const Spacer(),
-              // Add Button
-              InkWell(
-                onTap: _onAddTenant,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary, 
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.add, color: Colors.white, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Add',
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+             : Text(
+                 'Tenants',
+                 overflow: TextOverflow.ellipsis,
+                 style: GoogleFonts.playfairDisplay(
+                   fontSize: 26,
+                   fontWeight: FontWeight.bold,
+                   color: theme.textTheme.titleLarge?.color,
+                   letterSpacing: -0.5,
+                 ),
+               ),
           actions: _isSelectionMode ? [
              IconButton(
                icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -493,6 +462,17 @@ class _TenantListScreenState extends ConsumerState<TenantListScreen> with Single
             ),
           ],
         ),
+        // Floating Action Button at bottom right
+        floatingActionButton: _isSelectionMode 
+            ? null 
+            : FloatingActionButton.extended(
+                onPressed: _onAddTenant,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.person_add_rounded),
+                label: Text('Add Tenant', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+              ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
   }

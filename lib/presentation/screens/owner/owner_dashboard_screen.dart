@@ -528,10 +528,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                        },
                      ),
                     
-                      // New Combined Dashboard Layout
+                      // Modern Dashboard Stats - 2x2 Grid Layout
                       Column(
                         children: [
-                          // 1. Top Grid (4 Cards)
+                          // Stats Grid (2x2, Full Width)
                               Builder(
                                   builder: (context) {
                                       // Calculate overdue/arrears
@@ -545,52 +545,70 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                         return c.status.name != 'paid' && date.isBefore(currentMonthStart);
                                       }).length;
 
-                                      final allCards = [
-                                         if (ownerPlan == 'power') _buildStatGridCard(theme, Icons.home_outlined, '$totalProperties', 'Total Properties', null),
-                                         if (ownerPlan == 'power') _buildStatGridCard(theme, Icons.people_outline, '$occupiedCount', 'Occupied', null),
-                                         _buildStatGridCard(theme, Icons.currency_rupee, '$currencySymbol${CurrencyUtils.formatNumber(collected)}', 'Collected This Month', const Color(0xFF22C55E)),
-                                         if (ownerPlan == 'power') 
-                                            _buildStatGridCard(
-                                               theme, 
-                                               Icons.error_outline, 
-                                               '$currencySymbol${CurrencyUtils.formatNumber(pending)}', 
-                                               'Pending Payments', 
-                                               const Color(0xFFF59E0B),
-                                               badgeCount: overdueCount,
-                                               onTap: () => context.push('/owner/rent/pending')
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 20),
+                                        child: Column(
+                                          children: [
+                                            // Row 1: Properties & Occupied
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildStatCard(
+                                                    context, theme, 
+                                                    Icons.home_work_rounded, 
+                                                    '$totalProperties', 
+                                                    'Properties',
+                                                    theme.colorScheme.primary,
+                                                    onTap: () => widget.onTabSwitch?.call(2),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: _buildStatCard(
+                                                    context, theme, 
+                                                    Icons.people_rounded, 
+                                                    '$occupiedCount', 
+                                                    'Occupied',
+                                                    const Color(0xFF6366F1),
+                                                    onTap: () => widget.onTabSwitch?.call(1),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                      ];
-
-                                      // If only 1 card (Free/Basic plans), show full width
-                                      if (allCards.length == 1) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 24),
-                                          child: SizedBox(
-                                            height: 120,
-                                            child: allCards.first,
-                                          ),
-                                        );
-                                      }
-
-                                      return SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        physics: const BouncingScrollPhysics(),
-                                        padding: const EdgeInsets.only(bottom: 24),
-                                        child: Row(
-                                          children: allCards.map((card) => Padding(
-                                            padding: const EdgeInsets.only(right: 12),
-                                            child: SizedBox(
-                                              width: 160,
-                                              height: 120,
-                                              child: card,
+                                            const SizedBox(height: 12),
+                                            // Row 2: Collected & Pending
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildStatCard(
+                                                    context, theme, 
+                                                    Icons.check_circle_rounded, 
+                                                    '$currencySymbol${CurrencyUtils.formatCompact(collected)}', 
+                                                    'Collected',
+                                                    const Color(0xFF22C55E),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: _buildStatCard(
+                                                    context, theme, 
+                                                    Icons.schedule_rounded, 
+                                                    '$currencySymbol${CurrencyUtils.formatCompact(pending)}', 
+                                                    'Pending',
+                                                    const Color(0xFFF59E0B),
+                                                    badgeCount: overdueCount,
+                                                    onTap: () => context.push('/owner/rent/pending'),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          )).toList(),
+                                          ],
                                         ),
                                       );
                                   }
                               ),
                         
-                        // 2. Quick Actions Section
+                        // 2. Quick Actions Section (2x2 Grid)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Column(
@@ -605,32 +623,66 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                 )
                               ),
                               const SizedBox(height: 16),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                child: Row(
-                                  children: [
-                                    _buildCompactAction(context, 'Add Property', Icons.add_business_rounded, theme.colorScheme.primary, () {
-                                      HapticFeedback.lightImpact();
-                                      context.push('/owner/houses/add');
-                                    }),
-                                    const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Add Tenant', Icons.person_add_rounded, const Color(0xFF10B981), () {
-                                      HapticFeedback.lightImpact();
-                                      context.push('/owner/tenants/add');
-                                    }),
-                                    const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Expenses', Icons.receipt_long_rounded, const Color(0xFFF59E0B), () {
-                                      HapticFeedback.lightImpact();
-                                      context.push('/owner/expenses');
-                                    }),
-                                    const SizedBox(width: 12),
-                                    _buildCompactAction(context, 'Broadcast', Icons.campaign_rounded, const Color(0xFFEA580C), () {
-                                      HapticFeedback.lightImpact();
-                                      _showGlobalBroadcastDialog(context);
-                                    }),
-                                  ],
-                                ),
+                              // Row 1
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildActionCard(
+                                      context, theme,
+                                      Icons.add_business_rounded,
+                                      'Add Property',
+                                      theme.colorScheme.primary,
+                                      () {
+                                        HapticFeedback.lightImpact();
+                                        context.push('/owner/houses/add');
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildActionCard(
+                                      context, theme,
+                                      Icons.person_add_rounded,
+                                      'Add Tenant',
+                                      const Color(0xFF10B981),
+                                      () {
+                                        HapticFeedback.lightImpact();
+                                        context.push('/owner/tenants/add');
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              // Row 2
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildActionCard(
+                                      context, theme,
+                                      Icons.receipt_long_rounded,
+                                      'Expenses',
+                                      const Color(0xFFF59E0B),
+                                      () {
+                                        HapticFeedback.lightImpact();
+                                        context.push('/owner/expenses');
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildActionCard(
+                                      context, theme,
+                                      Icons.campaign_rounded,
+                                      'Broadcast',
+                                      const Color(0xFFEA580C),
+                                      () {
+                                        HapticFeedback.lightImpact();
+                                        _showGlobalBroadcastDialog(context);
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -664,115 +716,6 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                       children: [
 
                       const SizedBox(height: 8),
-
-                      // Tenant Activity Section
-                      if (tenantsAsync.valueOrNull?.where((t) => t.isActive).isNotEmpty ?? false) ...[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Tenant Activity',
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: theme.textTheme.titleLarge?.color,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () => context.push('/owner/tenants'),
-                              child: Text('View All', 
-                                style: GoogleFonts.outfit(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600
-                                )
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...tenantsAsync.valueOrNull!.where((t) => t.isActive).take(3).map((tenant) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Slidable(
-                            key: ValueKey(tenant.id),
-                            startActionPane: ActionPane(
-                              motion: const ScrollMotion(),
-                              extentRatio: 0.2,
-                              children: [
-                                SlidableAction(
-                                  onPressed: (context) async {
-                                    String phone = tenant.phone.replaceAll(RegExp(r'\D'), '');
-                                    final url = Uri.parse("whatsapp://send?phone=$phone");
-                                    if (await canLaunchUrl(url)) await launchUrl(url);
-                                  },
-                                  backgroundColor: const Color(0xFF25D366),
-                                  foregroundColor: Colors.white,
-                                  icon: Icons.chat_bubble_outline_rounded,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ],
-                            ),
-                            endActionPane: ActionPane(
-                              motion: const ScrollMotion(),
-                              extentRatio: 0.5,
-                              children: [
-                                SlidableAction(
-                                  onPressed: (context) {
-                                     context.push('/owner/tenants/${tenant.id}', extra: tenant);
-                                  },
-                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.8),
-                                  foregroundColor: Colors.white,
-                                  icon: Icons.person_outline,
-                                  label: 'Details',
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                SlidableAction(
-                                  onPressed: (context) async {
-                                    final url = Uri.parse("tel:${tenant.phone}");
-                                    if (await canLaunchUrl(url)) await launchUrl(url);
-                                  },
-                                  backgroundColor: theme.colorScheme.primary,
-                                  foregroundColor: Colors.white,
-                                  icon: Icons.phone_outlined,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ],
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                    child: Text(
-                                      tenant.name.trim().isNotEmpty ? tenant.name.trim()[0].toUpperCase() : '?',
-                                      style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(tenant.name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                                        Text(tenant.phone, style: GoogleFonts.outfit(fontSize: 13, color: theme.hintColor)),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(Icons.chevron_right_rounded, color: theme.hintColor.withValues(alpha: 0.5)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )),
-                        const SizedBox(height: 24),
-                      ],
 
                       // Activity Header
                     Row(
@@ -1289,6 +1232,250 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
         ),
        ),
       );
+  }
+
+  /// Compact iOS-style stat chip for dashboard
+  Widget _buildStatChip(
+    BuildContext context, 
+    ThemeData theme, 
+    IconData icon, 
+    String value, 
+    String label,
+    Color? color, {
+    int badgeCount = 0,
+    VoidCallback? onTap,
+  }) {
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor = color ?? theme.colorScheme.primary;
+    
+    return GestureDetector(
+      onTap: () {
+        if (onTap != null) {
+          HapticFeedback.selectionClick();
+          onTap();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark 
+              ? accentColor.withValues(alpha: 0.15) 
+              : accentColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: accentColor.withValues(alpha: isDark ? 0.3 : 0.15),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: accentColor),
+            const SizedBox(width: 8),
+            Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: accentColor,
+              ),
+            ),
+            if (label.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+            if (badgeCount > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Compact horizontal pill-shaped stat card
+  Widget _buildStatCard(
+    BuildContext context, 
+    ThemeData theme, 
+    IconData icon, 
+    String value, 
+    String label,
+    Color accentColor, {
+    int badgeCount = 0,
+    VoidCallback? onTap,
+  }) {
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: () {
+        if (onTap != null) {
+          HapticFeedback.selectionClick();
+          onTap();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: isDark ? 0.12 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: accentColor),
+            ),
+            const SizedBox(width: 10),
+            // Value + Label
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    value,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: theme.textTheme.bodyLarge?.color,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Badge (if any)
+            if (badgeCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Compact horizontal action card (matches stat card design)
+  Widget _buildActionCard(
+    BuildContext context, 
+    ThemeData theme, 
+    IconData icon, 
+    String label,
+    Color accentColor,
+    VoidCallback onTap,
+  ) {
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: isDark ? 0.12 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: accentColor),
+            ),
+            const SizedBox(width: 10),
+            // Label
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textTheme.bodyLarge?.color,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            // Arrow indicator
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 12,
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.3),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildAlertTile(BuildContext context, String message, IconData icon, Color color, VoidCallback onTap) {

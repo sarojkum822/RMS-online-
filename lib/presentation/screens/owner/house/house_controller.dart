@@ -1,14 +1,23 @@
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../domain/entities/house.dart';
 import '../../../providers/data_providers.dart';
-// Maybe not needed for stats anymore?
-import 'package:uuid/uuid.dart'; // Add uuid import 
+import 'package:uuid/uuid.dart';
 
 part 'house_controller.g.dart';
 
 @riverpod
 class HouseController extends _$HouseController {
+  /// Get current authenticated user's ID or throw if not logged in
+  String get _currentUserId {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      throw Exception('User not authenticated. Please log in again.');
+    }
+    return uid;
+  }
+
   @override
   Stream<List<House>> build() {
     final repo = ref.watch(propertyRepositoryProvider);
@@ -18,9 +27,7 @@ class HouseController extends _$HouseController {
   Future<void> addHouse(String name, String address, String notes, int? totalUnits, {String? imageUrl, String? imageBase64, String propertyType = 'Apartment'}) async {
     final repo = ref.read(propertyRepositoryProvider);
     final houseId = const Uuid().v4();
-    final ownerId = 'current_user_id'; // TODO: Get actual OwnerId via Auth or Repository handles it? 
-    // Repo usually handles OwnerId injection if not passed.
-    // But House entity needs an ID.
+    final ownerId = _currentUserId; // Get actual authenticated user ID
     
     final house = House(
       id: houseId, 
@@ -30,11 +37,8 @@ class HouseController extends _$HouseController {
       imageUrl: imageUrl, 
       imageBase64: imageBase64,
       propertyType: propertyType,
-      ownerId: 'placeholder', // Repo will overwrite or we should get it
+      ownerId: ownerId,
     );
-    // Note: If repo.createHouse takes House, it should probably respect ID if provided or generate if not.
-    // My previous repo update for House is pending verification. 
-    // Assuming Repo expects String ID now.
     
     await repo.createHouse(house);
 
@@ -47,7 +51,7 @@ class HouseController extends _$HouseController {
           nameOrNumber: 'Flat $i',
           baseRent: 0.0,
           defaultDueDay: 1,
-          ownerId: 'placeholder',
+          ownerId: ownerId,
         );
         await repo.createUnit(unit);
       }
@@ -58,7 +62,7 @@ class HouseController extends _$HouseController {
         nameOrNumber: 'Main Unit',
         baseRent: 0.0,
         defaultDueDay: 1,
-        ownerId: 'placeholder',
+        ownerId: ownerId,
       );
       await repo.createUnit(unit);
     }
@@ -101,7 +105,7 @@ class HouseController extends _$HouseController {
        nameOrNumber: name,
        baseRent: baseRent ?? 0.0,
        defaultDueDay: 1,
-       ownerId: 'placeholder',
+       ownerId: _currentUserId,
        bhkTemplateId: bhkTemplateId,
        bhkType: bhkType,
        imagesBase64: imageBase64 != null ? [imageBase64] : const [],
@@ -134,7 +138,7 @@ class HouseController extends _$HouseController {
           nameOrNumber: name,
           baseRent: baseRent ?? 0.0,
           defaultDueDay: 1,
-          ownerId: 'placeholder',
+          ownerId: _currentUserId,
           bhkTemplateId: bhkTemplateId,
           bhkType: bhkType,
           imagesBase64: imageBase64 != null ? [imageBase64] : const [],
@@ -167,7 +171,7 @@ class HouseController extends _$HouseController {
           nameOrNumber: name,
           baseRent: baseRent ?? 0.0,
           defaultDueDay: 1,
-          ownerId: 'placeholder',
+          ownerId: _currentUserId,
           bhkTemplateId: bhkTemplateId,
           bhkType: bhkType,
           imagesBase64: imageBase64 != null ? [imageBase64] : const [],
